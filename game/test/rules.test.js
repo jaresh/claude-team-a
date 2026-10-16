@@ -48,17 +48,17 @@ function roomMap(w, h) {
 
 const idx = (map, x, y) => y * map.w + x;
 
-test('spawnMonsters makes 3 + 2*depth monsters', () => {
+test('spawnMonsters makes 3 + depth monsters', () => {
   const map = roomMap(20, 12);
   for (const depth of [1, 2, 3, 5]) {
     const monsters = spawnMonsters(seqRng([5, 9, 2, 14, 7]), map, depth, new Set());
-    assert.equal(monsters.length, 3 + 2 * depth);
+    assert.equal(monsters.length, 3 + depth);
   }
 });
 
-test('spawnItems makes 2 + floor(depth/2) items', () => {
+test('spawnItems makes 3 + floor(depth/2) items', () => {
   const map = roomMap(20, 12);
-  const expected = { 1: 2, 2: 3, 3: 3, 4: 4, 5: 4 };
+  const expected = { 1: 3, 2: 4, 3: 4, 4: 5, 5: 5 };
   for (const depth of [1, 2, 3, 4, 5]) {
     const items = spawnItems(seqRng([5, 9, 2, 14, 7]), map, depth, new Set());
     assert.equal(items.length, expected[depth]);

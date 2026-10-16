@@ -14,6 +14,8 @@ starts or finishes.
 | sim | M0 wave 3: sim/bot.mjs + test, 5-seed sample | haiku | medium | done (3/3 tests, sample ok) | results/handoff/sim.md |
 | view | e1-B: getView player + inventory, test/view.test.js (start 2026-10-16T20:39:02Z) | haiku (dev) | medium | done (23/23; merged 91/91 + accept 8/8 + smoke ok) | results/handoff/view.md |
 | screen | e1-B: ui/camera.js, render.js, index.html, input.js, mock-game.js + camera test | haiku (dev) | medium | done (22/22; merged 91/91 + accept 8/8 + smoke ok) | results/handoff/screen.md |
+| tuner | e2-A: balance per "e2: balance" (core/, data/, unit tests) | haiku (dev) | medium | done (37/37; win 16%; merged 97/97 + accept 7/7 + smoke ok) | results/handoff/tuner.md |
+| hud | e2-A: ui/hud.js + test, index.html, render.js (end screen, HP bar) | haiku (dev) | medium | done (27/27; lead moved #end after .controls for smoke; merged accept pass) | results/handoff/hud.md |
 
 ## Background jobs
 

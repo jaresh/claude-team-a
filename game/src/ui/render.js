@@ -1,7 +1,8 @@
-// Draws a View onto a canvas and fills the HUD, log and inventory elements.
+// Draws a View onto a canvas and fills the HUD, HP bar, end panel, log and inventory elements.
 // DOM is touched only inside render(), never at import time.
 
 import { MIN_CELL, cameraWindow } from './camera.js';
+import { endMessage, hpColor } from './hud.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
@@ -66,7 +67,27 @@ export function render(canvas, view, hudEl, logEl) {
     logEl.appendChild(li);
   }
 
+  renderHpBar(view.hud);
+  renderEnd(view);
   renderInventory(document.getElementById('inventory'), view.inventory);
+}
+
+// Fill width is hp / maxHp; the colour comes from hpColor().
+function renderHpBar(h) {
+  const fill = document.getElementById('hpbar-fill');
+  if (!fill) return;
+  const ratio = h.maxHp > 0 ? Math.min(1, Math.max(0, h.hp / h.maxHp)) : 0;
+  fill.style.width = `${ratio * 100}%`;
+  fill.style.background = hpColor(h.hp, h.maxHp);
+}
+
+// The end panel shows only when the game is over.
+function renderEnd(view) {
+  const panel = document.getElementById('end');
+  if (!panel) return;
+  const msg = endMessage(view);
+  panel.hidden = msg === null;
+  document.getElementById('end-msg').textContent = msg || '';
 }
 
 // One button per item; a tap sends { type: 'use', index } through input.js.
@@ -74,7 +95,10 @@ function renderInventory(invEl, inventory) {
   if (!invEl) return;
   invEl.textContent = '';
   if (!inventory || inventory.length === 0) {
-    invEl.textContent = 'Inventory empty';
+    const empty = document.createElement('span');
+    empty.className = 'empty';
+    empty.textContent = 'Inventory empty';
+    invEl.appendChild(empty);
     return;
   }
   inventory.forEach((item, i) => {

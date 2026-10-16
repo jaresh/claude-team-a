@@ -42,12 +42,23 @@
   button.wide { grid-column: span 2; }
   #inventory { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: min(100%, 240px); }
   .hint { font-size: 12px; color: #6b7280; text-align: center; margin: 0; }
+  #hpbar { height: 10px; background: #1f2937; border-radius: 5px; overflow: hidden; margin: 8px 0 0; }
+  #hpbar-fill { height: 100%; width: 100%; background: #3fb950; transition: width 0.2s; }
+  #end {
+    text-align: center; margin: 12px 0 0; padding: 12px; border: 1px solid #334155;
+    border-radius: 8px; background: #111827;
+    position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); width: min(90vw, 320px); z-index: 10;
+  }
+  #end p { margin: 0 0 10px; font-size: 16px; }
+  #end button { width: min(100%, 240px); }
+  #inventory .empty { grid-column: 1 / -1; color: #6b7280; text-align: center; }
 </style>
 </head>
 <body>
 <main>
   <h1>Roguelike</h1>
   <canvas id="screen" aria-label="Game map"></canvas>
+  <div id="hpbar" role="meter" aria-label="HP" aria-valuemin="0"><div id="hpbar-fill"></div></div>
   <div id="hud" aria-live="polite"></div>
   <ul id="log" aria-live="polite"></ul>
 
@@ -70,6 +81,10 @@
     </div>
     <div id="inventory" role="group" aria-label="Inventory"></div>
     <p class="hint">Arrows or WASD / hjkl / yubn move. . wait, g pick up, &gt; descend, 1-9 use.</p>
+  </div>
+  <div id="end" hidden>
+    <p id="end-msg" aria-live="polite"></p>
+    <button data-action="new">New game</button>
   </div>
 </main>
 <script type="module" src="src/main.js"></script>
