@@ -18,12 +18,20 @@ teammates, is most of the cost.
 
 - L1. Plan in one session, run in another. The planning session writes the run's spec,
   `results/runs/<run>/spec.md`: goal, contract sections, teammate prompts, acceptance command,
-  lead steps. Each run then starts in a fresh lead session that reads CLAUDE.md, the spec and the
-  files the spec names. It does not rely on earlier conversations.
+  lead steps. Each run then starts in a fresh lead session, `kit/run.sh <spec> [variant]`, that
+  reads CLAUDE.md, the spec and the files the spec names. It does not rely on earlier
+  conversations.
 - L2. One lead turn per wave for bookkeeping: update the status file in the same turn as the
   spawns, and again in the same turn as the merge check. Do not re-read a file you just wrote.
 - L3. After spawning, end the turn. Completion notices wake the lead; do not poll.
 - L4. From a handoff, read Done and Next step; read the rest only when a decision needs it.
+- L5. A run lead follows a written spec, so it runs on Sonnet 5.5 at effort `medium` with a
+  5-minute prompt cache (the `kit/run.sh` defaults). The cache expires after 5 idle minutes: for
+  waves that take longer, start the run with `CACHE_TTL=1h`.
+- L6. The run lead does not measure its own session or write cost tables. When the run is done
+  and accepted, it writes the end time (`date -u +%FT%TZ`) to the end-time file `kit/run.sh`
+  named, commits and pushes, and asks the user to type `/exit`. `kit/run.sh` then measures the
+  finished session and compares variants with `kit/tools/teamcost.py`.
 
 ## Budget
 
@@ -72,8 +80,9 @@ teammates, is most of the cost.
 13. Each edit to a shared generator or config is logged with one line in
     `results/changes.md`: date, teammate, file, function or row, what changed. Merging
     reads the log, not the diff.
-14. Shared tables are changed by appending rows at the end, with the Edit tool. Never rewrite
-    the whole file. Never edit a file while another teammate is editing it.
+14. Shared tables are changed by appending rows at the end, with the Edit tool, unless the task
+    says to change values in existing rows (log each change, rule 13). Never rewrite the whole
+    file. Never edit a file while another teammate is editing it.
 
 ## Reports and token use
 

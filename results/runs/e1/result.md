@@ -1,5 +1,33 @@
 # Run e1 result: rules v0 (A) vs rules v1 (B)
 
+## Correction (lead of the planning session, after the run)
+
+Remeasured with `teamcost.py --session 336f559a --until 2026-10-16T20:40:56Z`: B cost **$0.360**,
+**19% less** than A, not $0.319 / 28%. B's lead measured itself while its last message was
+still being written, so that message was missed. Table from `teamcost.py --compare`:
+
+| Metric | A | B | B vs A |
+|---|---|---|---|
+| Total $ | 0.445 | 0.360 | -19% |
+| Lead $ | 0.421 | 0.341 | -19% |
+| Team $ | 0.024 | 0.020 | -18% |
+| Lead model | opus-5-5 | opus-5-5 |  |
+| Lead cache read $ | 0.317 | 0.066 | -79% |
+| Lead cache write $ | 0.053 | 0.175 | +228% |
+| Lead output $ | 0.051 | 0.099 | +96% |
+| Lead messages | 5 | 8 | +60% |
+| Lead tool calls | 6 | 9 | +50% |
+| Lead output tokens | 2527 | 4952 | +96% |
+| Lead peak context | 320K | 49K | -85% |
+| Teammates | 2 | 2 | +0% |
+| Team tool calls | 19 | 23 | +21% |
+| Team peak context | 61K | 39K | -35% |
+| Team messages over 100K | 0 | 0 |  |
+
+
+The original write-up follows; its dollar figures for B are the uncorrected ones.
+
+
 Same spec, same base (`run/e1/base`, 445f130), same teammate prompts and acceptance command.
 Reports: `results/metrics/e1-A.json` (branch `run/e1/A`), `results/metrics/e1-B.json`.
 

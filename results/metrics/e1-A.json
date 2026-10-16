@@ -1,6 +1,7 @@
 {
   "since": "2026-10-16T20:21:18Z",
   "until": "2026-10-16T20:22:53Z",
+  "session": null,
   "total_cost": 0.44508409000000004,
   "by_model": {
     "claude-opus-5-5": {
@@ -31,8 +32,11 @@
   "agents": [
     {
       "agent": "lead:55f7d26e",
+      "role": "lead",
       "effort": "",
       "file": "/root/.claude/projects/-home-jaca-claude-team-a/55f7d26e-b656-4a18-8f19-5d4285d3cf4c.jsonl",
+      "session": "55f7d26e-b656-4a18-8f19-5d4285d3cf4c",
+      "started": "2026-10-16T19:33:39.103000+00:00",
       "model": "claude-opus-5-5",
       "msgs": 5,
       "tools": 6,
@@ -45,13 +49,20 @@
       "cost": 0.42112020000000006,
       "unpriced": 0,
       "out_est": 0,
+      "cost_in": 5.599999999999999e-05,
+      "cost_cr": 0.31713220000000003,
+      "cost_cw": 0.053392,
+      "cost_out": 0.05054,
       "first": "2026-10-16T20:21:21.516000+00:00",
       "last": "2026-10-16T20:22:50.306000+00:00"
     },
     {
       "agent": "screen",
+      "role": "teammate",
       "effort": "medium",
       "file": "/root/.claude/projects/-home-jaca-claude-team-a/55f7d26e-b656-4a18-8f19-5d4285d3cf4c/subagents/agent-a5215284bf33faa2a.jsonl",
+      "session": "55f7d26e-b656-4a18-8f19-5d4285d3cf4c",
+      "started": "2026-10-16T20:21:32.751000+00:00",
       "model": "claude-haiku-5-5",
       "msgs": 10,
       "tools": 11,
@@ -64,13 +75,20 @@
       "cost": 0.014633674999999997,
       "unpriced": 0,
       "out_est": 10,
+      "cost_in": 2.0000000000000003e-06,
+      "cost_cr": 0.0043443,
+      "cost_cw": 0.0076013750000000005,
+      "cost_out": 0.002686,
       "first": "2026-10-16T20:21:32.751000+00:00",
       "last": "2026-10-16T20:22:44.060000+00:00"
     },
     {
       "agent": "view",
+      "role": "teammate",
       "effort": "medium",
       "file": "/root/.claude/projects/-home-jaca-claude-team-a/55f7d26e-b656-4a18-8f19-5d4285d3cf4c/subagents/agent-aea2e7d0e5e883c0f.jsonl",
+      "session": "55f7d26e-b656-4a18-8f19-5d4285d3cf4c",
+      "started": "2026-10-16T20:21:33.152000+00:00",
       "model": "claude-haiku-5-5",
       "msgs": 7,
       "tools": 8,
@@ -83,6 +101,10 @@
       "cost": 0.009330215000000001,
       "unpriced": 0,
       "out_est": 7,
+      "cost_in": 1.4000000000000001e-06,
+      "cost_cr": 0.0024951900000000004,
+      "cost_cw": 0.006051625000000001,
+      "cost_out": 0.000782,
       "first": "2026-10-16T20:21:33.152000+00:00",
       "last": "2026-10-16T20:21:54.700000+00:00"
     }
