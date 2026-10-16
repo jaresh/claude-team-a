@@ -148,6 +148,16 @@ def scan(path, since, until, project):
         for k in PARTS:
             row[k] += c[k]
         row["cost"] += sum(c.values())
+    # A lead's first message can read a prompt prefix (tools, system prompt) that another
+    # session cached within the TTL. cold_extra is what that message would cost more had it
+    # written the prefix itself, so runs started at different times compare on a cold start.
+    model, u = next(iter(usage.values()))
+    p = PRICES.get(model)
+    row["startup_ctx"], row["cold_extra"] = prompt_size(u), 0.0
+    if role == "lead" and p:
+        cc = u.get("cache_creation") or {}
+        cw = p["cw1h"] if cc.get("ephemeral_1h_input_tokens") else p["cw5m"]
+        row["cold_extra"] = (cw - p["cr"]) * u.get("cache_read_input_tokens", 0) / 1e6
     return row
 
 
@@ -155,8 +165,10 @@ def totals(agents, role):
     rows = [r for r in agents if r.get("role", "lead" if r["agent"].startswith("lead:")
                                          else "teammate") == role]
     t = {k: sum(r.get(k, 0) for r in rows) for k in ("cost", "msgs", "tools", "output",
-                                                     "over_100k", "compactions") + PARTS}
+                                                     "over_100k", "compactions",
+                                                     "cold_extra") + PARTS}
     t["peak_ctx"] = max((r["peak_ctx"] for r in rows), default=0)
+    t["startup_ctx"] = max((r.get("startup_ctx", 0) for r in rows), default=0)
     t["models"] = sorted({r["model"].replace("claude-", "") for r in rows})
     t["count"] = len(rows)
     return t
@@ -171,6 +183,8 @@ def compare(path_a, path_b):
         return f"{(y - x) / x * 100:+.0f}%" if x else ""
 
     rows = [("Total $", a["total_cost"], b["total_cost"], "$"),
+            ("Total $, cold start", a["total_cost"] + la["cold_extra"],
+             b["total_cost"] + lb["cold_extra"], "$"),
             ("Lead $", la["cost"], lb["cost"], "$"),
             ("Team $", ta["cost"], tb["cost"], "$"),
             ("Lead model", ", ".join(la["models"]), ", ".join(lb["models"]), "s"),
@@ -180,6 +194,7 @@ def compare(path_a, path_b):
             ("Lead messages", la["msgs"], lb["msgs"], "n"),
             ("Lead tool calls", la["tools"], lb["tools"], "n"),
             ("Lead output tokens", la["output"], lb["output"], "n"),
+            ("Lead start-up prompt", la["startup_ctx"], lb["startup_ctx"], "k"),
             ("Lead peak context", la["peak_ctx"], lb["peak_ctx"], "k"),
             ("Teammates", ta["count"], tb["count"], "n"),
             ("Team tool calls", ta["tools"], tb["tools"], "n"),
@@ -256,13 +271,18 @@ def main():
     total = sum(r["cost"] for r in rows)
     print(f"total ${total:.4f}" + ("  (some messages unpriced)" if any(r["unpriced"] for r in rows)
                                    else ""))
+    cold = sum(r["cold_extra"] for r in rows)
+    if cold:
+        print(f"cold start ${total + cold:.4f}: the lead's first message read a prefix another "
+              f"session had cached; written by this run it would cost ${cold:.4f} more.")
     if any(r["out_est"] for r in rows):
         print("out_est: responses whose output was estimated from visible content "
               f"({CHARS_PER_TOKEN} chars/token); hidden thinking is not counted.")
     if a.json:
         with open(a.json, "w") as f:
             json.dump({"label": a.label, "since": a.since, "until": a.until,
-                       "session": a.session, "total_cost": total, "by_model": by_model,
+                       "session": a.session, "total_cost": total,
+                       "cold_start_cost": total + cold, "by_model": by_model,
                        "agents": rows}, f, indent=2)
 
 

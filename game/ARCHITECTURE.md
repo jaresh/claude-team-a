@@ -252,6 +252,61 @@ export function poisonLabel(view) // -> `Poisoned (${view.hud.poison})` when > 0
   null.
 - `mock-game.js` returns `visibleMonsters` and `hud.poison` too.
 
+### e4: traps (owner: traps)
+
+`game/src/data/traps.js`:
+
+```js
+export const TRAPS = [
+  { kind: 'spike', glyph: '^', color: '#c9d1d9', effect: 'damage', amount: 3, minDepth: 1 },
+  // ... at least 3 kinds; effect is 'damage', 'poison' or 'teleport', each used at least once
+];
+// Trap: { id, kind, glyph, color, effect, amount, x, y, hidden }
+```
+
+- **`rules.js`.** `export function spawnTraps(rng, map, depth, occupied) // -> Trap[]` makes
+  `1 + depth` traps from kinds with `minDepth <= depth`, placed like `spawnItems` (FLOOR, not in
+  `occupied`, never `map.start` or `map.stairs`; adds each index to `occupied`), all with
+  `hidden: true`. Its `id` values don't collide with monster or item ids on the level.
+- **`game.js`.** `GameState` gets `traps: Trap[]`, spawned after monsters and items with the same
+  `occupied` set, on every level (`newGame` and `descend`). When the player moves onto a trap's
+  tile, before the monster phase, the trap sets `hidden: false` and fires (every time, not only
+  the first):
+  - `damage`: the player loses `amount` hp but never drops below 1; log
+    `A <kind> trap wounds you for <n>.` (never "hits you": the bot reads that phrase for killers);
+  - `poison`: `player.poison = 3`, then poison ticks as in e3; log `A poison needle pricks you.`;
+  - `teleport`: the player moves to a random FLOOR tile with no monster and no trap, chosen with
+    the game's rng; log `A teleport trap moves you.`
+
+  Monsters never trigger traps.
+- **`getView`.** Cell order: player, monster, item, trap, tile. A trap shows on a visible tile
+  only when it is not hidden. `View` adds `traps: [{ kind, glyph, color, x, y }]`: traps that are
+  not hidden, on visible tiles.
+- **Balance.** The e2 targets still hold (`game/accept/e2-balance.test.js`). Besides the changes
+  the e2 balance section allows, the `amount` values in `TRAPS` may change (the trap count
+  stays `1 + depth`); log each change (rule 13).
+
+### e4: help overlay (owner: help)
+
+`game/src/ui/help.js`:
+
+```js
+export const HELP_KEYS // -> [{ keys, action }], at least: move (arrows, WASD, hjkl, yubn),
+//   wait (.), pick up (g), descend (>), use item (1-9), help (?), close help (Esc)
+export function glyphRows(view) // -> [{ glyph, color, name }]:
+//   { glyph: '@', name: 'you' }, then { glyph: '>', name: 'stairs down' }, then one row per
+//   trap kind in view.traps, in first-seen order, with that trap's glyph and color and
+//   name `${kind} trap`. Colors: '@' '#f8fafc' and '>' '#fde047', as getView draws them.
+```
+
+- `input.js`: key `?` -> `{ type: 'help' }`, key `Escape` -> `{ type: 'close' }`, and a button
+  with `data-action="help"` -> `{ type: 'help' }`.
+- `index.html` gets a `?` button (`data-action="help"`) and a help panel, `id="help"`, hidden at
+  start. `main.js` handles `help` (toggles the panel) and `close` (hides it) itself and never
+  passes them to `act`. `render.js` fills the panel with one line per `HELP_KEYS` entry and one
+  per `glyphRows(view)` row, in that row's colour.
+- `mock-game.js` returns `traps` in its view too (at least one trap, for the panel).
+
 ### `sim/bot.mjs` (owner: sim, wave 3)
 
 `node game/sim/bot.mjs --seeds <file> --out <file>` plays each seed with a simple greedy policy

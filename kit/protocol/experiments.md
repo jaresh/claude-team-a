@@ -13,6 +13,11 @@ definition) build the same feature as variant A for less money, with the same re
 - **Fresh sessions.** Each variant runs in its own fresh lead session (`kit/run.sh`), so neither
   pays for the other's context, and each is measured as one whole session.
 - **Noise.** One run per variant is noisy. Repeat both when they differ by less than ~20%.
+  (e3: two runs of the same setup differed by 3% in total, 24% in team cost.)
+- **Cold start.** A lead's first message can read its tools and system prompt from a cache that
+  another session with the same prefix wrote within the TTL (an earlier run, a parallel variant).
+  That saves about $0.10 on a Sonnet lead and depends only on timing, so compare
+  "Total $, cold start" from `teamcost.py --compare`: the cost as if the run wrote the prefix itself.
 
 ## Steps
 
@@ -37,7 +42,7 @@ session from inside itself: its current message isn't complete yet.
 
 | Metric | Source |
 |---|---|
-| Total, lead and team USD; lead cache read, cache write and output | `teamcost.py --compare` |
+| Total (and total at a cold start), lead and team USD; lead cache read, cache write and output | `teamcost.py --compare` |
 | Tool calls, tokens, peak context per agent; messages over 100K | `teamcost.py` |
 | Handoffs and successors | `results/handoff/` |
 | Accepted on first check; fixes by the lead | `results/runs/<run>/<variant>.md` |

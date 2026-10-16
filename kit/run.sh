@@ -17,6 +17,7 @@
 # Settings (environment; defaults are the rules' run lead):
 #   LEAD_MODEL=sonnet  LEAD_EFFORT=medium  CACHE_TTL=1h  RUN_TIMEOUT=1800 (seconds, --bg only)
 #   EXTRA_SETTINGS='{...}' (JSON, merged into the session's settings)
+#   LEAD_ARGS='...' (extra claude CLI flags for the lead, split on spaces, e.g. --tools ...)
 set -euo pipefail
 bg=0
 if [ "${1:-}" = "--bg" ]; then bg=1; shift; fi
@@ -55,7 +56,8 @@ work=$(pwd)
 model=${LEAD_MODEL:-sonnet}
 effort=${LEAD_EFFORT:-medium}
 ttl=${CACHE_TTL:-1h}
-label="lead=$model effort=$effort cache=$ttl${EXTRA_SETTINGS:+ extra=$EXTRA_SETTINGS}"
+label="lead=$model effort=$effort cache=$ttl${EXTRA_SETTINGS:+ extra=$EXTRA_SETTINGS}${LEAD_ARGS:+ args=$LEAD_ARGS}"
+read -ra lead_args <<<"${LEAD_ARGS:-}"
 # Session settings, deep-merged in order: the kit's settings (so a run has them even where
 # install.py hasn't been run), the cache TTL, then EXTRA_SETTINGS (a JSON object) for variants
 # that test a setting, e.g. EXTRA_SETTINGS='{"modelSettings":{...}}'.
@@ -82,7 +84,7 @@ echo "Run $run${variant:+ variant $variant}: $label, in $work"
 if [ "$bg" = 1 ]; then
   # Background sessions don't inherit this environment, so the cache TTL goes in --settings.
   out=$(claude --bg --model "$model" --effort "$effort" --permission-mode auto \
-        --settings "$settings" \
+        --settings "$settings" "${lead_args[@]}" \
         "$prompt When step 4 is pushed you are done: nobody will type /exit, kit/run.sh stops the session." 2>&1)
   id=$(grep -oE 'backgrounded · [0-9a-f]+' <<<"$out" | awk '{print $3}')
   [ -n "$id" ] || { echo "Could not start the background session: $out" >&2; exit 1; }
@@ -104,7 +106,7 @@ if [ "$bg" = 1 ]; then
   claude stop "$id" >/dev/null 2>&1 || true
 else
   claude --session-id "$session" --model "$model" --effort "$effort" \
-    --settings "$settings" "$prompt" || true
+    --settings "$settings" "${lead_args[@]}" "$prompt" || true
 fi
 
 # Measured after the session ends, so every message in the transcript is complete.
