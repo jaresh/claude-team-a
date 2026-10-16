@@ -1,7 +1,9 @@
 // Browser smoke test (lead-only): serves the repo, opens the game at phone width in headless
 // Chromium, presses keys and taps buttons, and checks the page. Exits 1 when a check fails.
 //
-//   node game/tools/smoke.mjs [screenshot.png]
+//   node game/tools/smoke.mjs [screenshot.png] [--ids inventory,hpbar,end]
+//
+// --ids lists elements that must exist (default: inventory).
 //
 // Needs playwright-core and its Chromium. Set PLAYWRIGHT_CORE to playwright-core's index.mjs if
 // the default path below does not exist on this machine.
@@ -30,6 +32,10 @@ const server = createServer(async (req, res) => {
 });
 await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const url = `http://127.0.0.1:${server.address().port}/game/?seed=42`;
+const args = process.argv.slice(2);
+const idsAt = args.indexOf('--ids');
+const ids = idsAt >= 0 ? args.splice(idsAt, 2)[1].split(',') : ['inventory'];
+const shot = args[0] || 'smoke.png';
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 360, height: 780 }, deviceScaleFactor: 2, hasTouch: true });
@@ -49,17 +55,17 @@ for (const button of (await page.$$('button')).slice(0, 4)) {
   await button.tap().catch((e) => errors.push('tap: ' + e.message));
 }
 await page.waitForTimeout(200);
-const layout = await page.evaluate(() => {
+const layout = await page.evaluate((ids) => {
   const canvas = document.querySelector('canvas');
   return {
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth,
     canvas: canvas && { ...canvas.dataset, w: canvas.clientWidth, h: canvas.clientHeight },
-    inventory: !!document.getElementById('inventory'),
+    elements: Object.fromEntries(ids.map((id) => [id, !!document.getElementById(id)])),
   };
-});
+}, ids);
 const turnAfter = await turn();
-await page.screenshot({ path: process.argv[2] || 'smoke.png', fullPage: true });
+await page.screenshot({ path: shot, fullPage: true });
 await browser.close();
 server.close();
 
@@ -68,7 +74,7 @@ const checks = {
   noSideScroll: layout.scrollWidth <= layout.innerWidth,
   inputWorks: Number(turnAfter) > Number(turnBefore),
   cellAtLeast16: Number(layout.canvas?.cell) >= 16,
-  inventoryPanel: layout.inventory,
+  ...Object.fromEntries(ids.map((id) => [`#${id}`, layout.elements[id]])),
 };
 console.log(JSON.stringify({ checks, errors, layout, turns: [turnBefore, turnAfter] }, null, 1));
 process.exit(Object.values(checks).every(Boolean) ? 0 : 1);

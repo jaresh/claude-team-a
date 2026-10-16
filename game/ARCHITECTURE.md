@@ -179,6 +179,44 @@ Other UI changes: `index.html` gets the `#inventory` element and loses the `Use 
 `input.js` handles taps on the inventory buttons (keys `1`-`9` keep working); `mock-game.js`
 returns `player` and `inventory` in its view too.
 
+### e2: balance (owner: tuner)
+
+Targets, checked by `game/accept/e2-balance.test.js` (the bot on `game/sim/seeds-200.txt`,
+5000-turn cap):
+
+- win rate between 15% and 40%;
+- mean depth reached at least 3.0;
+- no monster kind causes more than 40% of deaths.
+
+Allowed changes, each logged in `results/changes.md` (rule 13):
+
+- values in existing rows of `data/monsters.js` and `data/items.js`, and new rows appended at
+  the end;
+- the spawn counts in `core/rules.js` (`3 + 2 * depth` and `2 + Math.floor(depth / 2)`);
+- `PLAYER_START` and the level-up gains in `core/game.js`.
+
+Not allowed: `game/sim/bot.mjs`, `game/accept/`, any other logic.
+
+### e2: end screen and HP bar (owner: hud)
+
+`game/src/ui/hud.js`:
+
+```js
+export function endMessage(view) // -> string | null
+//   status 'playing' -> null
+//   'dead' -> `You died on depth ${view.hud.depth} after ${view.hud.turn} turns.`
+//   'won'  -> `You won! Depth ${view.hud.depth} in ${view.hud.turn} turns.`
+export function hpColor(hp, maxHp) // -> '#3fb950' if hp / maxHp > 0.5,
+//                                       '#d29922' if > 0.25, else '#f85149'
+```
+
+- `index.html` gets an HP bar, `id="hpbar"`, whose filled inner part is `hp / maxHp` wide, and an
+  end panel, `id="end"`, hidden while playing, holding the end message and a New game button
+  (the same action as the existing New game button).
+- `render.js` colours and sizes the HP bar with `hpColor`, and shows `#end` with
+  `endMessage(view)` when it isn't null, hidden otherwise.
+- The empty-inventory text spans the panel's full width (in e1 it wraps onto two lines).
+
 ### `sim/bot.mjs` (owner: sim, wave 3)
 
 `node game/sim/bot.mjs --seeds <file> --out <file>` plays each seed with a simple greedy policy
