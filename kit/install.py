@@ -59,6 +59,22 @@ def merge_settings(target):
     return "set " + ", ".join(missing) + " in .claude/settings.json"
 
 
+def install_agents(target):
+    src = os.path.join(KIT, "agents")
+    dest = os.path.join(target, ".claude", "agents")
+    made = []
+    for name in sorted(os.listdir(src)):
+        path = os.path.join(dest, name)
+        new = open(os.path.join(src, name)).read()
+        if os.path.exists(path) and open(path).read() == new:
+            continue
+        os.makedirs(dest, exist_ok=True)
+        with open(path, "w") as f:
+            f.write(new)
+        made.append(name)
+    return "installed .claude/agents/" + ", ".join(made) if made else "agents already installed"
+
+
 def update_gitignore(target):
     path = os.path.join(target, ".gitignore")
     lines = open(path).read().split("\n") if os.path.exists(path) else []
@@ -88,7 +104,8 @@ def main():
     if len(sys.argv) != 2 or not os.path.isdir(sys.argv[1]):
         sys.exit(__doc__.strip())
     target = sys.argv[1]
-    for step in (copy_kit, add_import, merge_settings, update_gitignore, create_results):
+    for step in (copy_kit, add_import, merge_settings, install_agents, update_gitignore,
+                 create_results):
         print("-", step(target))
     print("Done. Restart Claude Code in", os.path.abspath(target), "to start the team.")
 

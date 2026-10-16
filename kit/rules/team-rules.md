@@ -5,19 +5,36 @@ agent) and to every teammate (subagent) it starts.
 
 ## Roles
 
-- **Lead.** Owns the plan, the shared state, every full-size job (full build, full run, full
-  scan), merges teammates' changes, and decides anything that changes the design. Keeps
-  `results/team-status.md` up to date.
+- **Lead.** Owns the plan, the shared state, every heavy job (rule 8), merges teammates' changes,
+  commits, and decides anything that changes the design. Keeps `results/team-status.md` up to
+  date.
 - **Teammate.** Does one bounded task, writes its results to files, and stops. It never starts a
   new task on its own.
+
+## Lead sessions
+
+The lead re-reads its whole context on every turn, so the lead's context size, not the
+teammates, is most of the cost.
+
+- L1. Plan in one session, run in another. The planning session writes the run's spec,
+  `results/runs/<run>/spec.md`: goal, contract sections, teammate prompts, acceptance command,
+  lead steps. Each run then starts in a fresh lead session that reads CLAUDE.md, the spec and the
+  files the spec names. It does not rely on earlier conversations.
+- L2. One lead turn per wave for bookkeeping: update the status file in the same turn as the
+  spawns, and again in the same turn as the merge check. Do not re-read a file you just wrote.
+- L3. After spawning, end the turn. Completion notices wake the lead; do not poll.
+- L4. From a handoff, read Done and Next step; read the rest only when a decision needs it.
 
 ## Budget
 
 1. A teammate works to about 100K tokens, roughly 40 tool calls. At the next safe point past
-   that, it stops and writes a handoff. It does not start a new step.
-2. Every teammate runs on Haiku 5.5 at reasoning effort `medium`. The lead always passes
-   `model: "haiku"` and `effort: "medium"` to the Agent tool, and never starts a teammate on another
-   model. Raise the effort only when the user asks for a specific task at a higher level.
+   that, it stops and writes a handoff. It does not start a new step. Above 100K tokens of
+   prompt, Haiku 5.5 costs 5x.
+2. Every teammate runs on Haiku 5.5 at reasoning effort `medium`, as agent type `dev`
+   (`.claude/agents/dev.md`, installed from `kit/agents/`). The lead always passes
+   `model: "haiku"` and `effort: "medium"` to the Agent tool, and never starts a teammate on
+   another model. If `dev` is not installed, use `general-purpose`. Raise the effort only when the
+   user asks for a specific task at a higher level.
 3. The lead counts the budget from tool calls and from the token counts in completion notices.
    A teammate's own estimate is the best measure available.
 
@@ -38,9 +55,10 @@ agent) and to every teammate (subagent) it starts.
 7. A teammate never hands back while a job it started is still running. If the job must keep
    running, the handoff names its output file, the exact done check, and the command that reads
    the result. A teammate never reports a partial count as final.
-8. The lead starts one background job at a time per heavy resource (CPU, disk, a game process)
-   and records it in the status file. Teammates read job output files; they do not start full
-   jobs.
+8. A heavy job runs longer than about a minute or holds a shared resource (CPU, disk, a game
+   process). The lead starts one heavy job at a time per resource and records it in the status
+   file. Teammates read heavy-job output files; they do not start heavy jobs. Quick checks (a test
+   suite or syntax check that finishes in under a minute) are not heavy: anyone may run them.
 9. Before and after numbers use the same file list. The list is written once, to a file, and
    both runs read it. A count is not repeated when it is already in a handoff.
 10. Test on a small sample before a full run. The full run happens once the sample is right.
@@ -70,20 +88,21 @@ agent) and to every teammate (subagent) it starts.
 ## Lead housekeeping
 
 19. `results/team-status.md` has one row per teammate (name, task, model, effort,
-    state, handoff path) and one row per background job (what, output file, done check). Update it when
-    a teammate starts, hands off, or stops, and when a job starts or finishes.
-20. A teammate that has reported is stopped with TaskStop once its jobs are done. Otherwise its
-    completion notices keep arriving. Check the status file before stopping, so a running job is
-    not cut off.
-21. Before merging, the lead reads the change log and the handoffs, and runs one check on the
+    state, handoff path) and one row per heavy job (what, output file, done check). Update it
+    once per wave (L2): when the wave starts and at its merge check, and when a job starts or
+    finishes.
+20. A teammate that has handed back is already stopped; do not call TaskStop on it. Use TaskStop
+    only for a teammate that is still running and must not continue. Check the status file first,
+    so a running job is not cut off.
+21. Before merging, the lead reads the change log and the handoffs (L4), and runs one check on the
     merged result. Reports from several teammates are not trusted until that check passes.
 
 ## Repo rules
 
-- Do not commit unless the user asks. Teammates never commit.
+- The lead commits and pushes once at the end of each run, on the run's branch (the user allowed
+  this). Teammates never commit.
 - Generated sources, object files and large working data live in `out/` or `scratch/` (gitignored),
   never in tracked files.
-- Teammates do not run the full build, the full scan, or launch the target program. The lead
-  owns those.
+- Teammates do not run heavy jobs (rule 8) or launch the target program. The lead owns those.
 - Edits to shared generators or configs are small, with the Edit tool. Never rewrite a shared
   file as a whole.
