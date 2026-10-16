@@ -51,7 +51,8 @@ const turnBefore = await turn();
 for (const key of ['ArrowRight', 'ArrowRight', 'ArrowDown', 'l', 'j', 'u', '.', 'g', 'd', 's']) {
   await page.keyboard.press(key);
 }
-for (const button of (await page.$$('button')).slice(0, 4)) {
+// Only visible buttons: a hidden panel's button (e2: the end screen) can't be tapped.
+for (const button of (await page.locator('button:visible').all()).slice(0, 4)) {
   await button.tap().catch((e) => errors.push('tap: ' + e.message));
 }
 await page.waitForTimeout(200);

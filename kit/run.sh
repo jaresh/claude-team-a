@@ -62,8 +62,9 @@ prompt="Run $spec as the lead${variant:+, variant $variant on branch $branch}. Y
 echo "Run $run${variant:+ variant $variant}: $label, in $work"
 
 if [ "$bg" = 1 ]; then
-  out=$(CLAUDE_CODE_PROMPT_CACHE_TTL=$ttl claude --bg --model "$model" \
-        --effort "$effort" --permission-mode auto \
+  # Background sessions don't inherit this environment, so the cache TTL goes in --settings.
+  out=$(claude --bg --model "$model" --effort "$effort" --permission-mode auto \
+        --settings "{\"promptCacheTtl\":\"$ttl\"}" \
         "$prompt When step 4 is pushed you are done: nobody will type /exit, kit/run.sh stops the session." 2>&1)
   id=$(grep -oE 'backgrounded · [0-9a-f]+' <<<"$out" | awk '{print $3}')
   [ -n "$id" ] || { echo "Could not start the background session: $out" >&2; exit 1; }
@@ -84,8 +85,8 @@ if [ "$bg" = 1 ]; then
   sleep 20   # let the lead finish its last message
   claude stop "$id" >/dev/null 2>&1 || true
 else
-  CLAUDE_CODE_PROMPT_CACHE_TTL=$ttl claude --session-id "$session" --model "$model" \
-    --effort "$effort" "$prompt" || true
+  claude --session-id "$session" --model "$model" --effort "$effort" \
+    --settings "{\"promptCacheTtl\":\"$ttl\"}" "$prompt" || true
 fi
 
 # Measured after the session ends, so every message in the transcript is complete.
