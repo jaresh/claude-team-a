@@ -25,9 +25,10 @@ teammates, is most of the cost.
   spawns, and again in the same turn as the merge check. Do not re-read a file you just wrote.
 - L3. After spawning, end the turn. Completion notices wake the lead; do not poll.
 - L4. From a handoff, read Done and Next step; read the rest only when a decision needs it.
-- L5. A run lead follows a written spec, so it runs on Sonnet 5.5 at effort `medium` with a
-  5-minute prompt cache (the `kit/run.sh` defaults). The cache expires after 5 idle minutes: for
-  waves that take longer, start the run with `CACHE_TTL=1h`.
+- L5. A run lead follows a written spec, so it runs on Sonnet 5.5 at effort `medium` with the
+  1-hour prompt cache (the `kit/run.sh` defaults). The 1-hour cache costs more to write but
+  survives long waves; `CACHE_TTL=5m` is cheaper only for runs whose waves all finish within
+  5 minutes.
 - L6. The run lead does not measure its own session or write cost tables. When the run is done
   and accepted, it writes the end time (`date -u +%FT%TZ`) to the end-time file `kit/run.sh`
   named, commits and pushes, and asks the user to type `/exit`. `kit/run.sh` then measures the
@@ -35,16 +36,19 @@ teammates, is most of the cost.
 
 ## Budget
 
-1. A teammate works to about 100K tokens, roughly 40 tool calls. At the next safe point past
-   that, it stops and writes a handoff. It does not start a new step. Above 100K tokens of
-   prompt, Haiku 5.5 costs 5x.
+1. A teammate's budget is its context: about 100K tokens. Above 100K tokens of prompt, Haiku 5.5
+   costs 5x per token. Tool calls are not the budget: on Haiku, re-reading the context for
+   another call is nearly free, so more small calls are fine while the context stays small. At
+   the next safe point near 100K, the teammate stops and writes a handoff. It does not start a
+   new step.
 2. Every teammate runs on Haiku 5.5 at reasoning effort `medium`, as agent type `dev`
    (`.claude/agents/dev.md`, installed from `kit/agents/`). The lead always passes
    `model: "haiku"` and `effort: "medium"` to the Agent tool, and never starts a teammate on
    another model. If `dev` is not installed, use `general-purpose`. Raise the effort only when the
    user asks for a specific task at a higher level.
-3. The lead counts the budget from tool calls and from the token counts in completion notices.
-   A teammate's own estimate is the best measure available.
+3. The lead counts the budget from the token counts in completion notices. A teammate's own
+   estimate is the best measure available while it works: large file reads and long command
+   output grow the context most.
 
 ## Handoff
 

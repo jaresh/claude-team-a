@@ -15,7 +15,7 @@
 # is compared with the other variants' reports, and is committed and pushed.
 #
 # Settings (environment; defaults are the rules' run lead):
-#   LEAD_MODEL=sonnet  LEAD_EFFORT=medium  CACHE_TTL=5m  RUN_TIMEOUT=1800 (seconds, --bg only)
+#   LEAD_MODEL=sonnet  LEAD_EFFORT=medium  CACHE_TTL=1h  RUN_TIMEOUT=1800 (seconds, --bg only)
 set -euo pipefail
 bg=0
 if [ "${1:-}" = "--bg" ]; then bg=1; shift; fi
@@ -53,7 +53,7 @@ work=$(pwd)
 
 model=${LEAD_MODEL:-sonnet}
 effort=${LEAD_EFFORT:-medium}
-ttl=${CACHE_TTL:-5m}
+ttl=${CACHE_TTL:-1h}
 label="lead=$model effort=$effort cache=$ttl"
 session=$(python3 -c 'import uuid; print(uuid.uuid4())')
 end_file="results/runs/$run/$name.end"

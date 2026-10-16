@@ -26,7 +26,7 @@ Then restart Claude Code in the target repo; the team and the agent load at sess
 1. **Plan** (any session): write `results/runs/<run>/spec.md` with the goal, the contract, one
    prompt per teammate, the acceptance command and the lead steps. Commit it.
 2. **Run**: `kit/run.sh results/runs/<run>/spec.md [variant]`. It starts a fresh lead session
-   (Sonnet 5.5, effort medium, 5-minute cache; override with `LEAD_MODEL`, `LEAD_EFFORT`,
+   (Sonnet 5.5, effort medium, 1-hour cache; override with `LEAD_MODEL`, `LEAD_EFFORT`,
    `CACHE_TTL`). The lead spawns the teammates, merges, checks acceptance, commits and asks you
    to `/exit`. The script then measures the session, compares it with other variants of the run,
    and commits the report.
