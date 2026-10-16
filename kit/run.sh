@@ -1,25 +1,47 @@
 #!/usr/bin/env bash
-# Start a team run in a fresh lead session; measure it after you exit the session.
+# Start a team run in a fresh lead session, then measure, compare and commit it.
 #
-#   kit/run.sh results/runs/<run>/spec.md [variant]
+#   kit/run.sh [--bg] results/runs/<run>/spec.md [variant]
 #
-# With a variant, the run happens on branch run/<run>/<variant>, created from tag
-# run/<run>/base when it doesn't exist yet. After the session, the run's cost report goes to
-# results/metrics/<run>-<variant>.json, is compared with the other variants' reports, and is
-# committed and pushed.
+# Interactive (default): the session opens in this terminal on branch run/<run>/<variant>;
+# type /exit when the lead says the run is done.
 #
-# Lead settings come from the environment (defaults are the rules' run lead):
-#   LEAD_MODEL=sonnet  LEAD_EFFORT=medium  CACHE_TTL=5m
+# --bg: unattended. The run gets its own git worktree, <repo>-runs/<run>-<variant>, and a
+# background session (`claude --bg`, permission mode auto). The script waits until the lead has
+# written its end time and pushed, stops the session, and removes the worktree (KEEP_WORKTREE=1
+# keeps it). Another Claude session can run this, in parallel for several variants.
+#
+# Either way, after the session the run's cost report goes to results/metrics/<run>-<variant>.json,
+# is compared with the other variants' reports, and is committed and pushed.
+#
+# Settings (environment; defaults are the rules' run lead):
+#   LEAD_MODEL=sonnet  LEAD_EFFORT=medium  CACHE_TTL=5m  RUN_TIMEOUT=1800 (seconds, --bg only)
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
-spec=${1:?usage: kit/run.sh results/runs/<run>/spec.md [variant]}
-[ -f "$spec" ] || { echo "No such spec: $spec" >&2; exit 1; }
+bg=0
+if [ "${1:-}" = "--bg" ]; then bg=1; shift; fi
+spec=${1:?usage: kit/run.sh [--bg] results/runs/<run>/spec.md [variant]}
 variant=${2:-}
+repo=$(git rev-parse --show-toplevel)
+cd "$repo"
+[ -f "$spec" ] || { echo "No such spec: $spec" >&2; exit 1; }
 run=$(basename "$(dirname "$spec")")
 name=${variant:-run}
 branch=""
-if [ -n "$variant" ]; then
-  branch="run/$run/$variant"
+[ -n "$variant" ] && branch="run/$run/$variant"
+if [ "$bg" = 1 ] && [ -z "$variant" ]; then echo "--bg needs a variant name" >&2; exit 1; fi
+
+git fetch -q origin 2>/dev/null || true
+if [ "$bg" = 1 ]; then
+  work="$(dirname "$repo")/$(basename "$repo")-runs/$run-$variant"
+  [ -e "$work" ] && { echo "$work exists; remove it first (git worktree remove $work)." >&2; exit 1; }
+  mkdir -p "$(dirname "$work")"
+  if git rev-parse -q --verify "refs/heads/$branch" >/dev/null; then
+    git worktree add -q "$work" "$branch"
+  else
+    git worktree add -q -b "$branch" "$work" "run/$run/base"
+  fi
+  cd "$work"
+elif [ -n "$variant" ]; then
   git diff --quiet && git diff --cached --quiet || { echo "Commit or stash your changes first." >&2; exit 1; }
   if git rev-parse -q --verify "refs/heads/$branch" >/dev/null; then
     git checkout -q "$branch"
@@ -27,6 +49,7 @@ if [ -n "$variant" ]; then
     git checkout -q -b "$branch" "run/$run/base"
   fi
 fi
+work=$(pwd)
 
 model=${LEAD_MODEL:-sonnet}
 effort=${LEAD_EFFORT:-medium}
@@ -35,16 +58,40 @@ label="lead=$model effort=$effort cache=$ttl"
 session=$(python3 -c 'import uuid; print(uuid.uuid4())')
 end_file="results/runs/$run/$name.end"
 metrics="results/metrics/$run-$name.json"
-echo "Run $run${variant:+ variant $variant}: $label, session $session"
+prompt="Run $spec as the lead${variant:+, variant $variant on branch $branch}. Your end-time file is $end_file."
+echo "Run $run${variant:+ variant $variant}: $label, in $work"
 
-CLAUDE_CODE_PROMPT_CACHE_TTL=$ttl claude --session-id "$session" --model "$model" --effort "$effort" \
-  "Run $spec as the lead${variant:+, variant $variant on branch $branch}. Your end-time file is $end_file." \
-  || true
+if [ "$bg" = 1 ]; then
+  out=$(CLAUDE_CODE_PROMPT_CACHE_TTL=$ttl claude --bg --model "$model" \
+        --effort "$effort" --permission-mode auto \
+        "$prompt When step 4 is pushed you are done: nobody will type /exit, kit/run.sh stops the session." 2>&1)
+  id=$(grep -oE 'backgrounded · [0-9a-f]+' <<<"$out" | awk '{print $3}')
+  [ -n "$id" ] || { echo "Could not start the background session: $out" >&2; exit 1; }
+  session=$id   # --bg ignores --session-id; the session id starts with the short id
+  echo "Background session $id (claude attach $id to watch it)"
+  deadline=$((SECONDS + ${RUN_TIMEOUT:-1800}))
+  # Done when the end-time file exists and the branch is committed and pushed.
+  until [ -f "$end_file" ] && [ -z "$(git status --porcelain)" ] \
+        && [ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$branch" 2>/dev/null)" ]; do
+    if [ $SECONDS -ge $deadline ]; then
+      echo "Timed out after ${RUN_TIMEOUT:-1800}s; stopping $id. Worktree kept: $work" >&2
+      claude stop "$id" >/dev/null 2>&1 || true
+      exit 1
+    fi
+    sleep 10
+    git fetch -q origin "$branch" 2>/dev/null || true
+  done
+  sleep 20   # let the lead finish its last message
+  claude stop "$id" >/dev/null 2>&1 || true
+else
+  CLAUDE_CODE_PROMPT_CACHE_TTL=$ttl claude --session-id "$session" --model "$model" \
+    --effort "$effort" "$prompt" || true
+fi
 
 # Measured after the session ends, so every message in the transcript is complete.
 [ -f "$end_file" ] || { echo "No $end_file: the run did not finish, so it was not measured." >&2; exit 1; }
-python3 kit/tools/teamcost.py --session "$session" --until "$(cat "$end_file")" \
-  --label "$label" --json "$metrics"
+python3 "$work/kit/tools/teamcost.py" --project "$work" --session "$session" \
+  --until "$(cat "$end_file")" --label "$label" --json "$metrics"
 files=("$metrics")
 if [ -n "$variant" ]; then
   for other in $(git for-each-ref --format='%(refname:short)' "refs/heads/run/$run/" \
@@ -53,12 +100,16 @@ if [ -n "$variant" ]; then
     git show "run/$run/$other:$other_json" > "$other_json" 2>/dev/null || { rm -f "$other_json"; continue; }
     a=$other; b=$variant
     if [[ "$other" > "$variant" ]]; then a=$variant; b=$other; fi
-    out="results/runs/$run/compare-$a-$b.md"
-    python3 kit/tools/teamcost.py --compare "results/metrics/$run-$a.json" "results/metrics/$run-$b.json" | tee "$out"
-    files+=("$other_json" "$out")
+    out_md="results/runs/$run/compare-$a-$b.md"
+    python3 "$work/kit/tools/teamcost.py" --compare "results/metrics/$run-$a.json" \
+      "results/metrics/$run-$b.json" | tee "$out_md"
+    files+=("$other_json" "$out_md")
   done
 fi
 git add "${files[@]}"
 git commit -q -m "Run $run${variant:+ variant $variant}: cost report ($label)"
 git push -q origin HEAD
-echo "Committed and pushed: ${files[*]}"
+echo "Committed and pushed on ${branch:-$(git branch --show-current)}: ${files[*]}"
+if [ "$bg" = 1 ] && [ "${KEEP_WORKTREE:-0}" != 1 ]; then
+  cd "$repo" && git worktree remove "$work" && echo "Removed worktree $work"
+fi
