@@ -143,6 +143,42 @@ Files: `game/index.html`, `game/src/main.js`, `game/src/ui/render.js`, `game/src
 - Until `core/game.js` exists, `main.js` imports `ui/mock-game.js` (the same three exports with
   fake data). The game owner switches that import in wave 2.
 
+### e1: View additions (owner: view)
+
+`getView(state)` also returns:
+
+- `player: { x, y }`: the player's tile.
+- `inventory: [{ kind, glyph, color, effect, amount }]`, in inventory order. Entry `i` is the item
+  that `{ type: 'use', index: i }` uses.
+
+Nothing else in `game.js` changes.
+
+### e1: camera and inventory panel (owner: screen)
+
+`game/src/ui/camera.js`:
+
+```js
+export const MIN_CELL = 16; // css px
+export function cameraWindow(view, cols, rows) // -> { x0, y0, cols, rows }
+```
+
+- `cols` becomes `Math.min(cols, view.w)`, `rows` becomes `Math.min(rows, view.h)`.
+- The window is centred on `view.player`: `x0 = player.x - Math.floor(cols / 2)`, clamped to
+  `0 .. view.w - cols`; `y0` the same way with `rows` and `view.h`.
+
+`render.js` draws only the camera window:
+
+- `cols = Math.min(view.w, Math.floor(cssWidth / MIN_CELL))`, `cell = Math.floor(cssWidth / cols)`,
+  `rows = Math.min(view.h, 15)`. It sets `canvas.dataset.cell`, `canvas.dataset.cols` and
+  `canvas.dataset.rows` to those numbers.
+- It fills an inventory panel, the element with `id="inventory"`: one button per item with
+  `data-action="use"` and `data-index="<i>"`, labelled `<i + 1> <glyph> <kind>`, or the text
+  `Inventory empty`.
+
+Other UI changes: `index.html` gets the `#inventory` element and loses the `Use 1` button;
+`input.js` handles taps on the inventory buttons (keys `1`-`9` keep working); `mock-game.js`
+returns `player` and `inventory` in its view too.
+
 ### `sim/bot.mjs` (owner: sim, wave 3)
 
 `node game/sim/bot.mjs --seeds <file> --out <file>` plays each seed with a simple greedy policy
