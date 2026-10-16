@@ -1,0 +1,9 @@
+{
+  "name": "claude-team-a",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"game/test/**/*.test.js\"",
+    "serve": "python3 -m http.server 8000"
+  }
+}
