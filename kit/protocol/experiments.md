@@ -16,10 +16,16 @@ for less money, with the same result?
 
 1. Lead writes the spec and the acceptance command in `results/runs/<run>/spec.md` and commits.
    Tag the commit `run/<run>/base`.
-2. Note the start time (`date -u +%FT%TZ`).
-3. Run the team on variant A.
+2. Start a fresh lead session on the variant's branch and say
+   `Run results/runs/<run>/spec.md as the lead, variant <A|B>.` Its first action is noting the
+   start time (`date -u +%FT%TZ`), so reading the spec counts toward the run.
+3. The lead runs the team as the spec says.
 4. Run the acceptance command. Note the end time.
-5. `python3 kit/tools/teamcost.py --since <start> --until <end> --json results/metrics/<run>-A.json`
+5. Measure. In a fresh run session (rules v1 and later), count the whole session:
+   `python3 kit/tools/teamcost.py --latest-session --until <end> --json results/metrics/<run>-<variant>.json`
+   In a long session (rules v0), count the window:
+   `python3 kit/tools/teamcost.py --since <start> --until <end> --json results/metrics/<run>-<variant>.json`
+   Other Claude sessions open in the same repo during the window would otherwise be counted too.
 6. Commit the result on branch `run/<run>/A`. Check out the base tag, switch the rules to
    variant B, repeat steps 2-5 on branch `run/<run>/B`.
 7. Add one row per variant to `results/experiments.md` and a short note on what changed.

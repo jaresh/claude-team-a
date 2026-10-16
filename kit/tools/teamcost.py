@@ -50,12 +50,20 @@ def message_cost(model, u):
 CHARS_PER_TOKEN = 3.5
 
 
+def session_of(path):
+    """Lead session id of a transcript: its own name, or the folder above subagents/."""
+    parts = path.split(os.sep)
+    if len(parts) >= 3 and parts[-2] == "subagents":
+        return parts[-3]
+    return os.path.basename(path)[:-len(".jsonl")]
+
+
 def scan(path, since, until):
     # Teammate transcripts keep the usage from the start of each response (stop_reason null), so
     # their output_tokens are far too low. For those responses, output is estimated from the
     # visible content (text and tool inputs). Hidden thinking stays uncounted.
     usage, final, chars = {}, set(), Counter()
-    tools, agent, first, last = set(), None, None, None
+    tools, agent, first, last, started = set(), None, None, None, None
     with open(path) as f:
         for line in f:
             try:
@@ -65,6 +73,7 @@ def scan(path, since, until):
             if e.get("type") != "assistant":
                 continue
             ts = parse_time(e.get("timestamp"))
+            started = started or ts
             if ts and ((since and ts < since) or (until and ts > until)):
                 continue
             m = e.get("message") or {}
@@ -96,7 +105,9 @@ def scan(path, since, until):
     models = Counter(model for model, _ in usage.values())
     row = {"agent": name or agent or "lead:" + os.path.basename(path)[:8],
            "effort": meta.get("effort", ""),
-           "file": path, "model": models.most_common(1)[0][0], "msgs": len(usage),
+           "file": path, "session": session_of(path),
+           "started": started.isoformat() if started else None,
+           "model": models.most_common(1)[0][0], "msgs": len(usage),
            "tools": len(tools), "input": 0, "cache_w": 0, "cache_r": 0, "output": 0,
            "peak_ctx": 0, "over_100k": 0, "cost": 0.0, "unpriced": 0, "out_est": 0,
            "first": first.isoformat() if first else None,
@@ -127,12 +138,33 @@ def main():
     ap.add_argument("--until")
     ap.add_argument("--json")
     ap.add_argument("--project", default=os.getcwd(), help="repo path (default: cwd)")
+    ap.add_argument("--fresh-only", action="store_true",
+                    help="count only lead sessions that started at or after --since, in full, "
+                         "with their teammates (a run in a fresh session; leaves out other open "
+                         "sessions)")
+    ap.add_argument("--latest-session", action="store_true",
+                    help="count only the most recently started lead session, in full, with its "
+                         "teammates. Run it from the run's own lead session.")
     a = ap.parse_args()
     pdir = os.path.expanduser("~/.claude/projects/" + re.sub(r"[^A-Za-z0-9]", "-",
                                                              os.path.abspath(a.project)))
     since, until = parse_time(a.since), parse_time(a.until)
+    # With --fresh-only, a run is its whole fresh session (including the first message, which
+    # writes the cached prefix); --since only selects which sessions count.
+    scan_since = None if (a.fresh_only or a.latest_session) else since
     rows = [r for p in sorted(glob.glob(pdir + "/**/*.jsonl", recursive=True))
-            if (r := scan(p, since, until))]
+            if (r := scan(p, scan_since, until))]
+    if a.fresh_only:
+        if not since:
+            ap.error("--fresh-only needs --since")
+        fresh = {r["session"] for r in rows if r["file"].endswith(r["session"] + ".jsonl")
+                 and r["started"] and parse_time(r["started"]) >= since}
+        rows = [r for r in rows if r["session"] in fresh]
+    if a.latest_session:
+        leads = [r for r in rows if r["file"].endswith(r["session"] + ".jsonl") and r["started"]]
+        if leads:
+            latest = max(leads, key=lambda r: r["started"])["session"]
+            rows = [r for r in rows if r["session"] == latest]
     rows.sort(key=lambda r: r["first"] or "")
 
     cols = ["agent", "model", "effort", "msgs", "tools", "input", "cache_w", "cache_r", "output",
