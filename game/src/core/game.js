@@ -252,6 +252,10 @@ export function getView(state) {
     w: map.w,
     h: map.h,
     cells,
+    player: { x: p.x, y: p.y },
+    inventory: p.inventory.map((it) => ({
+      kind: it.kind, glyph: it.glyph, color: it.color, effect: it.effect, amount: it.amount,
+    })),
     hud: {
       hp: p.hp, maxHp: p.maxHp, atk: p.atk, def: p.def, depth: state.depth,
       level: p.level, xp: p.xp, turn: state.turn,

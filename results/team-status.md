@@ -12,6 +12,8 @@ starts or finishes.
 | ui | M0 wave 1: index.html, main.js, ui/*, mock-game.js + test | haiku | medium | done (11/11 tests) | results/handoff/ui.md |
 | game | M0 wave 2: core/game.js + tests, main.js switch to real game | haiku | medium | done (16 tests; 78/78 merged) | results/handoff/game.md |
 | sim | M0 wave 3: sim/bot.mjs + test, 5-seed sample | haiku | medium | done (3/3 tests, sample ok) | results/handoff/sim.md |
+| view | e1-A: getView player + inventory + tests | haiku | medium | done (24/24) | results/handoff/view.md |
+| screen | e1-A: camera.js, render window, inventory panel | haiku | medium | done (25/25) | results/handoff/screen.md |
 
 ## Background jobs
 

@@ -24,13 +24,17 @@ export function keyToAction(key) {
 }
 
 // Pure: button dataset ({ action, dx, dy, index }) -> action object, or null.
+// Inventory buttons carry data-action="use" and data-index (0-based slot).
 export function buttonToAction(ds) {
   switch (ds.action) {
     case 'move': return { type: 'move', dx: Number(ds.dx), dy: Number(ds.dy) };
     case 'wait': return { type: 'wait' };
     case 'pickup': return { type: 'pickup' };
     case 'descend': return { type: 'descend' };
-    case 'use': return { type: 'use', index: Number(ds.index) };
+    case 'use': {
+      const index = Number(ds.index);
+      return Number.isInteger(index) && index >= 0 ? { type: 'use', index } : null;
+    }
     case 'new': return { type: 'new' };
     default: return null;
   }
