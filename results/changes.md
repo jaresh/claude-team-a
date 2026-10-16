@@ -13,3 +13,10 @@ One line per edit to a shared generator, config or table (rule 13). Append at th
 | 2026-10-16 | tuner | game/src/data/monsters.js | orc | atk 4 -> 2, hp 14 -> 8 |
 | 2026-10-16 | tuner | game/src/data/items.js | potion | heal amount 8 -> 12 |
 | 2026-10-16 | tuner | game/test/rules.test.js | spawn count tests | assertions updated to the new spawn counts (2 + depth, 4 + floor(depth/2)) |
+| 2026-10-16 | abilities | game/src/data/monsters.js | all rows | added `ability` field (goblin poison, orc regen, others null) |
+| 2026-10-16 | abilities | game/src/data/monsters.js | archer | new row appended at the end: ranged, hp 5, atk 3, minDepth 3 |
+| 2026-10-16 | abilities | game/src/core/rules.js | monsterStep | returns `shoot` for ranged monsters at distance 2-4 when visible |
+| 2026-10-16 | abilities | game/src/core/rules.js | spawnMonsters | copies `ability` onto each monster |
+| 2026-10-16 | abilities | game/src/core/rules.js | spawnMonsters | count 2 + depth -> 2 + floor(depth/2) (e3 balance: win rate 3.5% -> 29.5%) |
+| 2026-10-16 | abilities | game/src/core/game.js | monsterPhase, endTurn, getView, newGame | shoot, regen, poison ticks, `hud.poison`, `visibleMonsters`, player `poison: 0` |
+| 2026-10-16 | abilities | game/test/rules.test.js | spawn count test | assertion updated to 2 + floor(depth/2) |

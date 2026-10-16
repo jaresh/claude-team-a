@@ -9,6 +9,8 @@ Protocol: `kit/protocol/experiments.md`. One section per run; cost reports in `r
 | e1-B | Camera + inventory panel, 2 teammates in parallel | v1 (fresh lead session, dev agent) | 445f130 | 20:39:02-20:40:56 | 0.360 | 0.341 | 0.020 | lead 7, team 23 | 39K (screen) | yes: 91/91 tests, 8/8 acceptance, smoke 5/5 |
 | e2-A | Balance + end screen and HP bar, 2 teammates | v2; lead Opus 5.5 xhigh, 1h cache | c006911 | 20:57:17-21:02:08 | 0.796 | 0.768 | 0.028 | lead 13, team 44 | 42K (tuner) | yes, after 1 lead fix: 97/97 tests, 7/7 acceptance, smoke ok |
 | e2-B | Balance + end screen and HP bar, 2 teammates | v2; lead Sonnet 5.5 medium (cache 1h: 5m not applied) | c006911 | 20:57:24-21:01:03 | 0.301 | 0.274 | 0.027 | lead 7, team 62 | 47K (tuner) | yes, first check: 97/97 tests, 7/7 acceptance, smoke ok |
+| e3-A | Monster abilities + legend, 2 teammates | v2.1; Haiku context uncapped | 791875b | 69e643b4 session | 0.208 | 0.181 | 0.028 | lead 6, team 53 | 52K (abilities) | yes, first check |
+| e3-B | Monster abilities + legend, 2 teammates | v2.1; Haiku auto-compact at 100K | 791875b | 4f70ac1a session | 0.215 | 0.181 | 0.034 | lead 6, team 53 | 59K (abilities) | yes, first check |
 
 ### m0 notes
 
@@ -27,3 +29,10 @@ lead measured itself while its last message was still being written); the saving
 A/B of the run lead under rules v2: Opus 5.5 xhigh (A) vs Sonnet 5.5 medium (B). B costs 62%
 less and passed on the first check. Both ran unattended (`kit/run.sh --bg`) in parallel.
 Comparison and caveats: `results/runs/e2/compare-A-B.md`. Main has B's code.
+
+### e3 notes
+
+A/B of a 100K auto-compact window for Haiku teammates. Never triggered (peaks 52K/59K), so the
+variants were identical in practice: totals within 3%, team cost within 24% (noise level).
+A probe showed the cap works after an overrun but can't prevent one turn over 100K.
+Adopted as a backstop with a per-turn intake rule (v2.2). Details: `results/runs/e3/`.
