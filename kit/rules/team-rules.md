@@ -41,6 +41,12 @@ teammates, is most of the cost.
    another call is nearly free, so more small calls are fine while the context stays small. At
    the next safe point near 100K, the teammate stops and writes a handoff. It does not start a
    new step.
+   - Take in at most about 25K tokens (about 100 KB of text) per turn: read large files in parts,
+     one part per call, and never read several large files or parts in parallel. One oversized
+     turn is billed at 5x even when compaction shrinks the context afterwards.
+   - Backstop: the kit's settings auto-compact Haiku at a 100K window
+     (`kit/settings/settings.json`, applied by `install.py` and `kit/run.sh`). It limits the damage
+     after an overrun; it cannot prevent one.
 2. Every teammate runs on Haiku 5.5 at reasoning effort `medium`, as agent type `dev`
    (`.claude/agents/dev.md`, installed from `kit/agents/`). The lead always passes
    `model: "haiku"` and `effort: "medium"` to the Agent tool, and never starts a teammate on

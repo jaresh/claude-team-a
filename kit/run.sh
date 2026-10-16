@@ -56,9 +56,10 @@ model=${LEAD_MODEL:-sonnet}
 effort=${LEAD_EFFORT:-medium}
 ttl=${CACHE_TTL:-1h}
 label="lead=$model effort=$effort cache=$ttl${EXTRA_SETTINGS:+ extra=$EXTRA_SETTINGS}"
-# Session settings: the cache TTL plus EXTRA_SETTINGS (a JSON object, deep-merged), for
-# variants that test a setting, e.g. EXTRA_SETTINGS='{"modelSettings":{...}}'.
-settings=$(TTL="$ttl" python3 -c '
+# Session settings, deep-merged in order: the kit's settings (so a run has them even where
+# install.py hasn't been run), the cache TTL, then EXTRA_SETTINGS (a JSON object) for variants
+# that test a setting, e.g. EXTRA_SETTINGS='{"modelSettings":{...}}'.
+settings=$(TTL="$ttl" KIT_SETTINGS="$work/kit/settings/settings.json" python3 -c '
 import json, os
 def merge(a, b):
     for k, v in b.items():
@@ -66,7 +67,10 @@ def merge(a, b):
             merge(a[k], v)
         else:
             a[k] = v
-s = {"promptCacheTtl": os.environ["TTL"]}
+s = {}
+if os.path.exists(os.environ["KIT_SETTINGS"]):
+    merge(s, json.load(open(os.environ["KIT_SETTINGS"])))
+merge(s, {"promptCacheTtl": os.environ["TTL"]})
 merge(s, json.loads(os.environ.get("EXTRA_SETTINGS") or "{}"))
 print(json.dumps(s))')
 session=$(python3 -c 'import uuid; print(uuid.uuid4())')
