@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Start a team run in a fresh lead session, then measure, compare and commit it.
 #
-#   kit/run.sh [--bg] results/runs/<run>/spec.md [variant]
+#   lab/run.sh [--bg] results/runs/<run>/<spec>.md [variant]
+#
+# The session starts with `/team Run <spec> ...`: the lead is the team kit's skill (team_kit.py,
+# installed into the run's checkout first, since the kit is git-ignored) following the spec.
 #
 # Interactive (default): the session opens in this terminal on branch run/<run>/<variant>;
 # type /exit when the lead says the run is done.
@@ -21,7 +24,7 @@
 set -euo pipefail
 bg=0
 if [ "${1:-}" = "--bg" ]; then bg=1; shift; fi
-spec=${1:?usage: kit/run.sh [--bg] results/runs/<run>/spec.md [variant]}
+spec=${1:?usage: lab/run.sh [--bg] results/runs/<run>/<spec>.md [variant]}
 variant=${2:-}
 repo=$(git rev-parse --show-toplevel)
 cd "$repo"
@@ -52,16 +55,16 @@ elif [ -n "$variant" ]; then
   fi
 fi
 work=$(pwd)
+python3 "$work/team_kit.py" install "$work" >/dev/null   # git-ignored: a new worktree lacks it
 
 model=${LEAD_MODEL:-sonnet}
 effort=${LEAD_EFFORT:-medium}
 ttl=${CACHE_TTL:-1h}
 label="lead=$model effort=$effort cache=$ttl${EXTRA_SETTINGS:+ extra=$EXTRA_SETTINGS}${LEAD_ARGS:+ args=$LEAD_ARGS}"
 read -ra lead_args <<<"${LEAD_ARGS:-}"
-# Session settings, deep-merged in order: the kit's settings (so a run has them even where
-# install.py hasn't been run), the cache TTL, then EXTRA_SETTINGS (a JSON object) for variants
-# that test a setting, e.g. EXTRA_SETTINGS='{"modelSettings":{...}}'.
-settings=$(TTL="$ttl" KIT_SETTINGS="$work/kit/settings/settings.json" python3 -c '
+# Session settings on top of the kit's (in .claude/settings.local.json): the cache TTL, then
+# EXTRA_SETTINGS (a JSON object, deep-merged) for variants that test a setting.
+settings=$(TTL="$ttl" python3 -c '
 import json, os
 def merge(a, b):
     for k, v in b.items():
@@ -69,23 +72,20 @@ def merge(a, b):
             merge(a[k], v)
         else:
             a[k] = v
-s = {}
-if os.path.exists(os.environ["KIT_SETTINGS"]):
-    merge(s, json.load(open(os.environ["KIT_SETTINGS"])))
-merge(s, {"promptCacheTtl": os.environ["TTL"]})
+s = {"promptCacheTtl": os.environ["TTL"]}
 merge(s, json.loads(os.environ.get("EXTRA_SETTINGS") or "{}"))
 print(json.dumps(s))')
 session=$(python3 -c 'import uuid; print(uuid.uuid4())')
 end_file="results/runs/$run/$name.end"
 metrics="results/metrics/$run-$name.json"
-prompt="Run $spec as the lead${variant:+, variant $variant on branch $branch}. Your end-time file is $end_file."
+prompt="/team Run $spec as the lead${variant:+, variant $variant on branch $branch}. Your end-time file is $end_file."
 echo "Run $run${variant:+ variant $variant}: $label, in $work"
 
 if [ "$bg" = 1 ]; then
   # Background sessions don't inherit this environment, so the cache TTL goes in --settings.
   out=$(claude --bg --model "$model" --effort "$effort" --permission-mode auto \
         --settings "$settings" "${lead_args[@]}" \
-        "$prompt When step 4 is pushed you are done: nobody will type /exit, kit/run.sh stops the session." 2>&1)
+        "$prompt When step 4 is pushed you are done: nobody will type /exit, lab/run.sh stops the session." 2>&1)
   id=$(grep -oE 'backgrounded · [0-9a-f]+' <<<"$out" | awk '{print $3}')
   [ -n "$id" ] || { echo "Could not start the background session: $out" >&2; exit 1; }
   session=$id   # --bg ignores --session-id; the session id starts with the short id
@@ -111,7 +111,7 @@ fi
 
 # Measured after the session ends, so every message in the transcript is complete.
 [ -f "$end_file" ] || { echo "No $end_file: the run did not finish, so it was not measured." >&2; exit 1; }
-python3 "$work/kit/tools/teamcost.py" --project "$work" --session "$session" \
+python3 "$work/team_kit.py" cost --project "$work" --session "$session" \
   --until "$(cat "$end_file")" --label "$label" --json "$metrics"
 files=("$metrics")
 if [ -n "$variant" ]; then
@@ -122,7 +122,7 @@ if [ -n "$variant" ]; then
     a=$other; b=$variant
     if [[ "$other" > "$variant" ]]; then a=$variant; b=$other; fi
     out_md="results/runs/$run/compare-$a-$b.md"
-    python3 "$work/kit/tools/teamcost.py" --compare "results/metrics/$run-$a.json" \
+    python3 "$work/team_kit.py" cost --compare "results/metrics/$run-$a.json" \
       "results/metrics/$run-$b.json" | tee "$out_md"
     files+=("$other_json" "$out_md")
   done

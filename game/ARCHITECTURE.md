@@ -188,7 +188,7 @@ Targets, checked by `game/accept/e2-balance.test.js` (the bot on `game/sim/seeds
 - mean depth reached at least 3.0;
 - no monster kind causes more than 40% of deaths.
 
-Allowed changes, each logged in `results/changes.md` (rule 13):
+Allowed changes, each logged in the team change log:
 
 - values in existing rows of `data/monsters.js` and `data/items.js`, and new rows appended at
   the end;

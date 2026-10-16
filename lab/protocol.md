@@ -5,36 +5,39 @@ definition) build the same feature as variant A for less money, with the same re
 
 ## Design
 
-- **Same feature, same start.** Both variants build one written spec from one base commit. Only
-  the variable under test differs. Two different features can't be compared.
-- **Same prompts.** The spec holds the teammate prompts word for word; both leads use them.
+- **Same feature, same start.** Both variants build one feature from one base commit, with the
+  kit version committed there (`team_kit.py`, which `lab/run.sh` installs into the run's
+  worktree). Only the variable under test differs. Two different features can't be compared.
+- **Same prompts.** A spec holds the teammate prompts word for word; both leads use them. When
+  the variable is the prompting itself (a goal-only prompt that the `/team` skill plans from),
+  each variant has its own spec file in the run's folder.
 - **Same acceptance check.** A command fixed in the spec, before the first run, decides
   "accepted".
-- **Fresh sessions.** Each variant runs in its own fresh lead session (`kit/run.sh`), so neither
+- **Fresh sessions.** Each variant runs in its own fresh lead session (`lab/run.sh`), so neither
   pays for the other's context, and each is measured as one whole session.
 - **Noise.** One run per variant is noisy. Repeat both when they differ by less than ~20%.
   (e3: two runs of the same setup differed by 3% in total, 24% in team cost.)
 - **Cold start.** A lead's first message can read its tools and system prompt from a cache that
   another session with the same prefix wrote within the TTL (an earlier run, a parallel variant).
   That saves about $0.10 on a Sonnet lead and depends only on timing, so compare
-  "Total $, cold start" from `teamcost.py --compare`: the cost as if the run wrote the prefix itself.
+  "Total $, cold start" from `team_kit.py cost --compare`: the cost as if the run wrote the prefix itself.
 
 ## Steps
 
 1. **Plan** (planning session): write `results/runs/<run>/spec.md` (goal, contract, teammate
    prompts, acceptance command, lead steps, and how each variant is started), plus the
    acceptance tests. Commit it on main and tag the commit `run/<run>/base`.
-2. **Variant A**: `kit/run.sh results/runs/<run>/spec.md A`, with the variant's settings in the
+2. **Variant A**: `lab/run.sh results/runs/<run>/spec.md A`, with the variant's settings in the
    environment if the spec says so (for example `LEAD_MODEL=opus`). The lead runs the team,
    checks acceptance, writes its end time, commits, pushes and asks you to `/exit`.
-3. `kit/run.sh` then measures the session up to the end time
+3. `lab/run.sh` then measures the session up to the end time
    (`results/metrics/<run>-A.json`), commits the report and pushes.
-4. **Variant B**: the same with `B`. After the session, `kit/run.sh` also writes
+4. **Variant B**: the same with `B`. After the session, `lab/run.sh` also writes
    `results/runs/<run>/compare-A-B.md` from both reports.
 5. **Decide** (planning session): add one row per variant to `results/experiments.md` and a
    short verdict; merge the winning branch into main.
 
-To measure by hand: `teamcost.py --session <id> --until <end>` for one session, or
+To measure by hand: `team_kit.py cost --session <id> --until <end>` for one session, or
 `--since/--until` for a time window across sessions (a long session, rules v0). Don't measure a
 session from inside itself: its current message isn't complete yet.
 
@@ -42,8 +45,8 @@ session from inside itself: its current message isn't complete yet.
 
 | Metric | Source |
 |---|---|
-| Total (and total at a cold start), lead and team USD; lead cache read, cache write and output | `teamcost.py --compare` |
-| Tool calls, tokens, peak context per agent; messages over 100K | `teamcost.py` |
-| Handoffs and successors | `results/handoff/` |
+| Total (and total at a cold start), lead and team USD; lead cache read, cache write and output | `team_kit.py cost --compare` |
+| Tool calls, tokens, peak context per agent; messages over 100K | `team_kit.py cost` |
+| Plan, status, handoffs and successors | `results/runs/<run>/<variant>-team/` (the lead copies `.claude/team/` there) |
 | Accepted on first check; fixes by the lead | `results/runs/<run>/<variant>.md` |
 | Wall time | the session's first message to the end time |
