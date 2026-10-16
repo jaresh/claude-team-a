@@ -237,6 +237,8 @@ export function getView(state) {
       hp: p.hp, maxHp: p.maxHp, atk: p.atk, def: p.def, depth: state.depth,
       level: p.level, xp: p.xp, turn: state.turn,
     },
+    player: { x: p.x, y: p.y },
+    inventory: p.inventory.map(({ kind, glyph, color, effect, amount }) => ({ kind, glyph, color, effect, amount })),
     log: state.log.slice(-5),
     status: state.status,
   };

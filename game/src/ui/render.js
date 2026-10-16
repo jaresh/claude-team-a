@@ -1,21 +1,28 @@
-// Draws a View onto a canvas and fills the HUD and log elements.
+// Draws the camera window of a View onto a canvas, and fills the HUD, log and inventory elements.
 // DOM is touched only inside render(), never at import time.
 
+import { cameraWindow, MIN_CELL } from './camera.js';
+
 const BG = '#0b0d12';
-const MAX_CELL_W = 24; // css px; keeps small maps from getting huge on desktop
+const MAX_ROWS = 15;
 
 export function render(canvas, view, hudEl, logEl) {
   const ctx = canvas.getContext('2d');
   const parentW = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
   const avail = parentW > 0 ? parentW : (window.innerWidth || 360) - 32;
 
-  const cellW = Math.min(MAX_CELL_W, avail / view.w);
+  const fit = Math.max(1, Math.floor(avail / MIN_CELL));
+  const win = cameraWindow(view, Math.min(view.w, fit), Math.min(view.h, MAX_ROWS));
+  const cellW = Math.floor(avail / win.cols);
   const cellH = cellW * 1.6;
-  const cssW = cellW * view.w;
-  const cssH = cellH * view.h;
+  const cssW = cellW * win.cols;
+  const cssH = cellH * win.rows;
   const dpr = window.devicePixelRatio || 1;
   const fontPx = Math.min(cellH * 0.85, (cellW / 0.6) * 0.9);
 
+  canvas.dataset.cell = String(cellW);
+  canvas.dataset.cols = String(win.cols);
+  canvas.dataset.rows = String(win.rows);
   canvas.width = Math.round(cssW * dpr);
   canvas.height = Math.round(cssH * dpr);
   canvas.style.width = `${cssW}px`;
@@ -28,18 +35,20 @@ export function render(canvas, view, hudEl, logEl) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  for (let i = 0; i < view.w * view.h; i++) {
-    const cell = view.cells[i];
-    if (!cell) continue;
-    const px = (i % view.w) * cellW;
-    const py = Math.floor(i / view.w) * cellH;
-    if (cell.bg) {
-      ctx.fillStyle = cell.bg;
-      ctx.fillRect(px, py, cellW, cellH);
-    }
-    if (cell.ch && cell.ch !== ' ') {
-      ctx.fillStyle = cell.fg || '#e5e7eb';
-      ctx.fillText(cell.ch, px + cellW / 2, py + cellH / 2);
+  for (let r = 0; r < win.rows; r++) {
+    for (let c = 0; c < win.cols; c++) {
+      const cell = view.cells[(win.y0 + r) * view.w + win.x0 + c];
+      if (!cell) continue;
+      const px = c * cellW;
+      const py = r * cellH;
+      if (cell.bg) {
+        ctx.fillStyle = cell.bg;
+        ctx.fillRect(px, py, cellW, cellH);
+      }
+      if (cell.ch && cell.ch !== ' ') {
+        ctx.fillStyle = cell.fg || '#e5e7eb';
+        ctx.fillText(cell.ch, px + cellW / 2, py + cellH / 2);
+      }
     }
   }
 
@@ -55,4 +64,28 @@ export function render(canvas, view, hudEl, logEl) {
     li.textContent = line;
     logEl.appendChild(li);
   }
+
+  renderInventory(view.inventory);
+}
+
+// One button per item; tapping it sends { type: 'use', index: i } through input.js.
+function renderInventory(items) {
+  const panel = document.getElementById('inventory');
+  if (!panel) return;
+  panel.textContent = '';
+  if (items.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = 'Inventory empty';
+    panel.appendChild(empty);
+    return;
+  }
+  items.forEach((item, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'small';
+    btn.dataset.action = 'use';
+    btn.dataset.index = String(i);
+    btn.textContent = `${i + 1} ${item.glyph} ${item.kind}`;
+    panel.appendChild(btn);
+  });
 }
