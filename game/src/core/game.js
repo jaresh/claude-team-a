@@ -10,6 +10,7 @@ const LOG_KEEP = 50; // lines kept in state.log
 const VIEW_LOG = 5; // lines returned by getView
 const XP_PER_LEVEL = 10;
 const PLAYER_START = { hp: 30, atk: 2, def: 0 };
+const POISON_TURNS = 3; // turns of poison a poison monster's melee hit adds
 const TILE_FG = { [WALL]: '#94a3b8', [FLOOR]: '#475569', [STAIRS]: '#fde047' };
 const DIM = '#2a303b';
 
@@ -98,6 +99,11 @@ function monsterPhase(state, rng) {
     if (step.type === 'attack') {
       const r = attack(m, p, rng);
       say(state, `The ${m.kind} hits you for ${r.damage}.`);
+      if (m.ability === 'poison') p.poison = POISON_TURNS;
+      if (p.hp <= 0) return;
+    } else if (step.type === 'shoot') {
+      const r = attack({ ...m, atk: Math.max(1, m.atk - 1) }, p, rng);
+      say(state, `The ${m.kind} shoots you for ${r.damage}.`);
       if (p.hp <= 0) return;
     } else if (step.type === 'move') {
       occupied.delete(tileIndex(state.map, m.x, m.y));
@@ -108,9 +114,26 @@ function monsterPhase(state, rng) {
   }
 }
 
-// Ends a turn: monsters act (unless skipped), FOV and explored update, turn goes up, death check.
+// Every living regen monster below maxHp gains 1 hp.
+function regenerate(state) {
+  for (const m of state.monsters) {
+    if (m.ability === 'regen' && m.hp > 0 && m.hp < m.maxHp) m.hp += 1;
+  }
+}
+
+// Ends a turn: monsters act (unless skipped), regen and poison, FOV and explored update, turn goes
+// up, death check.
 function endTurn(state, rng, monstersAct) {
-  if (monstersAct && state.status === 'playing') monsterPhase(state, rng);
+  if (monstersAct && state.status === 'playing') {
+    monsterPhase(state, rng);
+    regenerate(state);
+  }
+  const p = state.player;
+  if (p.poison > 0 && p.hp > 0) {
+    p.hp -= 1;
+    p.poison -= 1;
+    say(state, 'Poison hurts you.');
+  }
   updateFov(state);
   state.turn += 1;
   if (state.player.hp <= 0 && state.status === 'playing') {
@@ -129,7 +152,7 @@ export function newGame(seed) {
     player: {
       id: 0, kind: 'player', glyph: '@', color: '#f8fafc', x: 0, y: 0,
       hp: PLAYER_START.hp, maxHp: PLAYER_START.hp, atk: PLAYER_START.atk, def: PLAYER_START.def,
-      xp: 0, level: 1, inventory: [],
+      xp: 0, level: 1, inventory: [], poison: 0,
     },
     monsters: [],
     items: [],
@@ -254,7 +277,7 @@ export function getView(state) {
     cells,
     hud: {
       hp: p.hp, maxHp: p.maxHp, atk: p.atk, def: p.def, depth: state.depth,
-      level: p.level, xp: p.xp, turn: state.turn,
+      level: p.level, xp: p.xp, turn: state.turn, poison: p.poison,
     },
     log: state.log.slice(-VIEW_LOG),
     status: state.status,
@@ -262,5 +285,8 @@ export function getView(state) {
     inventory: p.inventory.map((it) => ({
       kind: it.kind, glyph: it.glyph, color: it.color, effect: it.effect, amount: it.amount,
     })),
+    visibleMonsters: monsters
+      .filter((m) => m.hp > 0 && visible.has(tileIndex(map, m.x, m.y)))
+      .map((m) => ({ kind: m.kind, glyph: m.glyph, color: m.color, hp: m.hp, maxHp: m.maxHp, ability: m.ability })),
   };
 }

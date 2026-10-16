@@ -13,3 +13,9 @@ One line per edit to a shared generator, config or table (rule 13). Append at th
 | 2026-10-16 | tuner | game/src/data/monsters.js | orc | atk 4 -> 2, hp 14 -> 8 |
 | 2026-10-16 | tuner | game/src/data/items.js | potion | heal amount 8 -> 12 |
 | 2026-10-16 | tuner | game/test/rules.test.js | spawn count tests | assertions updated to the new spawn counts (2 + depth, 4 + floor(depth/2)) |
+| 2026-10-16 | abilities | game/src/data/monsters.js | every row | added `ability` field: bat poison, orc ranged, troll regen, others null |
+| 2026-10-16 | abilities | game/src/data/monsters.js | spider (new, appended) | glyph s, hp 4, atk 2, def 0, xp 4, minDepth 3, ability poison |
+| 2026-10-16 | abilities | game/src/data/monsters.js | goblin | ability null (regen tried first; win rate fell to 9%, goblins were 40% of deaths) |
+| 2026-10-16 | abilities | game/src/core/rules.js | spawnMonsters | copies `ability` onto each monster |
+| 2026-10-16 | abilities | game/src/core/rules.js | monsterStep | returns `shoot` for ranged monsters at Chebyshev 2 to 4 on visible tiles |
+| 2026-10-16 | abilities | game/src/core/game.js | monsterPhase, endTurn, getView, newGame | shoot, regen, poison (3 turns), hud.poison, visibleMonsters, player.poison |

@@ -19,6 +19,14 @@
     font: 13px/1.4 ui-monospace, Menlo, Consolas, "Courier New", monospace;
     color: #cbd5e1; margin: 8px 0; overflow-wrap: anywhere;
   }
+  #poison { color: #a3e635; font-weight: 600; margin: 0 0 8px; }
+  #poison[hidden] { display: none; }
+  #legend {
+    list-style: none; margin: 8px 0 0; padding: 8px 10px;
+    background: #111827; border-radius: 6px; min-height: 2.5em;
+    font: 13px/1.5 ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  }
+  #legend li:empty::before { content: 'No monsters in sight.'; color: #6b7280; }
   #screen { display: block; max-width: 100%; margin: 0 auto; }
   #log {
     list-style: none; margin: 8px 0 0; padding: 8px 10px;
@@ -61,6 +69,8 @@
   <canvas id="screen" aria-label="Game map"></canvas>
   <div id="hpbar" aria-label="Hit points"><div class="fill"></div></div>
   <div id="hud" aria-live="polite"></div>
+  <p id="poison" aria-live="polite" hidden></p>
+  <ul id="legend" aria-label="Monsters in sight"></ul>
   <ul id="log" aria-live="polite"></ul>
 
   <div class="controls">

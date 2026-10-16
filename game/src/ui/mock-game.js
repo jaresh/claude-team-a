@@ -44,7 +44,7 @@ function enterLevel(state) {
   state.player.x = START.x;
   state.player.y = START.y;
   const hp = 3 + state.depth - 1;
-  state.monsters = [{ id: 1, kind: 'rat', glyph: 'r', color: '#b9a37e', x: 16, y: 4, hp, maxHp: hp, atk: 1, def: 0, xp: 1 }];
+  state.monsters = [{ id: 1, kind: 'rat', glyph: 'r', color: '#b9a37e', x: 16, y: 4, hp, maxHp: hp, atk: 1, def: 0, xp: 1, ability: null }];
   state.items = [{ id: 2, kind: 'potion', glyph: '!', color: '#ff5fa2', effect: 'heal', amount: 8, x: 5, y: 8 }];
   state.explored = new Array(W * H).fill(false);
 }
@@ -237,8 +237,11 @@ export function getView(state) {
     cells,
     hud: {
       hp: p.hp, maxHp: p.maxHp, atk: p.atk, def: p.def, depth: state.depth,
-      level: p.level, xp: p.xp, turn: state.turn,
+      level: p.level, xp: p.xp, turn: state.turn, poison: 0,
     },
+    visibleMonsters: state.monsters
+      .filter((m) => visible.has(idx(m.x, m.y)))
+      .map(({ kind, glyph, color, hp, maxHp, ability }) => ({ kind, glyph, color, hp, maxHp, ability })),
     log: state.log.slice(-5),
     status: state.status,
   };

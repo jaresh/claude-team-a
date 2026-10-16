@@ -3,6 +3,7 @@
 
 import { MIN_CELL, cameraWindow } from './camera.js';
 import { endMessage, hpColor } from './hud.js';
+import { legendRows, poisonLabel } from './legend.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
@@ -61,6 +62,8 @@ export function render(canvas, view, hudEl, logEl) {
     `DEPTH ${h.depth}  TURN ${h.turn}${suffix}`;
 
   renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
+  renderPoison(document.getElementById('poison'), view);
+  renderLegend(document.getElementById('legend'), view);
   renderEnd(document.getElementById('end'), view);
 
   logEl.textContent = '';
@@ -80,6 +83,26 @@ function renderHpBar(barEl, hp, maxHp) {
   const frac = Math.max(0, Math.min(1, hp / maxHp));
   fill.style.width = `${frac * 100}%`;
   fill.style.background = hpColor(hp, maxHp);
+}
+
+// The poison label shows next to the HUD only while the player is poisoned.
+function renderPoison(poisonEl, view) {
+  if (!poisonEl) return;
+  const label = poisonLabel(view);
+  poisonEl.hidden = label === null;
+  poisonEl.textContent = label ?? '';
+}
+
+// One line per visible monster, in that monster's colour. Empty list shows the CSS placeholder.
+function renderLegend(legendEl, view) {
+  if (!legendEl) return;
+  legendEl.textContent = '';
+  for (const row of legendRows(view)) {
+    const li = document.createElement('li');
+    li.textContent = row.text;
+    li.style.color = row.color;
+    legendEl.appendChild(li);
+  }
 }
 
 // The end panel shows while the game is over; the New game button in it is a plain data-action.
