@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roguelike</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #0b0d12; color: #e5e7eb;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow-x: hidden;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 8px; }
+  #hud {
+    font: 13px/1.4 ui-monospace, Menlo, Consolas, "Courier New", monospace;
+    color: #cbd5e1; margin: 8px 0; overflow-wrap: anywhere;
+  }
+  #screen { display: block; max-width: 100%; margin: 0 auto; }
+  #log {
+    list-style: none; margin: 8px 0 0; padding: 8px 10px;
+    background: #111827; border-radius: 6px; min-height: 5.5em;
+    font: 13px/1.5 ui-monospace, Menlo, Consolas, "Courier New", monospace; color: #9ca3af;
+  }
+  #log li { white-space: normal; overflow-wrap: anywhere; }
+  .controls { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 16px; }
+  .pad {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    width: min(100%, 240px);
+  }
+  .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: min(100%, 240px); }
+  button {
+    min-height: 56px; border: 1px solid #334155; border-radius: 8px;
+    background: #1f2937; color: #e5e7eb; font: 18px system-ui, sans-serif;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; cursor: pointer;
+  }
+  button:active { background: #374151; }
+  button.small { min-height: 44px; font-size: 15px; }
+  button.wide { grid-column: span 2; }
+  .hint { font-size: 12px; color: #6b7280; text-align: center; margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Roguelike</h1>
+  <canvas id="screen" aria-label="Game map"></canvas>
+  <div id="hud" aria-live="polite"></div>
+  <ul id="log" aria-live="polite"></ul>
+
+  <div class="controls">
+    <div class="pad" role="group" aria-label="Move">
+      <button data-action="move" data-dx="-1" data-dy="-1" aria-label="North west">&#8598;</button>
+      <button data-action="move" data-dx="0" data-dy="-1" aria-label="North">&#8593;</button>
+      <button data-action="move" data-dx="1" data-dy="-1" aria-label="North east">&#8599;</button>
+      <button data-action="move" data-dx="-1" data-dy="0" aria-label="West">&#8592;</button>
+      <button data-action="wait" aria-label="Wait">Wait</button>
+      <button data-action="move" data-dx="1" data-dy="0" aria-label="East">&#8594;</button>
+      <button data-action="move" data-dx="-1" data-dy="1" aria-label="South west">&#8601;</button>
+      <button data-action="move" data-dx="0" data-dy="1" aria-label="South">&#8595;</button>
+      <button data-action="move" data-dx="1" data-dy="1" aria-label="South east">&#8600;</button>
+    </div>
+    <div class="actions" role="group" aria-label="Actions">
+      <button class="small" data-action="pickup">Pick up</button>
+      <button class="small" data-action="use" data-index="0">Use 1</button>
+      <button class="small" data-action="descend">Descend</button>
+      <button class="small" data-action="new">New game</button>
+    </div>
+    <p class="hint">Arrows or WASD / hjkl / yubn move. . wait, g pick up, &gt; descend, 1-9 use.</p>
+  </div>
+</main>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

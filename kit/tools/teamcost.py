@@ -47,8 +47,15 @@ def message_cost(model, u):
                    + p["cw5m"] * cw5m + p["cw1h"] * cw1h) / 1e6
 
 
+CHARS_PER_TOKEN = 3.5
+
+
 def scan(path, since, until):
-    usage, tools, agent, first, last = {}, set(), None, None, None
+    # Teammate transcripts keep the usage from the start of each response (stop_reason null), so
+    # their output_tokens are far too low. For those responses, output is estimated from the
+    # visible content (text and tool inputs). Hidden thinking stays uncounted.
+    usage, final, chars = {}, set(), Counter()
+    tools, agent, first, last = set(), None, None, None
     with open(path) as f:
         for line in f:
             try:
@@ -64,22 +71,42 @@ def scan(path, since, until):
             if not m.get("id") or m.get("model") in (None, "<synthetic>"):
                 continue
             usage[m["id"]] = (m["model"], m.get("usage") or {})
+            if m.get("stop_reason"):
+                final.add(m["id"])
             for c in m.get("content") or []:
-                if isinstance(c, dict) and c.get("type") == "tool_use":
+                if not isinstance(c, dict):
+                    continue
+                if c.get("type") == "tool_use":
                     tools.add(c.get("id"))
+                    chars[m["id"]] += len(json.dumps(c.get("input") or {}))
+                chars[m["id"]] += len(c.get("text") or "") + len(c.get("thinking") or "")
             agent = agent or e.get("agentId")
             first = first or ts
             last = ts
     if not usage:
         return None
+    # Teammates have <transcript>.meta.json; the name is the spawn description up to ':'.
+    meta, name = path[:-len(".jsonl")] + ".meta.json", None
+    if os.path.exists(meta):
+        with open(meta) as f:
+            meta = json.load(f)
+        name = meta.get("description", "").split(":")[0].strip() or None
+    else:
+        meta = {}
     models = Counter(model for model, _ in usage.values())
-    row = {"agent": agent or "lead:" + os.path.basename(path)[:8],
+    row = {"agent": name or agent or "lead:" + os.path.basename(path)[:8],
+           "effort": meta.get("effort", ""),
            "file": path, "model": models.most_common(1)[0][0], "msgs": len(usage),
            "tools": len(tools), "input": 0, "cache_w": 0, "cache_r": 0, "output": 0,
-           "peak_ctx": 0, "over_100k": 0, "cost": 0.0, "unpriced": 0,
+           "peak_ctx": 0, "over_100k": 0, "cost": 0.0, "unpriced": 0, "out_est": 0,
            "first": first.isoformat() if first else None,
            "last": last.isoformat() if last else None}
-    for model, u in usage.values():
+    for mid, (model, u) in usage.items():
+        if mid not in final:
+            estimate = round(chars[mid] / CHARS_PER_TOKEN)
+            if estimate > u.get("output_tokens", 0):
+                u = dict(u, output_tokens=estimate)
+            row["out_est"] += 1
         row["input"] += u.get("input_tokens", 0)
         row["cache_w"] += u.get("cache_creation_input_tokens", 0)
         row["cache_r"] += u.get("cache_read_input_tokens", 0)
@@ -108,24 +135,27 @@ def main():
             if (r := scan(p, since, until))]
     rows.sort(key=lambda r: r["first"] or "")
 
-    cols = ["agent", "model", "msgs", "tools", "input", "cache_w", "cache_r", "output",
-            "peak_ctx", "over_100k", "cost"]
+    cols = ["agent", "model", "effort", "msgs", "tools", "input", "cache_w", "cache_r", "output",
+            "out_est", "peak_ctx", "over_100k", "cost"]
     fmt = lambda r, c: f"{r[c]:.4f}" if c == "cost" else str(r[c]).replace("claude-", "")
     table = [cols] + [[fmt(r, c) for c in cols] for r in rows]
     by_model = {}
     for r in rows:
-        t = by_model.setdefault(r["model"], {c: 0 for c in cols[2:]})
-        for c in cols[2:]:
+        t = by_model.setdefault(r["model"], {c: 0 for c in cols[3:]})
+        for c in cols[3:]:
             t[c] = max(t[c], r[c]) if c == "peak_ctx" else t[c] + r[c]
     for model, t in by_model.items():
-        table.append(["TOTAL", model.replace("claude-", "")] + [fmt(t, c) for c in cols[2:]])
+        table.append(["TOTAL", model.replace("claude-", ""), ""] + [fmt(t, c) for c in cols[3:]])
     widths = [max(len(row[i]) for row in table) for i in range(len(cols))]
     for row in table:
-        print("  ".join(v.ljust(w) if i < 2 else v.rjust(w)
+        print("  ".join(v.ljust(w) if i < 3 else v.rjust(w)
                         for i, (v, w) in enumerate(zip(row, widths))))
     total = sum(r["cost"] for r in rows)
     print(f"total ${total:.4f}" + ("  (some messages unpriced)" if any(r["unpriced"] for r in rows)
                                    else ""))
+    if any(r["out_est"] for r in rows):
+        print("out_est: responses whose output was estimated from visible content "
+              f"({CHARS_PER_TOKEN} chars/token); hidden thinking is not counted.")
     if a.json:
         with open(a.json, "w") as f:
             json.dump({"since": a.since, "until": a.until, "total_cost": total,
