@@ -46,8 +46,11 @@ every turn (rules L1-L4).
 ## Measure a run
 
 ```
-python3 kit/tools/teamcost.py --since 2026-10-16T20:00:00Z --json results/metrics/<run>.json
+python3 kit/tools/teamcost.py --latest-session --json results/metrics/<run>.json
 ```
+
+Run it from the run's lead session: it counts that whole session and its teammates. For a time
+window across sessions use `--since` / `--until` instead.
 
 One row per transcript: the lead session and each teammate. It prints numbers only, never message
 content. `peak_ctx` is the largest prompt an agent sent; above 100K tokens Haiku 5.5 costs 5x.
