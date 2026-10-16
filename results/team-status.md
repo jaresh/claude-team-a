@@ -27,3 +27,10 @@ starts or finishes.
 |---|---|---|---|---|---|
 | tuner | e2-B: balance (core/, data/) | haiku (dev) | medium | done (37/37) | results/handoff/tuner.md |
 | hud | e2-B: end screen + HP bar (ui/, index.html) | haiku (dev) | medium | done (27/27) | results/handoff/hud.md |
+
+## e3-B teammates
+
+| Name | Task | Model | Effort | State | Handoff |
+|---|---|---|---|---|---|
+| abilities | e3-B: monster abilities (core/, data/) | haiku (dev) | medium | done (54 tests; merged 111 + accept 25 + smoke ok) | results/handoff/abilities.md |
+| legend | e3-B: monster legend + poison label (ui/, index.html) | haiku (dev) | medium | done (24 tests; merged ok) | results/handoff/legend.md |

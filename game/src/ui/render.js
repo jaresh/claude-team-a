@@ -3,6 +3,7 @@
 
 import { MIN_CELL, cameraWindow } from './camera.js';
 import { endMessage, hpColor } from './hud.js';
+import { legendRows, poisonLabel } from './legend.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
@@ -56,12 +57,14 @@ export function render(canvas, view, hudEl, logEl) {
 
   const h = view.hud;
   const suffix = view.status === 'playing' ? '' : `  ${view.status.toUpperCase()}`;
+  const poison = poisonLabel(view);
   hudEl.textContent =
     `HP ${h.hp}/${h.maxHp}  ATK ${h.atk}  DEF ${h.def}  LV ${h.level}  XP ${h.xp}  ` +
-    `DEPTH ${h.depth}  TURN ${h.turn}${suffix}`;
+    `DEPTH ${h.depth}  TURN ${h.turn}${suffix}${poison === null ? '' : `  ${poison}`}`;
 
   renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
   renderEnd(document.getElementById('end'), view);
+  renderLegend(document.getElementById('legend'), view);
 
   logEl.textContent = '';
   for (const line of view.log) {
@@ -88,6 +91,18 @@ function renderEnd(endEl, view) {
   const msg = endMessage(view);
   endEl.hidden = msg === null;
   if (msg !== null) endEl.querySelector('.end-text').textContent = msg;
+}
+
+// One line per monster in sight, in the monster's colour. The list is empty when none are seen.
+function renderLegend(legendEl, view) {
+  if (!legendEl) return;
+  legendEl.textContent = '';
+  for (const row of legendRows(view)) {
+    const li = document.createElement('li');
+    li.style.color = row.color;
+    li.textContent = row.text;
+    legendEl.appendChild(li);
+  }
 }
 
 // One button per item; a tap sends { type: 'use', index } through input.js.

@@ -50,7 +50,7 @@ function spawnFrom(rng, map, depth, occupied, count, table, make) {
 }
 
 export function spawnMonsters(rng, map, depth, occupied) {
-  return spawnFrom(rng, map, depth, occupied, 2 + depth, MONSTERS, (row, id, x, y) => ({
+  return spawnFrom(rng, map, depth, occupied, 2 + Math.floor(depth / 2), MONSTERS, (row, id, x, y) => ({
     id,
     kind: row.kind,
     glyph: row.glyph,
@@ -62,6 +62,7 @@ export function spawnMonsters(rng, map, depth, occupied) {
     atk: row.atk,
     def: row.def,
     xp: row.xp,
+    ability: row.ability,
   }));
 }
 
@@ -104,7 +105,9 @@ export function applyItem(player, item) {
 
 export function monsterStep(map, monster, player, visible, isBlocked, rng) {
   if (visible.has(tileIndex(map, monster.x, monster.y))) {
-    if (chebyshev(monster.x, monster.y, player.x, player.y) === 1) return { type: 'attack' };
+    const dist = chebyshev(monster.x, monster.y, player.x, player.y);
+    if (dist === 1) return { type: 'attack' };
+    if (monster.ability === 'ranged' && dist >= 2 && dist <= 4) return { type: 'shoot' };
     let best = null, bestCheb = Infinity, bestSq = Infinity;
     for (const [dx, dy] of NEIGHBOURS) {
       const x = monster.x + dx, y = monster.y + dy;
