@@ -50,7 +50,7 @@ function spawnFrom(rng, map, depth, occupied, count, table, make) {
 }
 
 export function spawnMonsters(rng, map, depth, occupied) {
-  return spawnFrom(rng, map, depth, occupied, 3 + 2 * depth, MONSTERS, (row, id, x, y) => ({
+  return spawnFrom(rng, map, depth, occupied, 2 + depth, MONSTERS, (row, id, x, y) => ({
     id,
     kind: row.kind,
     glyph: row.glyph,
@@ -66,7 +66,7 @@ export function spawnMonsters(rng, map, depth, occupied) {
 }
 
 export function spawnItems(rng, map, depth, occupied) {
-  return spawnFrom(rng, map, depth, occupied, 2 + Math.floor(depth / 2), ITEMS, (row, id, x, y) => ({
+  return spawnFrom(rng, map, depth, occupied, 4 + Math.floor(depth / 2), ITEMS, (row, id, x, y) => ({
     id,
     kind: row.kind,
     glyph: row.glyph,
