@@ -1,0 +1,6 @@
+# Personal Claude Code overrides
+.claude/settings.local.json
+
+# Per-teammate scratch and generated output
+scratch/
+out/
