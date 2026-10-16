@@ -30,7 +30,11 @@ export function buttonToAction(ds) {
     case 'wait': return { type: 'wait' };
     case 'pickup': return { type: 'pickup' };
     case 'descend': return { type: 'descend' };
-    case 'use': return { type: 'use', index: Number(ds.index) };
+    case 'use': {
+      // Inventory buttons carry data-index; a missing or bad index is not an action.
+      const index = Number(ds.index);
+      return ds.index && Number.isInteger(index) ? { type: 'use', index } : null;
+    }
     case 'new': return { type: 'new' };
     default: return null;
   }
@@ -41,7 +45,8 @@ function isEditable(el) {
   return el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
 }
 
-// root: document (or an element). Buttons are any [data-action] inside root.
+// root: document (or an element). Buttons are any [data-action] inside root, including the
+// inventory buttons that render() adds, so taps on them reach onAction through the same handler.
 // Returns an unbind function.
 export function bindInput(root, onAction) {
   const onKey = (e) => {

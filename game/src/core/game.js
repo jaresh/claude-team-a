@@ -258,5 +258,9 @@ export function getView(state) {
     },
     log: state.log.slice(-VIEW_LOG),
     status: state.status,
+    player: { x: p.x, y: p.y },
+    inventory: p.inventory.map((it) => ({
+      kind: it.kind, glyph: it.glyph, color: it.color, effect: it.effect, amount: it.amount,
+    })),
   };
 }
