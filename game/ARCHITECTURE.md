@@ -217,6 +217,41 @@ export function hpColor(hp, maxHp) // -> '#3fb950' if hp / maxHp > 0.5,
   `endMessage(view)` when it isn't null, hidden otherwise.
 - The empty-inventory text spans the panel's full width (in e1 it wraps onto two lines).
 
+### e3: monster abilities (owner: abilities)
+
+- **Data.** Every `MONSTERS` row gets `ability`: `null`, `'regen'`, `'poison'` or `'ranged'`.
+  Each of the three abilities is used by at least one kind, and one new kind is appended (at
+  least 7 kinds). `spawnMonsters` copies `ability` onto each monster.
+- **`monsterStep`.** A monster with `ability: 'ranged'` whose tile is in `visible`, at Chebyshev
+  distance 2 to 4 from the player, returns `{ type: 'shoot' }`. Nothing else changes.
+- **`game.js`.**
+  - `shoot`: an attack on the player with the monster's `atk` lowered by 1 (at least 1); log
+    `The <kind> shoots you for <n>.`
+  - `regen`: after each monster phase, every living `regen` monster below `maxHp` gains 1 hp.
+  - `poison`: when a `poison` monster damages the player in melee, `player.poison = 3`. At the
+    end of every turn with `player.poison > 0`, the player loses 1 hp, `poison` goes down by 1, and
+    the log says `Poison hurts you.` Dying from poison is an ordinary death.
+  - `getView` adds `hud.poison` (turns left, 0 when none) and
+    `visibleMonsters: [{ kind, glyph, color, hp, maxHp, ability }]`: living monsters on visible
+    tiles.
+- **Balance.** The e2 targets still hold (`game/accept/e2-balance.test.js`), with the changes the
+  e2 balance section allows.
+
+### e3: monster legend (owner: legend)
+
+`game/src/ui/legend.js`:
+
+```js
+export function legendRows(view) // -> [{ text, color }], one per view.visibleMonsters entry
+//   text: `${glyph} ${kind} ${hp}/${maxHp}`, plus ` ${ability}` when ability isn't null
+export function poisonLabel(view) // -> `Poisoned (${view.hud.poison})` when > 0, else null
+```
+
+- `index.html` gets a legend panel, `id="legend"`; `render.js` fills it with one line per
+  `legendRows` entry in that entry's colour, and shows `poisonLabel` next to the HUD when it isn't
+  null.
+- `mock-game.js` returns `visibleMonsters` and `hud.poison` too.
+
 ### `sim/bot.mjs` (owner: sim, wave 3)
 
 `node game/sim/bot.mjs --seeds <file> --out <file>` plays each seed with a simple greedy policy

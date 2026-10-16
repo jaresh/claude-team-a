@@ -77,13 +77,15 @@ def scan(path, since, until, project):
     # their output_tokens are far too low. For those responses, output is estimated from the
     # visible content (text and tool inputs). Hidden thinking stays uncounted.
     usage, final, chars = {}, set(), Counter()
-    tools, agent, first, last, started = set(), None, None, None, None
+    tools, agent, first, last, started, compactions = set(), None, None, None, None, 0
     with open(path) as f:
         for line in f:
             try:
                 e = json.loads(line)
             except ValueError:
                 continue
+            if e.get("type") == "system" and e.get("subtype") == "compact_boundary":
+                compactions += 1
             if e.get("type") != "assistant":
                 continue
             ts = parse_time(e.get("timestamp"))
@@ -122,7 +124,8 @@ def scan(path, since, until, project):
            "started": started.isoformat() if started else None,
            "model": models.most_common(1)[0][0], "msgs": len(usage),
            "tools": len(tools), "input": 0, "cache_w": 0, "cache_r": 0, "output": 0,
-           "peak_ctx": 0, "over_100k": 0, "cost": 0.0, "unpriced": 0, "out_est": 0,
+           "peak_ctx": 0, "over_100k": 0, "compactions": compactions, "cost": 0.0,
+           "unpriced": 0, "out_est": 0,
            **{k: 0.0 for k in PARTS},
            "first": first.isoformat() if first else None,
            "last": last.isoformat() if last else None}
@@ -152,7 +155,7 @@ def totals(agents, role):
     rows = [r for r in agents if r.get("role", "lead" if r["agent"].startswith("lead:")
                                          else "teammate") == role]
     t = {k: sum(r.get(k, 0) for r in rows) for k in ("cost", "msgs", "tools", "output",
-                                                     "over_100k") + PARTS}
+                                                     "over_100k", "compactions") + PARTS}
     t["peak_ctx"] = max((r["peak_ctx"] for r in rows), default=0)
     t["models"] = sorted({r["model"].replace("claude-", "") for r in rows})
     t["count"] = len(rows)
@@ -181,7 +184,8 @@ def compare(path_a, path_b):
             ("Teammates", ta["count"], tb["count"], "n"),
             ("Team tool calls", ta["tools"], tb["tools"], "n"),
             ("Team peak context", ta["peak_ctx"], tb["peak_ctx"], "k"),
-            ("Team messages over 100K", ta["over_100k"], tb["over_100k"], "n")]
+            ("Team messages over 100K", ta["over_100k"], tb["over_100k"], "n"),
+            ("Team compactions", ta["compactions"], tb["compactions"], "n")]
     fmt = {"$": lambda v: f"{v:.3f}", "n": str, "k": lambda v: f"{v / 1000:.0f}K", "s": str}
     print(f"| Metric | A | B | B vs A |\n|---|---|---|---|")
     for label, x, y, kind in rows:
@@ -235,7 +239,7 @@ def main():
     rows.sort(key=lambda r: r["first"] or "")
 
     cols = ["agent", "model", "effort", "msgs", "tools", "input", "cache_w", "cache_r", "output",
-            "out_est", "peak_ctx", "over_100k", "cost"]
+            "out_est", "peak_ctx", "over_100k", "compactions", "cost"]
     fmt = lambda r, c: f"{r[c]:.4f}" if c == "cost" else str(r[c]).replace("claude-", "")
     table = [cols] + [[fmt(r, c) for c in cols] for r in rows]
     by_model = {}

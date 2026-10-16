@@ -47,11 +47,20 @@ def merge_settings(target):
         with open(path) as f:
             settings = json.load(f)
     wanted = json.load(open(os.path.join(KIT, "settings", "settings.json")))
-    env = settings.setdefault("env", {})
-    missing = {k: v for k, v in wanted["env"].items() if env.get(k) != v}
+
+    def merge(dst, src, prefix=""):
+        changed = []
+        for k, v in src.items():
+            if isinstance(v, dict) and isinstance(dst.setdefault(k, {}), dict):
+                changed += merge(dst[k], v, prefix + k + ".")
+            elif dst.get(k) != v:
+                dst[k] = v
+                changed.append(prefix + k)
+        return changed
+
+    missing = merge(settings, wanted)
     if not missing:
         return ".claude/settings.json already set"
-    env.update(missing)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(settings, f, indent=2)
