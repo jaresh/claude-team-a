@@ -20,3 +20,10 @@ starts or finishes.
 | What | Output file | Done check | State |
 |---|---|---|---|
 | M0 bot run, 200 seeds (lead) | out/sim/m0/full.json | file has `summary.games == 200` | done (0.8 s) |
+
+## e2-B teammates
+
+| Name | Task | Model | Effort | State | Handoff |
+|---|---|---|---|---|---|
+| tuner | e2-B: balance (core/, data/) | haiku (dev) | medium | done (37/37) | results/handoff/tuner.md |
+| hud | e2-B: end screen + HP bar (ui/, index.html) | haiku (dev) | medium | done (27/27) | results/handoff/hud.md |

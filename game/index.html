@@ -41,6 +41,17 @@
   button.small { min-height: 44px; font-size: 15px; }
   button.wide { grid-column: span 2; }
   #inventory { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: min(100%, 240px); }
+  #inventory .empty { grid-column: 1 / -1; text-align: center; color: #6b7280; }
+  #hpbar {
+    height: 10px; background: #1f2937; border-radius: 5px; overflow: hidden; margin: 8px 0 0;
+  }
+  #hpbar .fill { height: 100%; width: 100%; transition: width 0.2s; }
+  #end {
+    width: min(100%, 320px); padding: 12px; text-align: center;
+    background: #111827; border: 1px solid #334155; border-radius: 8px;
+  }
+  #end[hidden] { display: none; }
+  #end .end-text { margin: 0 0 8px; font-size: 16px; }
   .hint { font-size: 12px; color: #6b7280; text-align: center; margin: 0; }
 </style>
 </head>
@@ -48,10 +59,15 @@
 <main>
   <h1>Roguelike</h1>
   <canvas id="screen" aria-label="Game map"></canvas>
+  <div id="hpbar" aria-label="Hit points"><div class="fill"></div></div>
   <div id="hud" aria-live="polite"></div>
   <ul id="log" aria-live="polite"></ul>
 
   <div class="controls">
+    <div id="end" hidden>
+      <p class="end-text" aria-live="polite"></p>
+      <button class="small" data-action="new">New game</button>
+    </div>
     <div class="pad" role="group" aria-label="Move">
       <button data-action="move" data-dx="-1" data-dy="-1" aria-label="North west">&#8598;</button>
       <button data-action="move" data-dx="0" data-dy="-1" aria-label="North">&#8593;</button>

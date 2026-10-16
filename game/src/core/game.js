@@ -9,7 +9,7 @@ export const MAX_DEPTH = 5, FOV_RADIUS = 8;
 const LOG_KEEP = 50; // lines kept in state.log
 const VIEW_LOG = 5; // lines returned by getView
 const XP_PER_LEVEL = 10;
-const PLAYER_START = { hp: 20, atk: 2, def: 0 };
+const PLAYER_START = { hp: 30, atk: 2, def: 0 };
 const TILE_FG = { [WALL]: '#94a3b8', [FLOOR]: '#475569', [STAIRS]: '#fde047' };
 const DIM = '#2a303b';
 

@@ -2,6 +2,7 @@
 // DOM is touched only inside render(), never at import time.
 
 import { MIN_CELL, cameraWindow } from './camera.js';
+import { endMessage, hpColor } from './hud.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
@@ -59,6 +60,9 @@ export function render(canvas, view, hudEl, logEl) {
     `HP ${h.hp}/${h.maxHp}  ATK ${h.atk}  DEF ${h.def}  LV ${h.level}  XP ${h.xp}  ` +
     `DEPTH ${h.depth}  TURN ${h.turn}${suffix}`;
 
+  renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
+  renderEnd(document.getElementById('end'), view);
+
   logEl.textContent = '';
   for (const line of view.log) {
     const li = document.createElement('li');
@@ -69,12 +73,32 @@ export function render(canvas, view, hudEl, logEl) {
   renderInventory(document.getElementById('inventory'), view.inventory);
 }
 
+// The bar's inner .fill is hp / maxHp wide, coloured by hpColor.
+function renderHpBar(barEl, hp, maxHp) {
+  if (!barEl) return;
+  const fill = barEl.querySelector('.fill');
+  const frac = Math.max(0, Math.min(1, hp / maxHp));
+  fill.style.width = `${frac * 100}%`;
+  fill.style.background = hpColor(hp, maxHp);
+}
+
+// The end panel shows while the game is over; the New game button in it is a plain data-action.
+function renderEnd(endEl, view) {
+  if (!endEl) return;
+  const msg = endMessage(view);
+  endEl.hidden = msg === null;
+  if (msg !== null) endEl.querySelector('.end-text').textContent = msg;
+}
+
 // One button per item; a tap sends { type: 'use', index } through input.js.
 function renderInventory(invEl, inventory) {
   if (!invEl) return;
   invEl.textContent = '';
   if (!inventory || inventory.length === 0) {
-    invEl.textContent = 'Inventory empty';
+    const empty = document.createElement('span');
+    empty.className = 'empty';
+    empty.textContent = 'Inventory empty';
+    invEl.appendChild(empty);
     return;
   }
   inventory.forEach((item, i) => {
