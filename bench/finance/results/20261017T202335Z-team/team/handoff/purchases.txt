@@ -1,0 +1,26 @@
+**Done**
+- Files changed: fin/purchases.py (new body: setup + vendor add/list, bill create/pay/show/list, helpers), tests/test_purchases.py (new, 19 tests). No shared files edited, so changes.md is untouched.
+- Check: `python3 -m unittest tests.test_purchases` -> Ran 19 tests, OK. (`python` is not on PATH in this environment; use `python3`.)
+- Commands: `vendor add NAME [--terms DAYS]` (write, audit vendor.add), `vendor list` (read), `bill create --vendor --ref --date --line ...` (write, audit bill.create with the bill id), `bill pay ID AMOUNT --date --account` (write, audit bill.pay with the bill id), `bill show ID` (read), `bill list [--status open|partial|paid]` (read). Groups use core.group("vendor") and core.group("bill").
+- Bill create posts "Bill REF" on DATE, with each line's ACCOUNT +net, Assets:TaxReceivable +tax (only if not zero) and Liabilities:Payable -total. Liabilities:Payable and Assets:TaxReceivable are created via ensure_account before posting. Due = date + vendor terms.
+- Bill pay posts "Payment REF": Liabilities:Payable +AMOUNT, ACCOUNT -AMOUNT. It writes a payments row (kind 'bill') and sets status partial or paid. It prints the full bill.
+- Tests use no other module: the setUp inserts taxes, users and accounts via core.Book and raw SQL, and vendor add is their own CLI.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: when merging, run `python3 -m unittest tests.test_purchases` again after ledger lands (the tests do not need ledger, so it should be unaffected).
+- Lead decisions to confirm (spec is silent on these; I chose the following):
+  1. bill pay requires the ACCOUNT to be an asset account (mirrors invoice pay). Change in purchases.py bill_pay if bills should accept any account.
+  2. A bill line TAXCODE may be empty (no tax), as with invoice lines. Spec only lists the 4-field form.
+  3. Line AMOUNT (net) is not checked for sign; zero and negative nets are accepted. Pay amounts must be > 0 and <= balance; paying a paid bill fails with "already paid".
+  4. bill list/show print full bill objects (same shape as create), not a summary.
+- Shared helper candidate: due dates are computed by a local `(_date.fromisoformat(date) + timedelta(days=terms)).isoformat()` in bill_create. The sales module will likely need the same "date plus N days" helper. Consider moving it to core.py (e.g. `add_days`) so both use it.
+
+**Do not redo**
+- Worked in place in the shared checkout (/home/jaca/claude-team-a/bench/work/finance-team); I did not call EnterWorktree. I did not commit, per team rules.
+- Verified the example from spec §14 by test: `bill create` for Office Ltd, ref A-17, date 2026-01-10, Consulting 950 VAT20 gives tax 190.00, total 1140.00, due 2026-02-09.
+- Verified the rounding rule: 0.50 at 25% gives tax 0.13 (round half up).
+- Verified the closed-period rejection on bill create and bill pay, the viewer and no-user rejections, and that failed commands leave no rows (bill list is empty after failed creates; the payment is absent after failed pays).
+- Did not touch core.py, __main__.py, the schema, or other modules' files.

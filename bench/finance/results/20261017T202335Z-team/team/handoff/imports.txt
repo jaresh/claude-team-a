@@ -1,0 +1,58 @@
+**Done**
+
+Files changed (only these two):
+- /home/jaca/claude-team-a/bench/work/finance-team/fin/imports.py (new implementation, 252 lines)
+- /home/jaca/claude-team-a/bench/work/finance-team/tests/test_imports.py (new, 29 tests in 6 classes: RuleTest, ImportTest, BudgetTest, RecurringTest, ReconcileTest)
+
+Commands implemented: rule add/list; import FILE --account [--date-col --desc-col --amount-col --skip-header];
+budget set; report budget (group "report"); recurring add/run; reconcile ACCOUNT --date --balance [--clear N ...].
+Perms: rule list and report budget = read; everything else = write.
+Audits: rule.add(pattern), import(account, only if imported>0), budget.set("ACCOUNT MONTH"),
+recurring.add(name), recurring.run(until, only if created>0), reconcile(account, only if new cleared marks).
+
+Check: `python3 -m unittest tests.test_imports` -> Ran 29 tests, OK. (Plain `python` is not on PATH in this
+environment; `python3` is /usr/bin/python3.14.) The tests use core.Book directly for setup, so they do not depend on
+ledger.py being finished.
+
+Shared files: none edited. No entry added to .claude/team/changes.md.
+
+**In progress**
+
+Nothing in progress. Task is complete as far as the done check.
+
+**Next step**
+
+Lead: after merging, run `python3 -m unittest tests.test_imports` from the repo root once more together with
+`python3 -m unittest discover -s tests` to confirm nothing conflicts with the other modules. Test setup calls
+`init --currency EUR --admin admin` through tests.helpers, so it needs the core/__main__ merged as-is.
+
+Assumptions to record in README (decisions I made where the spec was silent):
+- import: a row whose amount is 0 goes to Income:Uncategorized (since amount < 0 selects Expenses).
+- import: rule patterns are matched with re.search, case-insensitive, first matching rule wins (rules ordered by id).
+- import: unmatched rows go to Expenses:Uncategorized / Income:Uncategorized, created on demand with the bank account's currency.
+- import: dedupe key is (account, date, description, amount) in the `imported` table, so identical lines within
+  one file are also skipped on the second occurrence. Rows on a different account are not duplicates.
+- import: any bad row (short row, bad date/amount, closed month) raises UserError before any post, so nothing is imported.
+- rule add: account must already exist; pattern must compile as a Python regex.
+- budget set: only expense accounts; month validated by parse_month; re-setting replaces the amount and audits each time.
+- report budget: actual = sum of postings to the budget account and its descendants in that month, amounts summed as
+  stored (assumes one currency per account tree). Budgets with no postings show actual 0.00.
+- recurring add: postings checked at add time (>= 2 postings, at most one posting without amount, each currency balances
+  except the currency of the balancing posting). Nothing is posted at add time.
+- recurring run: occurrences from start; monthly keeps the start day, clamped to month end (Jan 31 -> Feb 28);
+  yearly from Feb 29 -> Feb 28 in non-leap years; weekly every 7 days. Already-run dates are kept in recurring_done.
+  The whole run is atomic (closed period raises and rolls back). `run` on a `--until` before start creates nothing and audits nothing.
+- reconcile: write permission is required even when no --clear is given (it is a command that may record marks).
+  --clear must refer to a transaction with a posting to the account on or before --date, otherwise the whole command
+  fails. Cleared balance counts cleared postings dated on or before --date. Uncleared lists transaction ids
+  (not postings) with a posting to the account on or before --date that are not cleared.
+
+**Do not redo**
+
+- Checked the test-file expectations against the code: the two failures seen on the first run were wrong expectations
+  in my tests, not bugs in fin/imports.py. (1) `budget set` run twice writes two `budget.set` audit rows; this is by
+  design (one audit per successful command). (2) weekly from 2026-01-01 to 2026-01-22 gives 4 occurrences and yearly from
+  2024-02-29 gives 2 up to 2026-01-22, total 6. Both fixed in tests/test_imports.py. The implementation was not changed.
+- Did not run `timeout`; the wrapper binary failed with "No such file or directory" in this shell. Not needed.
+- `python` (without 3) is not on PATH; use `python3`.
+- Did not touch core.py, __main__.py, helpers.py, ledger.py, or any other teammate's file.

@@ -1,0 +1,18 @@
+**Done**
+- fin/reports.py: setup() registers `report income`, `report balance-sheet`, `report networth`, `report trial-balance`, `report ledger` (group "report") and `loan schedule` (group "loan"). All perm=read.
+- tests/test_reports.py: 30 tests (income 8, balance-sheet 5, networth 4, trial-balance 3, ledger 7, loan 5). Covers spec examples, currency conversion (USD account, fx 2026-01-01 USD->EUR 0.5), zero-total accounts, empty periods, from>to and bad-input errors, unknown account, descendant accounts in ledger, and loan schedules (1200 @ 12% x 12, 1000 @ 0% x 3, month-end date rule, invalid input).
+- Check: `python3 -m unittest tests.test_reports` -> Ran 30 tests, OK. Note: `python` is not on this machine; I used `python3` (3.14). The lead's `python -m ...` line will need `python3` here or a `python` alias.
+- No shared files edited. changes.md not touched. Nothing committed.
+
+**In progress**
+- Nothing in progress. Open point, flagged only (not changed): trial-balance converts each account once at the report date and sums the rounded values, so total_debit and total_credit can differ by a cent when a foreign-currency account rounds. Spec §17 says they are equal. The balance-sheet already absorbs rounding via the retained-earnings plug. Trial balance has no plug. Test test_converted_balances_still_balance only covers balance-sheet, not trial-balance.
+
+**Next step**
+- Decide whether trial-balance needs a rounding plug (for example, put the cent difference on the largest row, or add a line). If yes: edit `trial_balance` in fin/reports.py (around line 125) and add a test in tests/test_reports.py with a USD posting whose converted amounts do not round evenly. Then run `python3 -m unittest tests.test_reports`.
+- Nothing else is required for the lead's merge check. Run `python3 -m unittest tests.test_reports` after the merge, since the ledger teammate's fin/ledger.py was not needed by these tests (they use the CLI `txn add`/`account add`/`fx add`, which ledger provides).
+
+**Do not redo**
+- Loan numbers verified independently with Decimal in .claude/team/scratch/reports/expect.py (run via `python3 -I`): payment 106.62, total interest 79.42, row 1 balance 1105.38, row 2 balance 1009.81, last row 106.60 / 1.06 / 105.54 / 0.00; zero-rate 333.33 with last payment 333.34.
+- Import check: `python3 -c "import fin.reports"` passes.
+- Retained earnings as a plug in balance-sheet is intentional (documented in a code comment).
+- Ledger converts every row at `--to` in the account's own currency (book.account(name)["currency"]).

@@ -1,0 +1,28 @@
+**Done**
+- fin/ledger.py: setup() registers account add/list, txn add/list, balance, fx add, convert, user add/list, audit list, period close/status. Perms: reads = read, user add and period close = admin, the rest = write.
+- tests/test_ledger.py: 68 tests, all pass. Covers the spec examples, every command, error cases, closed-period rejection, and viewer/editor/admin checks.
+- Check: `python3 -m unittest tests.test_ledger` gives "Ran 68 tests ... OK". The sandbox has no `python` binary, only `python3` (3.14.4), so the plan's `python -m` form needs `python` on PATH.
+- No shared files edited (changes.md untouched). No commit.
+
+Choices I made where the spec is silent (for the lead's README assumptions list):
+- txn add rejects a blank --desc (after strip) as a user error.
+- account add returns {name, type, currency} of the named account. Parents are not audited, only the name given.
+- txn add/list return the book.txn() shape. txn list --account matches the account or its descendants (prefix + ":"), not plain string prefixes.
+- balance includes every ancestor and accounts whose sums are zero (shown as "0.00"). Currencies are per account.
+- fx add rejects FROM == TO and stores the rate as a plain decimal string (format(rate, "f")).
+- convert requires --at; it is a read command (no --user needed).
+- user add stores the stripped name; a duplicate or blank name is a user error; --role is restricted to admin/editor/viewer by argparse choices.
+- period close: closing a month later than the current closed_through sets it and writes one period.close audit entry. Closing an earlier or equal month changes nothing and writes no audit entry (per spec §11). It returns the resulting closed_through. Future months are not rejected.
+- audit list returns exactly seq, at, user, action, target.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: when merging, run `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_ledger`. Expect 68 OK.
+- Other modules that need ledger behaviour: `book.post` and `book.audit` from core are used as is. No core change was needed.
+
+**Do not redo**
+- Checked and ruled out: no core.py or schema change needed. ensure_account(create_only=True) already raises on existing accounts and creates parents, so no extra logic is needed in account add.
+- Checked: sqlite3 is not exported by `from .core import *` (not in __all__), so ledger.py imports it directly. Not a bug, just a note.
+- Fixed in my own tests (expected values, not code): a USD posting paired with a EUR account, an account count, and the audit count in the role test, which includes setup entries. Current suite is green; do not re-derive these.

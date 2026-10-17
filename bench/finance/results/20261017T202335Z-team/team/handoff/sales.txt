@@ -1,0 +1,25 @@
+**Done**
+- fin/sales.py: implemented tax add/list, customer add/list, invoice create/issue/pay/show/list (spec 13 except `report aging`). All commands use group() (groups "tax", "customer", "invoice"); perms: add/create/issue/pay = write, lists/show = read.
+- tests/test_sales.py: 23 tests, all passing: `python3 -m unittest tests.test_sales` -> Ran 23 tests, OK. (This sandbox has no `python` binary, only `python3` 3.14; run it as `python -m unittest tests.test_sales` where `python` exists.)
+- Tests set up accounts (Assets:Bank), editor/viewer users and closed periods directly through core.Book / SQL, so they do not depend on ledger's account/user commands.
+- No shared files edited; changes.md untouched. Did not touch fin/ledger.py (it changed on disk during my work; not mine).
+
+Assumptions (also for README):
+- Price must have at most two decimals (else user error); quantity may have more, shown as given (stripped text).
+- Quantity must be > 0, price >= 0, tax rate >= 0, payment terms >= 0.
+- Invoice number: count of already-numbered invoices with prefix INV-YYYY- plus one.
+- Payment amount must be > 0 with at most two decimals; payment into Assets:Receivable is rejected; payment account must be type asset.
+- Payment dates are not checked against the invoice date (only the closed-period check via book.post).
+- `invoice issue`/`pay`: a status other than draft/issued/partial (for pay) is a user error; `invoice list --status` validates against draft/issued/partial/paid.
+- Audit targets: tax.add (code), customer.add (name), invoice.create/issue/pay (invoice id as string).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: when merging, run `python -m unittest tests.test_sales` (or python3). No further action needed from sales.
+- Note for bizreports/purchases: invoice payments are stored in table `payments` with kind 'invoice'; invoice status is in invoices.status; invoice issue posting is found by description "Invoice INV-...".
+
+**Do not redo**
+- Did not run the full suite (`discover`); only tests.test_sales, which passes standalone.
+- Confirmed by running: duplicate tax/customer, bad rate/terms, viewer/no-user writes, closed-period issue and pay, overpay, draft pay, non-asset pay account, and failed commands leaving no audit row are all covered and pass.

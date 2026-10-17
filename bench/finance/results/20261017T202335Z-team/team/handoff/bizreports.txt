@@ -1,0 +1,20 @@
+**Done**
+- fin/bizreports.py: `report aging --at DATE [--payables]` (spec 13) and `report tax --from DATE --to DATE` (spec 15). Both perm=read, registered via group(sub, "report").
+  - Helpers: docs() loads invoices/bills with lines (net/tax/total computed in Python), paid_by() sums payments dated <= at, bucket() maps days past due.
+  - Aging: receivables = number NOT NULL and status in issued/partial/paid, date <= at; payables = all bills dated <= at. Balance = total - payments dated <= at; rows with balance <= 0 are skipped. Buckets: current (days <= 0), 1-30, 31-60, 61-90, 90+ (days = at - due).
+  - Tax: collected = tax of issued-status invoices dated in [from, to]; paid = tax of all bills dated in [from, to]; net = collected - paid; by_code = every non-null tax_code on those docs (sorted by code, zero-tax codes included).
+- tests/test_bizreports.py: 10 tests, all pass (`python3 -m unittest tests.test_bizreports` -> OK, 10 tests). Covers: empty book, bucket boundaries, drafts/unnumbered/future invoices excluded, paid invoices excluded, payments after date ignored, payables, bad date, tax totals and by_code, code only on bills, from > to rejected, bad date rejected. Rows are inserted with SQL on a separate sqlite connection, so no dependency on sales/purchases/ledger.
+- Assumptions (not in spec): --from later than --to is a UserError; by_code includes codes on any in-period doc line regardless of tax amount; aging/tax use the book's single currency (no conversion).
+- Shared files: none edited. changes.md not touched.
+- Not committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: after merge, run `python3 -m unittest tests.test_bizreports` (the plain `python` command is not on PATH in this environment; use `python3`). No other step needed. If README assumptions are required, list the three assumptions above there.
+
+**Do not redo**
+- `python` is not on PATH (`timeout: failed to execute process`); python3 3.14 works.
+- Initial test failures were test-helper bugs only (invoice_lines has no `account` column; missing conn.commit() so the CLI subprocess-free ok() calls could not see inserted rows; "" used instead of NULL for no-tax lines). All fixed, module code unchanged by them.
+- Spec-driven status filters verified against the schema: invoices.status values draft/issued/partial/paid; bills have no draft status.

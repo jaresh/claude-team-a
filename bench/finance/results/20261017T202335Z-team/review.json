@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "fin/api.py (txn_argv, invoice_argv, line_text, posting_text): the HTTP API turns JSON bodies back into CLI argv strings and runs them through the argparse parser via fin.__main__.execute, so the API depends on the CLI layer, error messages mention CLI flags (e.g. '--to'), and a line description containing ';' or an account name containing '=' gets split wrongly.",
+    "Logic is duplicated across modules: imports.parse_posting copies ledger.parse_posting, imports.check_postings repeats the validation in Book.post, sales.tax_rate and purchases._tax_rate are the same function, and invoice/bill totals and paid sums are worked out separately in sales.invoice_json, purchases._bill and bizreports.docs/paid_by.",
+    "Invoices and bills validate differently: sales.invoice_pay and parse_line reject amounts with more than two decimals and non-positive prices, while purchases.bill_pay and _parse_line silently round with q2 and accept zero or negative line nets; bill_list checks status with argparse choices but invoice_list checks it by hand.",
+    "reports.balance_sheet computes retained_earnings as a plug (assets \u2212 liabilities \u2212 equity accounts) rather than as income minus expenses as the spec says, which hides any imbalance or FX-rounding difference instead of reporting it.",
+    "Low-level failures are not mapped to user errors: Book.create on an existing non-SQLite file, a locked database, or a non-numeric Content-Length in ApiHandler.do_POST raise sqlite3/ValueError exceptions, which give a traceback on the CLI or a dropped connection in the API instead of exit 2 or a JSON error.",
+    "Several tests depend on the implementation instead of behaviour: SalesCase writes users and settings('closed_through') straight into the database with SQL rather than using `user add` and `period close`, and several API tests only check the status code, not the returned document."
+  ],
+  "strengths": [
+    "All money is Decimal end to end and stored as two-decimal strings; one fmt/q2 pair handles half-up rounding and the '-0.00' case, and every SQL value is passed as a parameter.",
+    "Atomicity is handled in one place: run_args authorizes, runs the command, and either commits or rolls back the whole transaction, so failed imports, recurring runs and closed-period errors leave nothing half-written.",
+    "Book.post is the single path for every posting (txn, import, recurring, invoices, bills), with balancing, closed-period and account checks in one place; the tests cover each section with error-path assertions that nothing changed."
+  ],
+  "review_cost": 0.79
+}
