@@ -154,3 +154,17 @@ stopping rule), run on the current kit. `bench/spread.py bench/finance/results` 
   single run ($0.73) would be 35%, but it needs its own 3-4 runs before that counts.
 - **Minimum effect (recommended):** an 8% saving is stable here but small next to the spread
   of a single run. Requiring at least 10% for a cost win would make this cost result a tie.
+
+## Kit 3.10 (request command, no consistency pass), 4 runs
+
+| Decision metric | Kit 3.10 (n=4) | Kit 3.9 (n=4) | Solo (n=4) |
+|---|---|---|---|
+| Hidden tests passed | 41 (40-42) | 41 (40-42) | 42 (42-42) |
+| Review overall | 7 (7-7), n=3 | 7 (6-7) | 7 (6-8) |
+| Cost $, cold start | 0.785 (0.560-0.839) | 1.030 (0.984-1.077) | 1.119 (1.056-1.620) |
+
+- Same quality as 3.9 at 24% lower cost; 30% below solo's median. Against solo: hidden tests
+  solo (stable), review tie (stable), cost team (stable).
+- Run 20261017T160444Z-team has no review (the review session failed, probably the usage
+  limit); its code is deleted, so the review median uses 3 runs.
+- Adopted: kit 3.10 is the current kit.
