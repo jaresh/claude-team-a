@@ -1,0 +1,80 @@
+[
+  {
+    "scores": {
+      "structure": 6,
+      "readability": 6,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 8
+    },
+    "overall": 7,
+    "issues": [
+      "fin/book.py is a single ~870-line `Book` class that holds every domain (ledger, FX, import, budgets, recurring, reports, loans, users, invoices, bills, aging, tax, reconciliation), and it switches invoice/bill tables with boolean flags and f-string table names repeated in `inv_dict`, `get_inv`, `pay_doc` and `c_report_aging`.",
+      "fin/api.py `do_POST` reimplements authorization itself (it calls `user_role` and checks for viewer by hand) instead of reusing `Book.authorize`, so role rules live in two places, and `Book.user_role` repeats the query in `authorize`.",
+      "In fin/api.py, input that is not a `UserError`, such as a non-dict invoice line in `post_routes.inv` (`l.get` raises AttributeError) or a non-numeric Content-Length (`int` raises ValueError), escapes `guarded` and drops the connection instead of returning a 400 JSON error; the CLI likewise lets `csv.Error` in `c_import` and OSError in `serve` crash with a traceback.",
+      "In fin/book.py, `Book.execute` decides authorization and audit from a hand-kept `WRITE` set that is separate from the `c_*` methods it finds by getattr, so a new write command left out of `WRITE` would silently run without a permission check or an audit entry.",
+      "fin/book.py `acct_values` and `c_report_trial_balance` convert and round each account separately with no rounding or FX-difference account, so with multiple currencies `total_assets` may not equal `total_liabilities + total_equity` and the trial-balance totals may not match, even though the spec says both must; `c_report_budget` also adds up postings in every currency together.",
+      "In the tests, `tests/test_core.py::test_no_db` asserts `rc in (0, 2)`, which can never fail, `TestLoan` compares a float sum of money, and most tests are long multi-step scenarios that check 'nothing changed after an error' in only a few places."
+    ],
+    "strengths": [
+      "Every command runs inside one `BEGIN IMMEDIATE` transaction with the audit insert and a rollback on any exception, and imports and recurring runs check closed periods for every row before posting anything, so failed commands are all-or-nothing.",
+      "Money is handled carefully: strict regex parsing in `dec`, half-up rounding to cents in `q`, `fmt` never printing `-0.00`, amounts stored as TEXT, and parameterized SQL throughout.",
+      "The CLI and HTTP API share one dispatch path, `Book.execute` with a parameter dict, so both return identical JSON documents and consistent error messages; the API tests run a real server and check status codes and the 401/403/404 behaviour."
+    ],
+    "review_cost": 0.5772
+  },
+  {
+    "scores": {
+      "structure": 6,
+      "readability": 6,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/api.py make_handler.guarded only catches UserError and sqlite3.DatabaseError, so malformed bodies crash the handler and the client gets a dropped connection instead of a 400/500 JSON error; examples are a non-dict invoice line (AttributeError in post_routes.inv), a non-numeric Content-Length (ValueError in do_POST) and a dict as a posting account (sqlite3.InterfaceError in Book.get_account).",
+      "fin/api.py do_POST repeats the role check from Book.authorize (viewer \u2192 403) instead of the domain layer raising a distinct permission error, so the two can drift apart (for example, an admin-only POST route added later would return 400, not 403).",
+      "fin/book.py Book is an ~870-line god class that holds storage, FX, import, invoicing, billing and every report together, and it shares invoice/bill code through boolean `bill` flags and f-string table names (inv_dict, get_inv, pay_doc, c_report_aging) rather than through separate modules.",
+      "fin/book.py c_import and pay_doc auto-create or accept category and payment accounts without checking their currency against the target account, so a USD bank account plus an EUR `Expenses:Uncategorized` fails with a confusing 'postings do not balance' message.",
+      "fin/book.py c_report_budget sums postings across currencies without conversion and uses a fake `MONTH-31` upper bound, and c_report_ledger silently drops descendant postings in another currency, so the reports can be quietly wrong when accounts use mixed currencies.",
+      "Tests are mostly long multi-assertion scenarios with a few weak spots: TestBooks.test_no_db accepts exit code 0 or 2, TestLoan sums principals with float, test_no_tax_posting_and_closed never checks the no-tax posting its name refers to, and the API test sends no malformed bodies."
+    ],
+    "strengths": [
+      "Book.execute gives every command a single transaction (BEGIN IMMEDIATE, then authorize, run, write the audit row and COMMIT, with ROLLBACK on any exception), so writes are atomic, audited and permission-checked in one place.",
+      "Money handling is careful throughout: Decimal with explicit parsing in util.dec/amount, half-up rounding to cents in q, fmt never producing -0.00, amounts stored as TEXT, and parameterised SQL everywhere (the f-strings only interpolate internal table names).",
+      "The CLI and HTTP layers are thin adapters that turn input into a params dict for the same Book.execute dispatch, so the JSON shapes are the same on both paths, and the test helpers check exit code 2, empty stdout and a stderr message for user errors."
+    ],
+    "review_cost": 0.5757
+  },
+  {
+    "scores": {
+      "structure": 6,
+      "readability": 6,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 7,
+      "consistency": 8
+    },
+    "overall": 7,
+    "issues": [
+      "fin/api.py do_POST/guarded catch only UserError and sqlite3.DatabaseError, so a non-dict invoice line (AttributeError in post_routes.inv) or a bad Content-Length (ValueError) drops the connection with a server traceback instead of returning 400 JSON.",
+      "fin/api.py do_POST repeats the authorization rules in its own code (it hardcodes viewer \u2192 403 and ignores ADMIN_ONLY) instead of using Book.authorize, so the HTTP role rules can drift from the CLI's.",
+      "fin/book.py c_invoice_create rounds the price to cents with amount() before multiplying by quantity, so a sub-cent price gives a net that is not round(quantity \u00d7 price) as the spec requires.",
+      "fin/book.py acct_values converts and rounds each account separately, so with several currencies c_report_balance_sheet can break total_assets = total_liabilities + total_equity, and c_report_trial_balance can show unequal debit and credit totals.",
+      "fin/book.py is one roughly 870-line Book class that mixes SQL, domain rules, reports and JSON shaping, and invoices and bills share inv_dict/get_inv/pay_doc/c_report_aging through a bill flag and f-string table names instead of separate types.",
+      "tests/test_core.py test_no_db asserts rc in (0, 2) and checks nothing, TestLoan sums principals as floats, and there are no tests for API body errors, FX conversion in the balance sheet or trial balance, or the ledger with mixed-currency descendants (which c_report_ledger silently drops)."
+    ],
+    "strengths": [
+      "Book.execute is the single path for every command: it opens a transaction, checks permissions, runs the command, writes the audit entry and rolls back on any exception, so a failed command changes nothing.",
+      "Money is Decimal everywhere and stored as two-decimal strings, all formatting goes through util.fmt (no -0.00), and every SQL value is passed as a parameter.",
+      "Most tests check whole documents through the real CLI entry point, each against a fresh temporary database, and they cover month-end and leap-year dates, closed periods, partial payments and roles."
+    ],
+    "review_cost": 0.5533
+  }
+]

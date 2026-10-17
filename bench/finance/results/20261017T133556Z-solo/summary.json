@@ -1,0 +1,124 @@
+{
+  "bench": "finance",
+  "mode": "solo",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.9",
+  "started": "2026-10-17T13:35:56Z",
+  "ended": "2026-10-17T13:42:32Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 31,
+  "own_total": 31,
+  "python_lines": 1847,
+  "cost": 1.0556,
+  "cost_cold": 1.0556,
+  "lead_cost": 1.0556,
+  "team_cost": 0,
+  "teammates": [],
+  "lead_messages": 16,
+  "lead_peak_ctx": 84417,
+  "lead_compactions": 0,
+  "team_peak_ctx": 0,
+  "coverage": 0.922,
+  "least_covered": [
+    "fin/__main__.py (0%)",
+    "fin/__init__.py (50%)",
+    "fin/api.py (85%)"
+  ],
+  "quality": {
+    "app_files": 6,
+    "app_lines": 1123,
+    "test_files": 3,
+    "test_lines": 481,
+    "test_functions": 31,
+    "test_to_app_ratio": 0.43,
+    "functions": 110,
+    "mean_function_lines": 10.6,
+    "max_function_lines": 89,
+    "functions_over_50_lines": 2,
+    "mean_complexity": 4.1,
+    "max_complexity": 16,
+    "functions_complexity_over_10": 6,
+    "most_complex": [
+      "fin/api.py:make_handler (16)",
+      "fin/book.py:c_import (15)",
+      "fin/cli.py:params (12)"
+    ],
+    "docstring_coverage": 0.07,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 12,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 6,
+      "readability": 6,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 8
+    },
+    "overall": 7,
+    "issues": [
+      "fin/book.py is a single ~870-line `Book` class that holds every domain (ledger, FX, import, budgets, recurring, reports, loans, users, invoices, bills, aging, tax, reconciliation), and it switches invoice/bill tables with boolean flags and f-string table names repeated in `inv_dict`, `get_inv`, `pay_doc` and `c_report_aging`.",
+      "fin/api.py `do_POST` reimplements authorization itself (it calls `user_role` and checks for viewer by hand) instead of reusing `Book.authorize`, so role rules live in two places, and `Book.user_role` repeats the query in `authorize`.",
+      "In fin/api.py, input that is not a `UserError`, such as a non-dict invoice line in `post_routes.inv` (`l.get` raises AttributeError) or a non-numeric Content-Length (`int` raises ValueError), escapes `guarded` and drops the connection instead of returning a 400 JSON error; the CLI likewise lets `csv.Error` in `c_import` and OSError in `serve` crash with a traceback.",
+      "In fin/book.py, `Book.execute` decides authorization and audit from a hand-kept `WRITE` set that is separate from the `c_*` methods it finds by getattr, so a new write command left out of `WRITE` would silently run without a permission check or an audit entry.",
+      "fin/book.py `acct_values` and `c_report_trial_balance` convert and round each account separately with no rounding or FX-difference account, so with multiple currencies `total_assets` may not equal `total_liabilities + total_equity` and the trial-balance totals may not match, even though the spec says both must; `c_report_budget` also adds up postings in every currency together.",
+      "In the tests, `tests/test_core.py::test_no_db` asserts `rc in (0, 2)`, which can never fail, `TestLoan` compares a float sum of money, and most tests are long multi-step scenarios that check 'nothing changed after an error' in only a few places."
+    ],
+    "strengths": [
+      "Every command runs inside one `BEGIN IMMEDIATE` transaction with the audit insert and a rollback on any exception, and imports and recurring runs check closed periods for every row before posting anything, so failed commands are all-or-nothing.",
+      "Money is handled carefully: strict regex parsing in `dec`, half-up rounding to cents in `q`, `fmt` never printing `-0.00`, amounts stored as TEXT, and parameterized SQL throughout.",
+      "The CLI and HTTP API share one dispatch path, `Book.execute` with a parameter dict, so both return identical JSON documents and consistent error messages; the API tests run a real server and check status codes and the 401/403/404 behaviour."
+    ],
+    "review_cost": 0.5772
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 6,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 8
+      },
+      "review_cost": 0.5772
+    },
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 6,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 7
+      },
+      "review_cost": 0.5757
+    },
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 6,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 9,
+        "tests": 7,
+        "consistency": 8
+      },
+      "review_cost": 0.5533
+    }
+  ]
+}
