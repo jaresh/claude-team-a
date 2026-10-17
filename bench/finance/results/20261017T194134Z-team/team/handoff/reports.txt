@@ -1,0 +1,33 @@
+Done
+- fin/reports.py: report income, report balance-sheet, report networth, report trial-balance, report ledger,
+  loan schedule, reconcile (write perm, audit "reconcile" on each successful run, target = account).
+  Reconcile keeps its cleared (account, txn_id) table `reconciled`, created with CREATE TABLE IF NOT EXISTS.
+- tests/test_reports.py: 20 tests covering every command, error cases, viewer denial, audit entry,
+  currency conversion (fx rows inserted directly), month-end clamping, loan RATE 0 and 1-month cases,
+  reconcile multi-run and failed-clear rollback.
+- Check: `python3 -m unittest tests.test_reports` -> Ran 20 tests, OK.
+- No shared files edited; nothing logged in .claude/team/changes.md. Nothing committed.
+
+In progress
+- Nothing.
+
+Next step
+- Lead: `python3 -m unittest tests.test_reports` to confirm, then commit when integrating.
+- Assumptions for README.md (not edited by me):
+  * report ledger converts foreign-currency postings at each posting's date; opening balance is the
+    account's balance on the day before --from, in the account currency.
+  * report networth and report income/balance-sheet take optional --currency (default book currency).
+  * Multi-currency: per-account rounding to cents can make a total differ by a cent from the sum of
+    rows. Single-currency books satisfy the identities exactly.
+  * Loan inputs: principal > 0, rate >= 0 (annual %), months >= 1; the last row repays the remaining
+    balance, so its payment can differ from the others by a cent. --start is the first-payment base;
+    row n is dated start + n months (month-end clamped).
+  * reconcile: --clear ids must have a posting to the account on or before --date; a failed run changes
+    nothing; the command is audited on every successful run, including runs without --clear.
+  * reconcile requires write perm (editor or admin); viewers get 403.
+
+Do not redo
+- Checked that every helper used exists in fin/core.py and fin/cli.py with matching signatures; the
+  test run confirmed ensure_account, post_txn, the fx table columns, and audit list --by.
+- No Python syntax issues: the module imports and all 20 tests run.
+- No changes to core.py, cli.py, books.py, or helpers.py were needed.

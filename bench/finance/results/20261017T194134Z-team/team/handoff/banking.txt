@@ -1,0 +1,28 @@
+**Done**
+- fin/banking.py: rule add, rule list, import, budget set, report budget, recurring add, recurring run, plus register(reg). Module-owned tables created with CREATE TABLE IF NOT EXISTS: rules, imported (dedupe), budgets, recurring, recurring_postings, recurring_created.
+- tests/test_banking.py: 38 tests (RuleTests, ImportTests, BudgetTests, RecurringTests). Subclasses tests.helpers.Book; adds an `accounts()` helper that creates accounts through fin.core.ensure_account, because import, budget set and recurring add all require existing accounts.
+- Checks: `python3 -m unittest tests.test_banking` -> Ran 38 tests, OK. `python3 -m unittest discover -s tests -p test_banking.py` -> OK. py_compile of fin/banking.py clean.
+- No shared files edited; changes.md untouched. Nothing committed.
+
+Assumptions (for README.md, the lead owns it):
+- Budgets are in the book currency. Budget accounts must be existing expense accounts (type 'expense'); otherwise UserError. Setting the same account and month again replaces the amount.
+- report budget: actual = sum of postings to the account and its descendants in that month (account_sums with prefix), remaining = budget - actual. Sorted by account. Months with no budgets print [].
+- import: the account must exist (UserError otherwise). Columns default to 0 (date), 1 (description), 2 (amount); --skip-header skips line 1. Empty lines are ignored. Any bad row fails the whole file (all-or-nothing).
+- import dedupe key: (account, date, description, amount) over rows previously imported into that account, and also within the same file. Re-importing the same file gives skipped = rows.
+- import category: first rule (by seq) whose pattern matches the description (re.search, case-insensitive). With no match: Expenses:Uncategorized if amount < 0, else Income:Uncategorized (created on demand, book currency). Zero amounts go to Income:Uncategorized.
+- rule add validates the regex and the account name syntax only; the rule account does not need to exist (it is created on import if the category is used).
+- Audit: rule.add (pattern), import (account, only when imported > 0), budget.set ("ACCOUNT YYYY-MM"), recurring.add (name), recurring.run (until date, only when created > 0).
+- recurring add: template checked like txn add (>= 2 postings, known accounts, at most one blank amount, each currency balances). Names are not unique. --every monthly | weekly | yearly.
+- Occurrences: monthly and yearly are computed from the start date (month-end clamped, not chained: Jan 31 -> Feb 28 -> Mar 31). Weekly is start + 7n days. recurring run creates every occurrence from start up to and including --until, skipping ones already in recurring_created. A closed period in any occurrence makes the whole run fail (all-or-nothing).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_banking` to confirm, then copy the assumptions above into README.md.
+
+**Do not redo**
+- Syntax and tests: `python3 -m unittest tests.test_banking` and the discover form both pass (38 tests). Re-running is only needed after changes.
+- Accounts are required for import, budget set and recurring add: the first test runs failed with "unknown account" until tests created them. This is intended (get_account in core), not a bug.
+- The closed-period rule is a prefix (closed_through), so a recurring run cannot create an earlier occurrence after a later closed one. The rollback test therefore uses a second template (Old, starting in the closed period) that fails after the first (Gym) created its occurrence.
+- Do not change core.py or cli.py; banking uses post_txn, get_account, ensure_account, account_sums, parse_posting_arg as they are.

@@ -1,0 +1,17 @@
+Done
+- fin/api.py: HTTP API (spec section 10). translate() maps requests to cli argv; Server.call() runs cli.execute under a lock and maps errors (AuthError -> 401/403, UserError/SystemExit/sqlite3.Error -> 400, unknown path -> 404, other -> 500). make_server(db, port) binds 127.0.0.1. serve command COMMITs before serve_forever and BEGINs after.
+- tests/test_api.py: 7 tests (reads match CLI output, POST transaction, user/role errors, bad JSON and paths, invoices, serve command runs until stopped).
+- Check: `python3 -m unittest tests.test_api` -> 7 tests, OK. Also OK with `python3 -W error::ResourceWarning -m unittest tests.test_api`.
+- Shared files: none edited, so .claude/team/changes.md is untouched. Nothing committed.
+
+In progress
+- Nothing open.
+
+Next step
+- Lead: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_api`
+- Optional, lead's call: run the full suite `python3 -m unittest discover -s tests`. I did not run it.
+
+Do not redo
+- The 400s on POST /transactions were caused by my test setup, not by api.py: the expense accounts did not exist. Fixed by adding `account add Expenses:Rent` and `Expenses:Fees` in Api.setUp.
+- ResourceWarnings from unclosed HTTPError objects were fixed by closing them in the test helper and in test_bad_json_and_paths.
+- Argparse usage messages go to the server's stderr when a request is rejected; the API maps them to 400, so this is harmless.

@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 6,
+    "correctness_risks": 6,
+    "error_handling": 6,
+    "data_safety": 8,
+    "tests": 3,
+    "consistency": 6
+  },
+  "overall": 5,
+  "issues": [
+    "tests/helpers.py Book.fail overrides unittest.TestCase.fail, and assertIn, assertIsNone and assertEqual on lists or dicts all report through self.fail, so a failing assertion runs the CLI with the failure message as its arguments, gets argparse's exit code 2, and passes silently; test_api.test_bad_json_and_paths also calls self.fail('bad JSON was accepted') expecting the unittest version.",
+    "The schema is spread across modules: core.SCHEMA, banking.TABLES, invoicing.TABLES and reports.CLEARED are created lazily through tables(ctx) calls at the start of each handler, so read-only commands run DDL and it is easy to forget a call in a new handler.",
+    "banking.check_template repeats the validation in core.post_txn (posting count, blank amount, per-currency balance), even though core.py's header says not to duplicate its helpers, so the two rule sets can drift apart.",
+    "cli.main only catches UserError and sqlite3.Error, so a decimal InvalidOperation from q2 on a huge amount (for example '1e999999') or a ValueError from add_months past year 9999 ends in a traceback rather than exit 2; cli.run_args also contains dead code ('conn.executescript if False else None', 'if ... : pass').",
+    "banking.import_ and recurring_run write an audit entry only when they created something, while reconcile always writes one, so the 'one audit entry per successful data-changing command' rule is applied inconsistently.",
+    "api.serve commits and restarts the CLI's open transaction by hand (ctx.conn.execute('COMMIT'/'BEGIN')), the API rebuilds argv strings and the whole argparse parser for every request, and api.text accepts JSON floats for amounts, so the HTTP layer is tightly coupled to CLI internals."
+  ],
+  "strengths": [
+    "Every command runs inside one explicit BEGIN/COMMIT with ROLLBACK on any exception, so failed commands (including whole imports or recurring runs that hit a closed period) leave nothing half-written.",
+    "Money handling is careful: Decimal stored as TEXT, a single q2/fmt pair for half-up rounding and the -0.00 fix, and every SQL query uses parameters.",
+    "The command registry (Registry.add with a read/write/admin permission tag) keeps permission checks in one place, and the CLI and HTTP API share the same handlers and documents."
+  ],
+  "review_cost": 0.7762
+}

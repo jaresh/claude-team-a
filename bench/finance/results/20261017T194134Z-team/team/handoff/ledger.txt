@@ -1,0 +1,23 @@
+Done
+- Created fin/ledger.py: commands account add/list, txn add/list, balance, fx add, convert. register(reg) included. Imports from .core only; no shared helper reimplemented; no shared file edited (changes.md untouched).
+- Created tests/test_ledger.py: 43 tests covering sections 1-4 (incl. audit entries, viewer 403-style user errors, closed period, multi-currency, rounding, rate selection, inverse rate, same-day ordering, --account prefix, --from/--to inclusive).
+- Check: `python3 -m unittest tests.test_ledger` -> Ran 43 tests, OK (about 17 s).
+- Not committed.
+
+Decisions (add to README assumptions)
+- fx add rejects FROM == TO (user error). Rate must be > 0. Stored as str(Decimal).
+- fx add output: {"date","from","to","rate"}. account add output: the account dict. txn add output: txn dict.
+- account add on an existing name (including a parent that already exists as an account) is a user error; missing parents are created with the same currency.
+- balance: each ancestor of a posted account is included even with zero sum; currencies with postings are shown with "0.00" when they net to zero.
+- convert requires --at (spec says --at DATE; made it required).
+- txn list --account matches the exact name or its descendants (prefix + ":"), not plain string prefixes (Expenses:Foodie is not in Expenses:Food).
+
+In progress
+- Nothing.
+
+Next step
+- None for this task. Lead may run: python3 -m unittest tests.test_ledger
+
+Do not redo
+- Did not re-check core.py helpers: post_txn already validates date, closed period, accounts, blank-amount balancing and per-currency zero sums; get_rate handles inverse rates and same-currency 1:1; txn_dict/fmt used for output. Tests confirm these paths.
+- One test failure found and fixed (test bug: Expenses:Foodie was not created in the test). No code bug found in core.

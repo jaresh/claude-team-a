@@ -1,0 +1,27 @@
+{
+  "app_files": 10,
+  "app_lines": 1193,
+  "test_files": 7,
+  "test_lines": 1166,
+  "test_functions": 136,
+  "test_to_app_ratio": 0.98,
+  "functions": 123,
+  "mean_function_lines": 9.3,
+  "max_function_lines": 44,
+  "functions_over_50_lines": 0,
+  "mean_complexity": 3.4,
+  "max_complexity": 28,
+  "functions_complexity_over_10": 5,
+  "most_complex": [
+    "fin/api.py:translate (28)",
+    "fin/banking.py:import_ (17)",
+    "fin/core.py:post_txn (13)"
+  ],
+  "docstring_coverage": 0.17,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 0,
+  "bare_except": 0,
+  "broad_except": 2,
+  "parse_errors": []
+}

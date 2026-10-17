@@ -1,0 +1,27 @@
+**Done**
+- Files changed (both owned by me): `fin/invoicing.py` (new), `tests/test_invoicing.py` (new). No shared files edited, so `.claude/team/changes.md` is unchanged.
+- Commands registered: `tax add`, `tax list`, `customer add`, `customer list`, `vendor add`, `vendor list`, `invoice create`, `invoice issue`, `invoice pay`, `invoice show`, `invoice list`, `bill create`, `bill pay`, `bill show`, `bill list`, `report aging` (`--at`, `--payables`), `report tax` (`--from`, `--to`).
+- Module tables (created with CREATE TABLE IF NOT EXISTS via `tables(ctx)`): `tax_codes`, `parties`, `docs`, `doc_lines`, `doc_payments`.
+- Check: `python3 -m unittest tests.test_invoicing` gives Ran 28 tests, OK (about 28 s). `py_compile` passes on both files.
+- Covered by tests: spec example for invoice create (exact dict), totals and rounding (half up, 0.125 gives 0.13), no-tax lines, invoice numbering per year (drafts not counted), issue postings (Receivable, Sales, SalesTax; SalesTax skipped when tax is zero), pay partial/paid and errors, show/list with status filter, closed period (issue and pay blocked, number not consumed after rollback), bill create (exact dict and postings), bill duplicate ref per vendor, bill account type check, bill pay, aging buckets and boundaries (0, 30, 31, 60, 61, 90, 91 days late), payments dated after AT ignored, payments on AT counted, drafts and paid-off items excluded, aging --payables, tax report by code (codes with only bill tax still listed with collected 0.00), tax report excludes drafts and out-of-range docs, from > to error, viewer and no-user rejected for writes, audit rows for create/issue/pay/add and no audit rows for failed commands.
+
+**In progress**
+- Nothing open. Task is complete for the done check.
+
+**Next step**
+- Lead: run `python3 -m unittest discover -s tests` once all modules are in, and copy these assumptions into README.md (I did not edit README, it is lead-owned):
+  - Invoice and bill quantities must be > 0; invoice prices and bill amounts must be >= 0. Quantities may be decimals (e.g. "2.5").
+  - Invoice price is stored and shown exactly as entered; only money totals are rounded.
+  - Line net is round-half-up(quantity x price) to cents; tax is round-half-up(net x rate / 100).
+  - Bill refs must be unique per vendor. Bill line accounts must be expense or asset accounts. Bill pay account must be an asset account.
+  - Invoice and bill payments may not exceed the balance; amount must be > 0.
+  - Aging counts only non-draft documents (invoices issued/partial/paid, bills open/partial/paid) dated on or before --at. Status is current, not as-of; the balance is as of --at (payments dated <= --at).
+  - Tax report counts only non-draft documents dated in the period; by_code lists every code used by those documents.
+  - Accounts created on demand: Assets:Receivable, Income:Sales, Liabilities:SalesTax (invoice issue, only when tax is not zero), Assets:TaxReceivable (bill, only when tax is not zero), Liabilities:Payable (bill).
+- Command to re-check after any core change: `python3 -m unittest tests.test_invoicing`.
+
+**Do not redo**
+- Read and checked against the lead's core: `ensure_account` returns a dict and creates parents; `get_account` returns name/type/currency; `TYPES` values are `asset`, `liability`, `equity`, `income`, `expense` (not `Expenses`), so the code compares to `"asset"` and `"expense"`. `post_txn` does its own closed-period check and balance check, and does not audit. Core, cli, books and helpers are unchanged by me.
+- The `fin/cli.py` line `conn.executescript if False else None` is a harmless no-op in lead-owned code. I did not touch it.
+- No changes to `fin/core.py`, `fin/books.py`, `tests/helpers.py`, or other teammates' files.
+- Spec sections 13, 14 and 15 were re-read against the code and tests. Two earlier mismatches were fixed: a messy bill account-creation line (now explicit `ensure_account` calls) and invoice price display (was rounded to cents; now shown as entered).
