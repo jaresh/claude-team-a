@@ -1,0 +1,98 @@
+{
+  "bench": "finance",
+  "mode": "solo",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.9",
+  "started": "2026-10-17T14:12:45Z",
+  "ended": "2026-10-17T14:20:57Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 43,
+  "own_total": 43,
+  "python_lines": 2242,
+  "cost": 1.1395,
+  "cost_cold": 1.1763,
+  "lead_cost": 1.1395,
+  "team_cost": 0,
+  "teammates": [],
+  "lead_messages": 13,
+  "lead_peak_ctx": 92112,
+  "lead_compactions": 0,
+  "team_peak_ctx": 0,
+  "coverage": 0.939,
+  "least_covered": [
+    "fin/__init__.py (50%)",
+    "fin/__main__.py (75%)",
+    "fin/server.py (83%)"
+  ],
+  "quality": {
+    "app_files": 6,
+    "app_lines": 1307,
+    "test_files": 3,
+    "test_lines": 642,
+    "test_functions": 43,
+    "test_to_app_ratio": 0.49,
+    "functions": 146,
+    "mean_function_lines": 10.0,
+    "max_function_lines": 186,
+    "functions_over_50_lines": 3,
+    "mean_complexity": 3.3,
+    "max_complexity": 22,
+    "functions_complexity_over_10": 9,
+    "most_complex": [
+      "fin/server.py:make_handler (22)",
+      "fin/server.py:do_POST (17)",
+      "fin/server.py:get_route (16)"
+    ],
+    "docstring_coverage": 0.07,
+    "duplicate_share": 0.002,
+    "float_calls": 0,
+    "sql_built_from_strings": 3,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 6,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/book.py holds all the domain logic in one Book class of about 800 lines (ledger, FX, import, budgets, invoices, bills, reports, reconciliation), so the domain is not split into modules and the class is hard to navigate.",
+      "fin/server.py do_POST does its own role check (user_role / 'viewer') instead of using Book.authorize, so the permission rules exist twice, and it returns 401 before 404 for unknown POST paths.",
+      "fin/server.py do_GET and do_POST do not catch sqlite3.DatabaseError (for example a database that was never initialised), so the API can drop the connection or answer 500 instead of sending a JSON error.",
+      "fin/cli.py main treats every ValueError and ArithmeticError as a user error with exit code 2, which hides real programming bugs as user mistakes; separately, report_trial_balance and report_balance_sheet in fin/book.py round each converted account on its own, so with several currencies total_debit may not equal total_credit and assets may not equal liabilities plus equity.",
+      "fin/book.py list_txns and report_ledger run one query per transaction (N+1) to fetch postings and descriptions, and report_budget converts each posting separately inside a loop over budgets, which will be slow on real books.",
+      "fin/book.py create_invoice accepts zero or negative quantities and prices, issue_invoice creates Liabilities:SalesTax even when the tax is zero, and the authorize level 'read' blocks viewers despite its name, so validation and naming are uneven."
+    ],
+    "strengths": [
+      "Each command runs in one explicit transaction (BEGIN IMMEDIATE, then commit or rollback in cli.execute and do_POST), so failed imports, recurring runs and closed-period errors leave nothing half-written; money is Decimal throughout with half-up rounding to cents, and all SQL uses parameters.",
+      "util.py keeps parsing and formatting in one place (parse_amount, parse_date, parse_month, fmt, add_months), and fmt never prints -0.00, so validation and amount output are the same everywhere.",
+      "The tests run the real CLI in a fresh temp database for each test, check full JSON documents and the exit-2/empty-stdout contract, and cover edge cases such as month-end recurrence, leap years, duplicate imports, closed periods, per-year invoice numbering and aging that ignores later payments."
+    ],
+    "review_cost": 0.5044
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 9,
+        "tests": 7,
+        "consistency": 7
+      },
+      "review_cost": 0.5044
+    }
+  ]
+}
