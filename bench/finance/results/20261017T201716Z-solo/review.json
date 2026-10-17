@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 8
+  },
+  "overall": 7,
+  "issues": [
+    "fin/core.py holds a single ~800-line Book class that mixes schema, storage plumbing, authorization, domain rules and every report, and the CLI calls the unbound method `Book.loan_schedule(None, ...)` (cli.py main) to avoid opening a database, which shows the class has no clean separation.",
+    "fin/core.py report_ledger sums the raw amounts of ACCOUNT and all its descendants without checking their currencies, so a parent with children in different currencies gives a mixed-currency running balance that it labels as ACCOUNT's currency.",
+    "fin/core.py money() silently rounds inputs such as '10.005' to cents instead of rejecting amounts with more than two decimals, so typos in posting, payment and import amounts are accepted without any warning.",
+    "fin/core.py Book.run catches nothing but UserError upstream, so a sqlite3.OperationalError (for example a locked or corrupted database during a command) gets past cli.main as a traceback instead of a clean exit 2; server.make_server's int(Content-Length) likewise crashes the handler on a malformed header.",
+    "fin/server.py _str accepts JSON numbers (including floats) for amounts and converts them with str(), so a client can send float money values like 0.1+0.2 artefacts into Decimal parsing, and handle() calls book.authorize twice (again inside book.run).",
+    "tests/test_core.py test_loan checks schedule totals with float sums and contains the tautological assertion `assertEqual(r[-1]['principal'], r[-1]['principal'])`; several tests also bundle many unrelated scenarios into one method, which makes failures harder to locate."
+  ],
+  "strengths": [
+    "Every mutating command runs inside Book.run's BEGIN/COMMIT/ROLLBACK, so failed imports, recurring runs and closed-period violations leave the database untouched, and the tests check this.",
+    "Money is stored as text and handled as Decimal throughout, with one fmt/r2 path that gives half-up rounding and never prints '-0.00'; all SQL values are passed as parameters.",
+    "The CLI uses a single table-driven HANDLERS dispatch and the HTTP API reuses the same Book methods and authorization (UserError subclasses carrying 400/401/403/404), so the JSON shapes and validation match across both interfaces."
+  ],
+  "review_cost": 0.5103
+}

@@ -1,0 +1,54 @@
+{
+  "label": "bench finance solo model=sonnet effort=medium prompt=87a9b86a9023",
+  "since": null,
+  "until": "2026-10-17T20:25:37Z",
+  "session": "5605c78e",
+  "total_cost": 1.3191130000000002,
+  "cold_start_cost": 1.3191130000000002,
+  "by_model": {
+    "claude-sonnet-5-5": {
+      "msgs": 14,
+      "tools": 14,
+      "input": 28,
+      "cache_w": 100176,
+      "cache_r": 1000815,
+      "output": 71819,
+      "out_est": 0,
+      "peak_ctx": 100178,
+      "over_100k": 1,
+      "compactions": 0,
+      "cost": 1.3191130000000002
+    }
+  },
+  "agents": [
+    {
+      "agent": "lead:5605c78e",
+      "role": "lead",
+      "effort": "",
+      "file": "/root/.claude/projects/-home-jaca-claude-team-a-bench-work-finance-solo/5605c78e-cac3-4f58-b7d5-10f84118b9fa.jsonl",
+      "session": "5605c78e-cac3-4f58-b7d5-10f84118b9fa",
+      "started": "2026-10-17T20:20:21.029000+00:00",
+      "model": "claude-sonnet-5-5",
+      "msgs": 14,
+      "tools": 14,
+      "input": 28,
+      "cache_w": 100176,
+      "cache_r": 1000815,
+      "output": 71819,
+      "peak_ctx": 100178,
+      "over_100k": 1,
+      "compactions": 0,
+      "cost": 1.3191130000000002,
+      "unpriced": 0,
+      "out_est": 0,
+      "cost_in": 5.600000000000001e-05,
+      "cost_cr": 0.20016299999999998,
+      "cost_cw": 0.400704,
+      "cost_out": 0.7181900000000001,
+      "first": "2026-10-17T20:20:21.029000+00:00",
+      "last": "2026-10-17T20:25:35.552000+00:00",
+      "startup_ctx": 24223,
+      "cold_extra": 0.0
+    }
+  ]
+}
