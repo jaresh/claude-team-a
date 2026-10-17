@@ -4,6 +4,7 @@
 import { MIN_CELL, cameraWindow } from './camera.js';
 import { endMessage, hpColor } from './hud.js';
 import { legendRows, poisonLabel } from './legend.js';
+import { HELP_KEYS, glyphRows } from './help.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
@@ -65,6 +66,7 @@ export function render(canvas, view, hudEl, logEl) {
   renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
   renderEnd(document.getElementById('end'), view);
   renderLegend(document.getElementById('legend'), view);
+  renderHelp(document.getElementById('help-list'), view);
 
   logEl.textContent = '';
   for (const line of view.log) {
@@ -103,6 +105,20 @@ function renderLegend(legendEl, view) {
     li.textContent = row.text;
     legendEl.appendChild(li);
   }
+}
+
+// One line per key entry, then one per glyph row in that row's colour. main.js shows and hides the panel.
+function renderHelp(helpEl, view) {
+  if (!helpEl) return;
+  helpEl.textContent = '';
+  const add = (text, color) => {
+    const li = document.createElement('li');
+    if (color) li.style.color = color;
+    li.textContent = text;
+    helpEl.appendChild(li);
+  };
+  for (const row of HELP_KEYS) add(`${row.keys}  ${row.action}`);
+  for (const row of glyphRows(view)) add(`${row.glyph} ${row.name}`, row.color);
 }
 
 // One button per item; a tap sends { type: 'use', index } through input.js.
