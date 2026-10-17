@@ -11,6 +11,8 @@ Protocol: `lab/protocol.md`. One section per run; cost reports in `results/metri
 | e2-B | Balance + end screen and HP bar, 2 teammates | v2; lead Sonnet 5.5 medium (cache 1h: 5m not applied) | c006911 | 20:57:24-21:01:03 | 0.301 | 0.274 | 0.027 | lead 7, team 62 | 47K (tuner) | yes, first check: 97/97 tests, 7/7 acceptance, smoke ok |
 | e3-A | Monster abilities + legend, 2 teammates | v2.1; Haiku context uncapped | 791875b | 69e643b4 session | 0.208 | 0.181 | 0.028 | lead 6, team 53 | 52K (abilities) | yes, first check |
 | e3-B | Monster abilities + legend, 2 teammates | v2.1; Haiku auto-compact at 100K | 791875b | 4f70ac1a session | 0.215 | 0.181 | 0.034 | lead 6, team 53 | 59K (abilities) | yes, first check |
+| e4-A | Traps + help overlay, 2 teammates | kit 3.0 (/team skill); full spec | 19369db | a8dfb567 session | 0.191 (cold 0.289) | 0.156 | 0.035 | lead 5, team 41 | 62K (traps) | yes, first check: 128 tests, 35 acceptance, smoke ok |
+| e4-B | Traps + help overlay, 2 teammates | kit 3.0 (/team skill); goal only, lead plans | 19369db | 20ab6038 session | 0.267 (cold 0.365) | 0.234 | 0.033 | lead 11, team 53 | 61K (traps) | yes, after 1 lead fix (balance: player hp 30 to 34) |
 
 ### m0 notes
 
@@ -36,3 +38,13 @@ A/B of a 100K auto-compact window for Haiku teammates. Never triggered (peaks 52
 variants were identical in practice: totals within 3%, team cost within 24% (noise level).
 A probe showed the cap works after an overrun but can't prevent one turn over 100K.
 Adopted as a backstop with a per-turn intake rule (v2.2). Details: `results/runs/e3/`.
+
+### e4 notes
+
+Kit 3.0 (one file, `/team` skill). A: the lead follows a full spec with teammate prompts. B: the
+lead gets the goal, the contract sections and the check, and plans with the skill, as in real
+use. B costs 26% more at a cold start, all in the lead (11 turns vs 6): 3 turns of planning, and
+an extra merge round because its plan didn't tell the balance-sensitive task what it could tune.
+"Cold" totals add the cached start-up prefix as if written by the run (new in `team_kit.py
+cost`); the e3 runs were also cache-warm (cold: 0.307 and 0.313). Details:
+`results/runs/e4/compare-A-B.md`. Main keeps its e3 game code; A's code is on `run/e4/A`.

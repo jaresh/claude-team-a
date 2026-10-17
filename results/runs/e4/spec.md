@@ -8,6 +8,7 @@ A/B run per `lab/protocol.md`. Base: tag `run/e4/base`, team kit 3.0. Both varia
 |---|---|---|
 | A | `lab/run.sh --bg results/runs/e4/spec.md A` | this spec: lead steps and teammate prompts word for word |
 | B | `lab/run.sh --bg results/runs/e4/goal.md B` | the goal, the contract sections and the check only; the skill plans the rest |
+| C | `lab/run.sh --bg results/runs/e4/goal.md C` (branch `run/e4/C`: the base plus kit 3.1) | as B, on kit 3.1 |
 
 B is how the kit is used in a real repo. Compare "Total $, cold start" in the compare file.
 

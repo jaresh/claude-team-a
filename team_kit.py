@@ -36,7 +36,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.0"
+KIT_VERSION = "3.1"
 
 SKILL = """\
 ---
@@ -49,7 +49,8 @@ description: Lead an agent team of Haiku teammates on a coding task - plan it, s
 You are the lead (this session); your teammates are `team-dev` agents on Haiku 5.5 at effort
 medium. Aim: the user's task done and checked, at low token cost. You re-read your whole context
 on every turn, so your context size and your number of turns cost more than the teammates do:
-keep your turns few and your reads small.
+keep your turns few and your reads small. Put independent steps in one turn: several commands in
+one Bash call, or parallel tool calls.
 
 Working files, all in `.claude/team/` (git-ignored):
 
@@ -74,8 +75,11 @@ commands, the files the task touches) and overwrite `.claude/team/plan.md` with:
 - **Contract**: what tasks working in parallel must agree on (function signatures, data shapes,
   file formats), exact enough that they fit together without talking to each other.
 - **Tasks**, usually 2-4, one section each, headed `## <task>`: the files it owns (no file in
-  two tasks), what to do, its own done check (a command that runs in under a minute), and what
-  it must not touch. A task fits one teammate's ~100K-token context: a few files, one module.
+  two tasks), what to do, what it may change to make its checks pass (for example the tuning
+  values a contract allows), its done check (one command, under a minute, that includes every
+  existing check the task must keep passing), and what it must not touch. A teammate that isn't
+  told what it may change stops and asks, which costs you a merge round. A task fits one
+  teammate's ~100K-token context: a few files, one module.
   Work that needs another task's result goes in a later wave. Use names not already in
   `handoff/`.
 
