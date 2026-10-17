@@ -55,7 +55,9 @@ git -C "$repo" worktree remove --force "$ws" 2>/dev/null || true
 git -C "$repo" branch -D "$branch" >/dev/null 2>&1 || true
 mkdir -p "$(dirname "$ws")" "$out"
 git -C "$repo" worktree add -q --orphan -b "$branch" "$ws"
-deny=$(python3 "$repo/team_kit.py" lead --print-args)
+# Both arms also lose the worktree tools and `git push`: solo sessions entered a worktree of this
+# whole repo (hidden tests included) and pushed their branches to origin.
+deny="$(python3 "$repo/team_kit.py" lead --print-args),EnterWorktree,ExitWorktree"
 if [ "$mode" = team ]; then
   python3 "$repo/team_kit.py" install "$ws" >/dev/null
 else
@@ -66,7 +68,7 @@ prompt=$(MODE="$mode_line" python3 -c 'import os,sys; print(open(sys.argv[1]).re
 cd "$ws"
 started=$(date -u +%FT%TZ)
 launch=$(claude --bg --model "$model" --effort "$effort" --permission-mode auto "$deny" \
-         --settings '{"promptCacheTtl":"1h","autoMemoryEnabled":false}' "$prompt" 2>&1) || true
+         --settings '{"promptCacheTtl":"1h","autoMemoryEnabled":false,"permissions":{"deny":["Bash(git push:*)"]}}' "$prompt" 2>&1) || true
 id=$(grep -oE 'backgrounded · [0-9a-f]+' <<<"$launch" | awk '{print $3}')
 [ -n "$id" ] || { echo "Could not start the session: $(tail -c 400 <<<"$launch")" >&2; rm -rf "$out"; exit 1; }
 echo "Bench $bench/$mode (prompt $version): session $id in $ws"
