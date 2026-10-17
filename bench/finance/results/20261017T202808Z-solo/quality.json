@@ -1,0 +1,27 @@
+{
+  "app_files": 5,
+  "app_lines": 1227,
+  "test_files": 3,
+  "test_lines": 592,
+  "test_functions": 34,
+  "test_to_app_ratio": 0.48,
+  "functions": 109,
+  "mean_function_lines": 11.2,
+  "max_function_lines": 183,
+  "functions_over_50_lines": 2,
+  "mean_complexity": 3.8,
+  "max_complexity": 17,
+  "functions_complexity_over_10": 8,
+  "most_complex": [
+    "fin/core.py:bill_create (17)",
+    "fin/core.py:import_ (16)",
+    "fin/core.py:reconcile (13)"
+  ],
+  "docstring_coverage": 0.02,
+  "duplicate_share": 0.005,
+  "float_calls": 0,
+  "sql_built_from_strings": 10,
+  "bare_except": 0,
+  "broad_except": 2,
+  "parse_errors": []
+}

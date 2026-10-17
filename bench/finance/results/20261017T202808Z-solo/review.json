@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 5,
+    "readability": 6,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 6,
+    "consistency": 7
+  },
+  "overall": 6,
+  "issues": [
+    "fin/core.py class Book is a single class of more than 1000 lines that holds storage, validation, every domain command and the permission table, and Book.run dispatches by turning command strings into method names with getattr (including an 'import_' special case), so the CLI vocabulary and argparse dest names such as currency_ and amount_ leak into the domain method signatures.",
+    "fin/core.py report_trial_balance converts and rounds each account separately and never reconciles the totals, so in multi-currency books total_debit and total_credit can differ even though the spec requires them to be equal; the related report_ledger and report_budget also add descendant postings together without checking that they share a currency.",
+    "fin/api.py handle_any turns any KeyError, TypeError or AttributeError into a 400, which hides programming bugs, while a ValueError (for example a bad Content-Length) or a sqlite3 error escapes the handler and drops the connection with no JSON response.",
+    "fin/core.py invoice_create and bill_create each contain the same 'rsplit(\";\", 3)' line-parsing and tax-computation logic, and invoice and bill lines are kept as JSON blobs in a TEXT column, so report_tax and report_aging have to re-parse JSON and add up totals in Python instead of querying them.",
+    "fin/core.py import_ accepts negative --date-col, --desc-col and --amount-col values, which silently select columns counted from the end through Python indexing, and it does not catch csv.Error, so a malformed file crashes with a traceback instead of exiting with code 2.",
+    "tests/test_business.py and tests/helpers.py contain odd or weakened assertions: the dead `... if False else ...` expression in Base.book, the `[:len(got)]` slicing in test_audit_actions, the dict-merge expected value in test_aging, and the hedged `i[\"quantity\"] if \"quantity\" in i else ...` check; there are also no tests for multi-currency balance-sheet or trial-balance conversion."
+  ],
+  "strengths": [
+    "Every command runs inside an explicit BEGIN/COMMIT with ROLLBACK on any exception (Book.run, Book.init), and closed-period checks happen before inserts, so failed commands, imports and recurring runs leave the database unchanged.",
+    "Money is handled as Decimal from start to finish: amounts are stored as formatted strings, num() uses a strict regex that rejects floats, NaN and exponents, a single fmt() produces two decimals with no -0.00, and all SQL values are passed as parameters (the only f-string SQL uses internal table-name constants).",
+    "The CLI and the HTTP API share one permission table and one Book.run path, so role checks, audit entries and JSON shapes are the same on both interfaces, and the UserError subclasses map cleanly to exit code 2 and HTTP 400/401/403/404."
+  ],
+  "review_cost": 0.6181
+}
