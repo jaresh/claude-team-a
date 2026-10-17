@@ -59,6 +59,10 @@ review of 8 and 6 and cost $1.62 and $1.06. So:
 
 A kit change is judged the same way: 3 runs of the new kit against the current kit's runs.
 
+First check of the method (finance v2, kit 3.9 against solo): the reviewer's noise floor was 0
+for the overall score and 1 for sub-scores, and all three decision metrics were stable at 4 runs
+per arm (review flipped at 3). Plan on 4 runs per arm. See `finance/results/REFERENCE.md`.
+
 Each arm builds in `bench/work/<bench>-<mode>` (git-ignored), a worktree of this repo on an
 empty orphan branch, so it is trusted without setup; it is removed after the run.
 

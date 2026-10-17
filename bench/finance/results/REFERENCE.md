@@ -126,3 +126,31 @@ team's cost with solo's review score.
   cheaper solo run the margin ranges from 31% (kit 3.7) to 2% (kit 3.9). From 3.7 to 3.9 the
   lead's messages grew from 14 to 23 (more waves: a separate API wave and the consistency
   pass), and the lead's cost from $0.56 to $0.76.
+
+## Method check: kit 3.9 against solo, 4 runs each
+
+The method in `bench/README.md` (noise floor, 3+ runs per arm, leave-one-out stability,
+stopping rule), run on the current kit. `bench/spread.py bench/finance/results` prints it.
+
+| Decision metric | Team, kit 3.9 (n=4) | Solo (n=4) | Better | Leave-one-out |
+|---|---|---|---|---|
+| Hidden tests passed | 41 (40-42) | 42 (42-42) | solo | stable |
+| Review overall | 7 (6-7) | 7 (6-8) | tie | stable |
+| Cost $, cold start | 1.030 (0.984-1.077) | 1.119 (1.056-1.620) | team | stable |
+
+- **Reviewer noise floor:** three reviews of the same build gave the same overall score (7, 7,
+  7, for one build of each arm); sub-scores moved by at most 1. So one review per run is
+  enough, and a sub-score difference of 1 is a tie.
+- **Runs needed:** at 3 per arm, hidden tests and cost were stable but the review flipped; at 4
+  per arm all three decision metrics are stable, so the stopping rule ended there.
+- **Spread:** the team's cost is tight (±5%); solo's has one outlier ($1.62, 26 turns; the
+  other three $1.06-1.18). Solo passed all 42 hidden tests in every run.
+- **The hidden-test gap is one test:** `TestReconcile.test_clearing_across_statements` failed
+  in three of the four kit 3.9 runs (and in 3.6's), and the only other team miss was once. It
+  passes `--clear` twice; the spec writes `[--clear ID ...]`, and the team's code takes one
+  list. Solo accepted both forms every time.
+- **Correction to earlier figures:** the 55-56% saving quoted for kits 3.6 and 3.7 compared
+  one team run with solo's outlier. Against solo's median ($1.12), kit 3.9 saves 8%; 3.7's
+  single run ($0.73) would be 35%, but it needs its own 3-4 runs before that counts.
+- **Minimum effect (recommended):** an 8% saving is stable here but small next to the spread
+  of a single run. Requiring at least 10% for a cost win would make this cost result a tie.
