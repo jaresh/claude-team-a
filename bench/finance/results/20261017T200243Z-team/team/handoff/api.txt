@@ -1,0 +1,25 @@
+Done
+- fin/api.py (new): routing for spec section 10 and the HTTP parts of section 11.
+  - ROUTES: GET /accounts, /transactions (account, from, to), /balances (at), /reports/income (from, to, currency), /reports/balance-sheet (at, currency), /reports/aging (at, payables=1|true), /invoices (status), /invoices/{id}, /audit (by); POST /transactions (201), /invoices (201), /invoices/{id}/issue (200), /invoices/{id}/payments (200).
+  - GET needs no X-User. POST: no header or unknown user -> 401; cli.authorize role failure -> 403; UserError or sqlite DatabaseError -> 400 {"error"}; unknown path or method -> 404.
+  - Each request opens its own connection and runs in one BEGIN IMMEDIATE transaction (same as cli.run). The role check runs inside that transaction; COMMIT on success, ROLLBACK on any error.
+  - Handlers reuse the CLI functions (ledger.cmd_*, reports.cmd_report_*, billing.cmd_*) through argparse.Namespace. Invoice create/issue/pay call billing.create_invoice, issue_invoice, pay_invoice directly.
+  - make_server(db, port) returns a ThreadingHTTPServer bound to 127.0.0.1 (port 0 picks a free port). serve(db_path, port) wraps it with serve_forever; it exits 2 if the db file is missing, as in the CLI.
+  - Request-level missing db or non-fin db -> 400 (the CLI would exit 2 for the same case).
+- tests/test_api.py (new): 13 tests, all passing.
+  - Runs the server in a thread on port 0 and calls it with urllib. Setup creates data through the CLI.
+  - Covers 401 (no header, unknown user), 403 (viewer write, nothing audited), 404, 400 (unbalanced txn rolls back audit, bad JSON, missing field, invoice/unknown id, bad status), 201 txn and invoice, 200 issue and payments, GET no-user, read docs equal CLI --json (balance, income, balance-sheet, audit, invoice show/list, aging with and without payables).
+- Check: `python3 -m unittest tests.test_api` -> OK, 13 tests, ~15 s. Also run with `-W error::ResourceWarning`: OK.
+- No shared files edited (no changes.md entry needed). No commit.
+
+In progress
+- Nothing open. Task complete.
+
+Next step
+- Lead: `python3 -m unittest tests.test_api` (optional re-run after merge), then `python3 -m fin --db <path> serve --port <n>` to launch manually (not done by me).
+
+Do not redo
+- Checked that cli.authorize and the CLI handlers have the signatures the API uses (Ctx(conn, user), cmd_txn_add/cmd_txn_list/cmd_balance/cmd_audit_list/cmd_account_list, billing.create_invoice/issue_invoice/pay_invoice/cmd_invoice_show/cmd_invoice_list/cmd_report_aging, reports.cmd_report_income/cmd_report_balance_sheet).
+- CLI command names are `txn add`, `audit list`, `invoice list`, `report aging`, `balance` (there is no `transaction` group).
+- Posting strings: JSON {"account","amount"} becomes "ACCOUNT=AMOUNT" (or the bare account when amount is absent), parsed by core.parse_posting.
+- Did not call EnterWorktree: I worked in the path given as my working directory, which the environment reports as a git worktree. No commit.

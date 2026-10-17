@@ -1,0 +1,19 @@
+Done
+- fin/billing.py (replaced stub): SCHEMA (tax_codes, customers, vendors, invoices, bills, doc_lines, doc_payments); add_parsers for tax add|list, customer add|list, vendor add|list, invoice create|issue|pay|show|list, bill create|pay|show|list, report aging [--payables], report tax.
+- Module-level API: invoice_doc(conn, id), bill_doc(conn, id), aging(conn, at, payables=False), create_invoice(ctx, customer, date, lines), issue_invoice(ctx, id), pay_invoice(ctx, id, amount, date, account), create_bill(ctx, vendor, ref, date, lines), pay_bill(ctx, id, amount, date, account). Lines for create_invoice: dicts description/quantity/price/tax_code; for create_bill: description/amount/account/tax_code. Handlers are thin wrappers and each write audits once.
+- tests/test_billing.py: 30 tests (tax, parties, roles, invoice shapes and errors, numbering per year, posting, closed periods, pay partial/paid, aging buckets and as-of-date payments, payables, bill shapes and errors, tax report, audit entries).
+- Check: `python3 -m unittest tests.test_billing` -> Ran 30 tests, OK (about 30 s).
+- No shared files edited, so changes.md is untouched. No bugs found in core.py, cli.py, ledger.py or helpers.py. Nothing committed.
+
+In progress
+- Nothing open. The billing task is complete.
+
+Next step
+- Lead: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_billing`
+- The API teammate can import billing.invoice_doc, bill_doc, aging, create_invoice, issue_invoice, pay_invoice, create_bill, pay_bill. The API should call them inside one transaction, as cli.run does.
+
+Do not redo
+- Spec sections 11 to 15 were checked line by line against billing.py: due dates, number sequence, status transitions, error cases, report shapes and audit targets all match.
+- Closed periods: bill create relies on core.post_txn's check_period, which runs after the bill rows are inserted. The rollback in cli.run covers this, and the test test_bill_in_closed_period_fails passes. Same for invoice issue and pay.
+- Bill pay does not require the account to be an asset account (spec does not say so); invoice pay does, per section 13.
+- Price is stored and shown with two decimals (as the spec example "95.00"); quantity is stored as given. If the API passes non-string numbers they are str()-ed.

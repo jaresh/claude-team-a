@@ -1,0 +1,31 @@
+reports handoff
+
+**Done**
+- fin/reports.py (replaced stub): add_parsers registers `report income`, `report balance-sheet`, `report networth`, `report trial-balance`, `report ledger` (group via core.group(sub,"report")) and top-level `reconcile`. All read perm except reconcile (write).
+  Module functions for the API: income_report(conn, book, frm, to, currency=None), balance_sheet(conn, book, at, currency=None), networth_report(conn, book, frm, to, currency=None), trial_balance(conn, book, at, currency=None), ledger_report(conn, account, frm, to). `book` is the book currency string (ctx.currency). They return the JSON docs as in spec 8/16/17. They do their own date/currency validation and raise UserError.
+  No SCHEMA (reports uses no tables of its own; the existing cleared table is used).
+- tests/test_reports.py: 22 tests, all pass. Covers income (period, full year, --currency with inverse rate, missing rate, bad range), balance-sheet (identity check, earlier date, equity + --currency), networth, trial-balance (rows, totals, empty), ledger (descendants, running balance, unknown account), reconcile (basic, marks kept across runs, clear after date fails and marks nothing, bad id, audit entry, viewer denied, reports work without --user).
+- Check: `python3 -m unittest tests.test_reports` → Ran 22 tests, OK (about 22s).
+- No shared files edited (changes.md untouched). No bugs found in core.py / ledger.py / cli.py / helpers.py.
+
+Assumptions (also belong in README):
+1. Rounding: each account's figure is converted (each currency subtotal at the report date, unrounded), then rounded to cents per account. Totals are sums of rounded account figures. Retained earnings = total income − total expenses from the same rounded figures. In single-currency books the identities hold exactly. In multi-currency books, per-account rounding can leave a cent or so of difference, so total_assets may differ from total_liabilities + total_equity, and trial-balance total_debit may differ from total_credit. I did not add a plug. Tests only check the identities on books where conversions are exact.
+2. A currency with postings in scope needs a rate even if its sum is zero (missing rate → exit 2). Inverse rates work (via core.rate).
+3. Income, ledger and networth: --from after --to is a user error. Report months/dates are validated.
+4. `--currency` is accepted on income, balance-sheet, networth, trial-balance. Not on ledger (it reports in the account's currency).
+5. ledger: each posting is converted to ACCOUNT's currency at its own date and rounded per row; opening and running balance are sums of those rounded row amounts. Descendants matched with substr (not LIKE). Also gets a posting's real currency if it differs from the account's.
+6. networth: networth = total_assets − total_liabilities per month end (equity not separately added).
+7. reconcile: perm is 'write' (so viewers can't run it, even read-only without --clear). Audit `reconcile` (target = account) only when at least one --clear is given. --clear values must be integers and each must have a posting to ACCOUNT dated ≤ DATE; validation runs before any mark is written. cleared_balance counts ACCOUNT's own postings in cleared transactions dated ≤ DATE (not descendants).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: when all modules are in, run `python3 -m unittest discover -s tests`. The reports tests depend only on core/ledger/cli (plus the module SCHEMA loading, which already works with the current stubs for billing/tools).
+- If the lead wants exact multi-currency identities, decide on a rounding policy (e.g., allocate residual to the largest account) and change _account_values / balance_sheet in fin/reports.py. Tests would need a case for it.
+
+**Do not redo**
+- Checked core.rate: it already handles inverse rates (1/r), so no reports-side inversion is needed.
+- Checked that core.convert rounds (q2) and that core.direct_balances(conn, frm, to) with None means open. Both used as designed.
+- Checked ledger.rolled_balances: not used by reports (trial-balance and balance-sheet use direct balances per account, per spec "one row per account" / "the name the postings are on").
+- The worktree: I edited in the lead's worktree (/home/jaca/claude-team-a/bench/work/finance-team) in place, since that's where the team's files are. I did not call EnterWorktree, because the rule is about isolating from the shared checkout. Edits weren't rejected. Nothing committed.

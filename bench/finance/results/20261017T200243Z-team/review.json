@@ -1,0 +1,18 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 6,
+    "correctness_risks": 6,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 4,
+    "consistency": 7
+  },
+  "overall": 6,
+  "issues": [
+    "tests/helpers.py FinTest.fail overrides unittest.TestCase.fail, and assertIn, assertNotIn, assertIsNone and the dict/list paths of assertEqual all report a failure through self.fail. A failing assertion therefore runs the CLI with the failure message as its arguments, gets exit 2 from argparse, and the test passes silently, so many assertions in the suite can never fail.",
+    "fin/tools.py parse_row calls core.check_period before the duplicate check in cmd_import, so re-importing a statement whose old rows fall in a closed month fails the whole import, even though those rows would only have been skipped as duplicates.",
+    "fin/api.py _execute repeats the transaction, rollback and schema-check logic of cli.run, and fin/core.py module_schemas imports billing, tools and reports from inside core, so the base layer depends on the feature modules; the schema is also split inconsistently (core holds the imported and cleared tables that tools and reports use)."
+  ],
+  "review_cost": 0.6462
+}

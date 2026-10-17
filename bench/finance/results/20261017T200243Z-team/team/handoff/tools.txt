@@ -1,0 +1,26 @@
+**Done**
+- fin/tools.py: replaced the stub. Implements fx add, convert, rule add, rule list, import, budget set, report budget, recurring add, recurring run, loan schedule (spec sections 4, 5, 6, 7, 9). No SCHEMA; it uses only the tables in core.SCHEMA.
+- tests/test_tools.py: new, 33 tests (FX, rules and import, budgets, recurring, loans, permissions). All pass.
+- Check: `python3 -m unittest tests.test_tools` -> Ran 33 tests, OK (about 20 s). py_compile clean.
+- .claude/team/changes.md: two lines appended (fin/tools.py, tests/test_tools.py).
+- Nothing committed. Did not launch the program. Did not touch core.py, ledger.py, cli.py, helpers.py.
+
+**In progress**
+- Nothing open.
+
+**Next step**
+- Lead: `python3 -m unittest tests.test_tools` to confirm, then commit when ready.
+- Lead: `python3 -m unittest discover -s tests` once the other modules are in place (checks the full suite; I did not run it).
+
+**Do not redo**
+- core.py: no bugs found for my section. core.rate picks the latest direct rate, else the inverse, which matches spec 4. core.add_months clamps days correctly for the recurring and loan rules (Jan 31 -> Feb 28, Feb 29 -> Feb 28 yearly).
+- ledger.py: txn add takes --date/--desc/--posting; txn list returns txn docs; balance rolls up ancestors. The tests rely on these.
+- Assumptions (put in the README "assumptions" list, not implemented elsewhere):
+  - import: the ACCOUNT is assumed to be in the book currency. A foreign-currency account fails with core's "does not balance" error, and nothing is imported.
+  - import: duplicate key is (account, date, description, amount text). An import in which every row is skipped still writes its one audit entry.
+  - import: a rule's target account is not checked at `rule add`; import auto-creates it via ensure_account.
+  - report budget: actual = sum of the month's postings to the account and its descendants, converted to the book currency at month end. Only the book currency is supported (no --currency).
+  - loan: the last row's payment is balance + interest, so it can differ from the level payment by a few cents.
+  - recurring: a blank posting amount is stored as null and is resolved at each run.
+  - recurring run: all pending occurrences across all recurring items are checked before any is written; closed periods fail the whole run.
+- Known test coverage gaps: no test for `report budget` in a foreign currency, since that is not supported; no test for `rule add` with a nonexistent account (it is allowed by design).
