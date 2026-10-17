@@ -1,0 +1,23 @@
+**Done**
+- fin/core.py: new shared helper `balance_postings(conn, postings)` (validates >=2 postings, at most one amount-less posting, accounts exist, each currency sums to 0; returns [[account, Decimal, currency]] with the blank filled). `post_txn` now calls it after its own length check and `check_open`, so error precedence is unchanged. Messages unchanged.
+- fin/imports.py: removed the re-implemented `_check_postings`; `add_recurring` calls core `balance_postings` for validation. Import list updated.
+- .claude/team/changes.md: two lines logged (core.py balance_postings/post_txn; imports.py _check_postings).
+- Tests: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests` -> 119 tests, OK (about 16s).
+- Behaviour note for the lead: `add_recurring` now rejects an unbalanced multi-currency recurring transaction that has an amount-less posting (core rule). The old helper accepted it and then failed in run_recurring. Also its unbalanced message now reads "transaction does not balance in CUR (off by X)" instead of the bare "transaction does not balance". Substring still matches tests/test_api.py:114.
+
+**In progress**
+- Not started: optional dedupes. Nothing else edited.
+  - fin/reports.py `networth` repeats the "--from is after --to" check (lines 63-66) with parse_month; `_period` does the same with parse_date. Could add a shared month-range check in reports.py only.
+  - fin/imports.py `budget_report` (lines 104-107) hand-sums per-currency values across accounts. Could use an existing core helper if one fits.
+  - fin/invoicing.py `issue_invoice` and `create_bill` repeat ensure_account loop + post_txn. Possible shared helper, but it lives in invoicing and touches the lead's domain; left alone.
+
+**Next step**
+- Optional: in fin/reports.py, have `networth` call a shared check instead of its own `frm > to` test. Then rerun `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests` and confirm 119 OK.
+- Otherwise nothing is required. The lead can review the diff and decide whether to commit (not committed by me).
+
+**Do not redo**
+- Read all modules: core.py, imports.py, ledger.py, invoicing.py, reports.py, loans.py, api.py. ledger.py and api.py looked convention-compliant; no changes needed there.
+- Message text grep: only tests/test_api.py:114 asserts a message substring ("does not balance"). No test asserts "at most one posting", "at least two postings", or "invalid recurring name".
+- Did not reorder post_txn's length check or check_open: moving them would change which error a closed-period or malformed transaction reports.
+- Handler style (named `_x_h` vs lambda) differs across modules but is within the plan's contract. Left as is.
+- No pyflakes available (`No module named pyflakes`); used grep for message strings instead.

@@ -1,0 +1,29 @@
+Done
+- Files changed (owned only): fin/ledger.py (new), tests/test_ledger.py (new).
+- No shared files edited; .claude/team/changes.md not touched.
+- Check: `python3 -m unittest tests.test_ledger tests.test_core` -> Ran 21 tests, OK.
+- Commands registered in setup(): account add|list, txn add|list, balance, fx add, convert, user add|list, audit list, period close|status.
+- Perms: write = account add, txn add, fx add; admin = user add, period close; read = everything else.
+- Plain functions (ctx first): add_account(ctx,name,currency=None), list_accounts(ctx), add_txn(ctx,date,description,specs), list_txns(ctx,account=None,frm=None,to=None), balances(ctx,at=None), add_fx(ctx,date,frm,to,rate), convert_cmd(ctx,amount,frm,to,at), add_user(ctx,name,role), list_users(ctx), close_period(ctx,month), period_status(ctx).
+- Audit: account.add (named account only), txn.add (id), fx.add (FROM/TO), user.add (name), period.close (month).
+- Return shapes: account add -> account dict; fx add -> {date, from, to, rate}; user add -> {name, role}; convert -> {amount, currency}; period close/status -> {closed_through}.
+
+Decisions (spec gaps)
+- `period close` that changes nothing (month <= closed_through) prints the status and writes NO audit entry, since no data changed. Spec says "every command that changes data"; if the lead wants an entry for every successful close, change close_period.
+- `convert --at` is required in argparse.
+- fx rate is stored and returned as format(Decimal, "f") (no exponent notation). Same-currency fx and rate <= 0 are user errors.
+- `txn list --account` matches by SQL prefix (name or name + ":" prefix), no LIKE, so % and _ in names are safe.
+- `balance` returns accounts sorted by name, currencies sorted within each account.
+
+Core: no change needed. Used from core: ROLES, UserError, account_sums, add_cmd, closed_through, convert, D, fmt, ensure_account, get_account, group, list_audit, meta_set, parse_currency, parse_date, parse_month, parse_posting_spec, post_txn, rollup, txn_dict.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for ledger. Lead can run: python3 -m unittest tests.test_ledger tests.test_core
+
+Do not redo
+- Ran the two test modules once; all green on first run. No failing cases were seen, so no fixes were needed after the run.
+- Confirmed every import in fin/ledger.py is used (no unused imports).
+- Did not enter a new worktree: I was working in the lead's checkout at /home/jaca/claude-team-a/bench/work/finance-team as the lead assigned, and did not commit.

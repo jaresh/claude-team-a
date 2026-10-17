@@ -1,0 +1,105 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.9",
+  "started": "2026-10-17T14:12:15Z",
+  "ended": "2026-10-17T14:31:44Z",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 119,
+  "own_total": 119,
+  "python_lines": 3090,
+  "cost": 0.979,
+  "cost_cold": 1.0212,
+  "lead_cost": 0.7862,
+  "team_cost": 0.1928,
+  "teammates": [
+    "reports",
+    "ledger",
+    "imports",
+    "invoicing",
+    "api",
+    "consistency"
+  ],
+  "lead_messages": 21,
+  "lead_peak_ctx": 73027,
+  "lead_compactions": 0,
+  "team_peak_ctx": 65568,
+  "coverage": 0.959,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (0%)",
+    "fin/api.py (90%)"
+  ],
+  "quality": {
+    "app_files": 9,
+    "app_lines": 1413,
+    "test_files": 9,
+    "test_lines": 1073,
+    "test_functions": 119,
+    "test_to_app_ratio": 0.76,
+    "functions": 167,
+    "mean_function_lines": 7.7,
+    "max_function_lines": 45,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.5,
+    "max_complexity": 16,
+    "functions_complexity_over_10": 2,
+    "most_complex": [
+      "fin/imports.py:import_csv (16)",
+      "fin/core.py:main (12)",
+      "fin/imports.py:run_recurring (10)"
+    ],
+    "docstring_coverage": 0.29,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 12,
+    "bare_except": 0,
+    "broad_except": 1,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "fin/core.py is a 540-line god module that mixes money/date helpers, schema, permissions, accounts, transactions, FX, audit and the argparse/CLI runner, and it discovers feature modules through a MODULES list plus load_module() that silently returns None, so a missing module just drops its commands instead of failing.",
+      "fin/core.py parse_amount/q2: D() checks for NaN and Infinity but q2's quantize sits outside its try, so a valid huge input such as '1e30' raises an uncaught decimal.InvalidOperation and the CLI crashes with a traceback instead of exiting 2; add_months can likewise raise ValueError past year 9999 in recurring run and loan schedule.",
+      "fin/api.py _posting_specs and fin/invoicing.py lines_from_dicts turn structured JSON back into 'ACCOUNT=AMOUNT' and 'a;b;c;d' strings for the CLI parsers, so a ';' inside a description breaks a line, and JSON numbers (floats) are accepted and str()-ed into amounts instead of being rejected.",
+      "Amounts are silently rounded to cents on input (core.parse_posting_spec, imports.import_csv, invoicing._bill_line), so '12.345' is accepted as 12.35 instead of being reported as a user error, and the API answers an unparseable Content-Length or any non-UserError exception by dropping the connection rather than returning JSON.",
+      "Command wiring and validation are inconsistent across modules: ledger.py uses named _x_h handler functions, imports.py and invoicing.py use lambdas, and reports.py uses _income-style names; --from after --to is rejected in reports._period but not in ledger.list_txns or invoicing.tax_report; invoicing._pay says 'invoice ... is a draft' even for bills.",
+      "The tests often set up state by writing straight to the database (meta_set for closed periods, raw INSERT INTO users) rather than through the commands, and helpers.err() checks the exit code and empty stdout but not that the database is unchanged (only some tests check that by hand); test_core.py also never closes its connections."
+    ],
+    "strengths": [
+      "Money is handled carefully throughout: amounts are parsed into Decimal with floats, NaN and Infinity rejected, stored as strings, rounded half up, and fmt() never prints '-0.00'; all user-supplied values go through SQL parameters (f-strings only interpolate table names from internal constants).",
+      "Every write command, from both the CLI and the API, runs inside a single core.transaction() with permission checks done up front, and import and recurring run check every row and date for closed periods before posting anything, so failures leave nothing half-written.",
+      "The domain functions are short and readable and shared by the CLI and the HTTP API (a table-driven ROUTES list); the test suite has about 120 behaviour-focused tests across every module, each on its own temporary database, including API tests against a real server and closed-period and atomic-import cases."
+    ],
+    "review_cost": 0.6255
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 8,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 6
+      },
+      "review_cost": 0.6255
+    }
+  ]
+}

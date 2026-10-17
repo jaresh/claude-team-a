@@ -1,0 +1,20 @@
+**Done**
+- fin/api.py (new): `serve --port N` command (perm read, registered via add_cmd in setup), make_server(db, port) returning a ThreadingHTTPServer on 127.0.0.1 with server.db set, a BaseHTTPRequestHandler for GET/POST, handle(db, method, url, user, raw) -> (status, payload), and a ROUTES table covering: GET /accounts, /transactions (account, from, to), /balances (at), /reports/income (from, to, currency), /reports/balance-sheet (at, currency), /reports/aging (at, payables=1), /invoices (status), /invoices/ID, /audit (by); POST /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200).
+- Each request opens its own core.connect(db) and calls core.book_currency; writes run inside core.transaction; require_perm gives 401 for missing/unknown user and 403 for a role lacking the permission; UserError maps to its status (400 by default); sqlite3.Error maps to 500; unknown paths map to 404; errors are {"error": msg}.
+- tests/test_api.py (new): 19 tests covering reads without a user, transactions and balances, reports matching the CLI output, audit, 400 for a missing report date, 404 for unknown paths, POST 201, 401 (no user / unknown user), 403 for viewer vs 201 for editor, unbalanced transactions storing nothing, bad JSON / non-object body / missing field, a closed period, the full invoice flow (create, issue, pay, get, list, aging matching the CLI), invoice errors, and a viewer being refused invoice creation.
+- Checks: `python3 -m unittest tests.test_api tests.test_core` -> 19 tests OK. `python3 -m unittest discover -s tests` -> 119 tests OK (all modules at the time of this run). `import fin.api` works and core.build_parser is present.
+- No shared files were edited, so changes.md has no new line. Nothing committed.
+
+**In progress**
+- Nothing open. One unverified item: running test_api together with test_core printed "ResourceWarning: unclosed database" lines at interpreter exit. Each module run alone printed none, and the tests pass. The source is not yet identified; it may be a connection left open by the shared helpers (tests/helpers.py) or by a CLI run in the helper, not by fin/api.py (handle() closes its connection in a finally).
+
+**Next step**
+- Lead: confirm the overall check with `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests`. Optional: `python3 -W error::ResourceWarning -m unittest tests.test_api tests.test_core` to see whether the warning is from the helpers.
+- Open decision for the lead: the spec does not say what `serve` returns when it stops. fin/api.py returns {"port": N} after KeyboardInterrupt. Change `_serve_h` if the spec says otherwise.
+
+**Do not redo**
+- Route matching runs before auth, so unknown paths return 404 whatever the user is.
+- Unknown invoice ids return 400 ("unknown invoice: N"), because invoicing raises UserError and the plan only asks for 404 if it is simple. Not changed.
+- The query-string filters (status, account, from, to, by, currency, payables) were added to GET routes because the plain functions already accept them.
+- The no-amount posting form ("ACCOUNT" alone) is passed through as a bare account spec, and the amount is left to ledger.
+- A test for the serve command's registration through build_parser was not added; only the import and build_parser presence were checked.

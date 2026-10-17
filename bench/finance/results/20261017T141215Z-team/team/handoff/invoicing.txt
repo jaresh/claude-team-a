@@ -1,0 +1,33 @@
+Done
+- fin/invoicing.py (new): SCHEMA (tax_codes, customers, vendors, invoices, invoice_lines, bills, bill_lines, payments),
+  setup(sub) registering tax add|list, customer add|list, vendor add|list, invoice create|issue|pay|show|list,
+  bill create|pay|show|list, report aging [--payables], report tax --from --to (report group via group(sub,"report")).
+  Plain functions: add_tax, list_taxes, add_customer, list_customers, add_vendor, list_vendors, create_invoice(ctx,customer,date,lines),
+  lines_from_dicts, issue_invoice(ctx,id), pay_invoice(ctx,id,amount,date,account), show_invoice(ctx,id), list_invoices(ctx,status=None),
+  create_bill(ctx,vendor,ref,date,lines), pay_bill(ctx,id,amount,date,account), show_bill, list_bills(ctx,status=None),
+  aging(ctx,at,payables=False), tax_report(ctx,frm,to).
+  Line strings: invoice "DESCRIPTION;QUANTITY;PRICE;TAXCODE" (tax code may be empty); bill "DESCRIPTION;AMOUNT;ACCOUNT;TAXCODE".
+- tests/test_invoicing.py (new): 30 tests across tax/parties, invoices, bills, reports, audit and roles.
+- Check: `python3 -m unittest tests.test_invoicing tests.test_core` -> Ran 30 tests, OK.
+- No shared files edited (changes.md untouched). Nothing committed.
+
+In progress
+- Nothing. Plain-function API (create_invoice, pay_invoice, etc.) is exercised only through the CLI in tests; the api teammate
+  will be the first direct caller.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` once all teammates are done (consistency pass).
+- api teammate: call invoicing plain functions with ctx from core.Context. Map UserError messages: "unknown invoice", "unknown bill",
+  "unknown customer" etc. are UserError (decide 404 vs 400 there). Build invoice lines with invoicing.lines_from_dicts(body["lines"]).
+
+Do not redo
+- Ran the full test module: all 30 pass; the earlier single failure was a test bug (bill line format), now fixed in tests only.
+- Design decisions to keep consistent:
+  * Payment account must be an existing asset account (invoice and bill payments; bill payment account is checked as asset too).
+  * Bill line account must exist and be expense or asset (checked in _bill_line via get_account).
+  * Invoice number = INV-YEAR-NNNN, counter = count of issued invoices in that year + 1 (by invoice date year).
+  * Invoices and bills are assumed to be in the book currency (no FX on documents); post_txn enforces the account currency.
+  * Invoice price is shown via fmt (two decimals); quantity and tax rate shown as given. Invoices need at least one line.
+  * Aging counts only payments dated <= at; invoices included only once issued (number set) and dated <= at.
+  * Tax report counts only issued invoices and all bills dated in [from, to]; lines without a tax code are not in by_code.
+  * Audit targets are ids as strings (invoice.create/issue/pay, bill.create/pay); party/tax audits use the name/code.

@@ -1,0 +1,34 @@
+DONE
+Files (all mine, nothing else edited, changes.md untouched):
+- fin/reports.py: report income|balance-sheet|networth|trial-balance|ledger, top-level reconcile (write), and calls loans.setup(sub).
+  Plain functions: income_report, balance_sheet, networth, trial_balance, ledger_report, reconcile.
+- fin/loans.py: loan_schedule(principal, rate, months, start) and `loan schedule` command (read). Registered via reports.setup, since loans is not in core.MODULES.
+- tests/test_reports.py: 21 tests (income, balance sheet, networth, trial balance, ledger, reconcile incl. roles and audit).
+- tests/test_loans.py: 8 tests (formula, zero rate, last-row remainder, dates, validation, CLI).
+
+Check: `python3 -m unittest tests.test_reports tests.test_loans tests.test_core` -> Ran 33 tests, OK.
+
+Deviations from plan.md to review:
+- networth takes an extra `currency=None` argument (plan signature was networth(ctx,frm,to)). Spec section 8's currency rule applies to every section 8 report, so I added it. Command: `report networth --from YYYY-MM --to YYYY-MM [--currency C]`.
+- networth rejects --from after --to with UserError (months_range would otherwise return an empty list silently).
+- income/balance-sheet/networth/trial-balance use the book currency unless --currency is given (income, balance-sheet, networth). trial-balance has no --currency (book currency only).
+
+Known limitation (multi-currency only, not covered by tests):
+- Each account is converted and rounded to cents separately, and totals are sums of those rounded rows (as the plan requires). So with several currencies, balance_sheet total_assets can differ from total_liabilities + total_equity by a cent, and trial_balance total_debit can differ from total_credit by a cent. Single-currency results are exact (the test book checks the identity). The plan forbids a plug for retained earnings, so I did not force equality. Decide whether to accept this or change the rule.
+
+Ledger converts each posting at the report's --to date (not the posting date).
+
+IN PROGRESS
+Nothing unfinished in my scope.
+
+NEXT STEP
+- Lead: run `python3 -m unittest discover -s tests` once all teammates are done (reports depends on core's txn/account/fx behaviour and on the audit table columns action/target, which the tests query directly).
+- Lead: decide the multi-currency rounding question above; if the answer is "force equality", it changes _values/total logic in fin/reports.py (balance_sheet, trial_balance) and needs a new test.
+- Commands for reference: `python3 -m fin --db PATH --json report balance-sheet --at 2026-03-31`, `python3 -m fin --db PATH --json reconcile Assets:Bank --date 2026-02-28 --balance 2500.00 --clear 1 2`.
+
+DO NOT REDO
+- Checked: core.py signatures used (connect, transaction, ensure_account(conn,name,currency), post_txn(conn,date,desc,[(acct,Decimal|None)]), parse_posting_spec, get_rate with inverse-pair lookup, convert/convert_sums, require_perm roles admin/editor/viewer). All match the code.
+- Checked: reconcile rollback. A bad --clear id after a good one leaves nothing marked (test_bad_clear_id_marks_nothing). The CLI's transaction wrapper does this; the plain function does not roll back on its own.
+- Checked: no "-0.00" in outputs (zero-sum account and empty total both render "0.00").
+- Not done by me: I did not call EnterWorktree. The cwd is already the isolated git worktree (/home/jaca/claude-team-a/bench/work/finance-team), and I made no commit.
+- Not run: the full `discover` suite (other teammates' files are not mine to verify).

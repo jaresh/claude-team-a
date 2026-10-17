@@ -1,0 +1,19 @@
+**Done**
+- fin/imports.py: SCHEMA for rules, imported (dedup key account+date+description+amount), budgets, recurring, recurring_occurrences. setup() registers `rule add|list`, `import`, `budget set`, `report budget` (via group "report"), `recurring add|run`. Plain functions: add_rule, list_rules, import_csv, set_budget, budget_report, add_recurring, run_recurring.
+- tests/test_imports.py: 27 tests covering every command, rule matching (case-insensitive, first match wins), dedup across and within files, CSV column/header options, bad rows importing nothing, closed periods, budget descendant sums and month filter, recurring monthly/weekly/yearly date rules, blank posting, invalid definitions, duplicate names, audit entries, viewer denied / editor allowed.
+- Check: `python3 -m unittest tests.test_imports tests.test_core` -> Ran 32 tests, OK.
+- Shared files: none edited. changes.md untouched. Nothing committed.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- Lead: review fin/imports.py and tests/test_imports.py, then run `python3 -m unittest discover -s tests` once all modules exist.
+- Consistency pass candidate: `_check_postings` in fin/imports.py repeats post_txn's balance rules, because post_txn inserts and cannot be used as a dry run. If the consistency pass wants one copy, move a `check_postings(conn, postings)` into core and have post_txn call it.
+
+**Do not redo**
+- Checked spec sections 5, 6 and 7 line by line against the code (case-insensitive rules, dedup including repeats in one file, budget sorted by account and actual including descendants, recurring date rules).
+- Verified core signatures used here: account_sums, convert_sums, post_txn (None amount balances), check_open, meta_set, get_account, parse_posting_spec, group, add_cmd.
+- Tests do not depend on the ledger CLI. They create accounts with ensure_account and users by SQL on connect(db), and read results with SQL, so they pass whatever state ledger is in.
+- Judgment call: add_rule requires the target account to exist (get_account). The spec is silent on this; it fails early instead of at the first import.
+- Judgment call: import's Uncategorized accounts are created with ensure_account and are not audited separately; the single `import` audit entry covers the call.
