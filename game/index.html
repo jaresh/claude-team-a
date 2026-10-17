@@ -56,6 +56,16 @@
     background: #111827; border: 1px solid #334155; border-radius: 8px;
   }
   #end[hidden] { display: none; }
+  #help {
+    width: min(100%, 320px); padding: 12px;
+    background: #111827; border: 1px solid #334155; border-radius: 8px;
+  }
+  #help[hidden] { display: none; }
+  #help .help-lines {
+    list-style: none; margin: 0 0 8px; padding: 0;
+    font: 13px/1.6 ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  }
+  #help button { width: 100%; }
   #end .end-text { margin: 0 0 8px; font-size: 16px; }
   .hint { font-size: 12px; color: #6b7280; text-align: center; margin: 0; }
 </style>
@@ -68,6 +78,10 @@
   <div id="hud" aria-live="polite"></div>
   <ul id="log" aria-live="polite"></ul>
   <ul id="legend" aria-label="Monsters in sight"></ul>
+  <section id="help" hidden aria-label="Help">
+    <ul class="help-lines"></ul>
+    <button class="small" data-action="close">Close</button>
+  </section>
 
   <div class="controls">
     <div id="end" hidden>
@@ -89,9 +103,10 @@
       <button class="small" data-action="pickup">Pick up</button>
       <button class="small" data-action="descend">Descend</button>
       <button class="small" data-action="new">New game</button>
+      <button class="small" data-action="help">?</button>
     </div>
     <div id="inventory" role="group" aria-label="Inventory"></div>
-    <p class="hint">Arrows or WASD / hjkl / yubn move. . wait, g pick up, &gt; descend, 1-9 use.</p>
+    <p class="hint">Arrows or WASD / hjkl / yubn move. . wait, g pick up, &gt; descend, 1-9 use, ? help.</p>
   </div>
 </main>
 <script type="module" src="src/main.js"></script>

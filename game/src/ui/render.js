@@ -4,6 +4,7 @@
 import { MIN_CELL, cameraWindow } from './camera.js';
 import { endMessage, hpColor } from './hud.js';
 import { legendRows, poisonLabel } from './legend.js';
+import { HELP_KEYS, glyphRows } from './help.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
@@ -65,6 +66,7 @@ export function render(canvas, view, hudEl, logEl) {
   renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
   renderEnd(document.getElementById('end'), view);
   renderLegend(document.getElementById('legend'), view);
+  renderHelp(document.getElementById('help'), view);
 
   logEl.textContent = '';
   for (const line of view.log) {
@@ -102,6 +104,25 @@ function renderLegend(legendEl, view) {
     li.style.color = row.color;
     li.textContent = row.text;
     legendEl.appendChild(li);
+  }
+}
+
+// One line per key in HELP_KEYS, then one per glyph row in that row's colour. The panel itself is
+// shown and hidden by main.js; the Close button sits outside this list so it survives the refill.
+function renderHelp(helpEl, view) {
+  if (!helpEl) return;
+  const listEl = helpEl.querySelector('.help-lines');
+  listEl.textContent = '';
+  for (const row of HELP_KEYS) {
+    const li = document.createElement('li');
+    li.textContent = `${row.keys}  ${row.action}`;
+    listEl.appendChild(li);
+  }
+  for (const row of glyphRows(view)) {
+    const li = document.createElement('li');
+    li.style.color = row.color;
+    li.textContent = `${row.glyph}  ${row.name}`;
+    listEl.appendChild(li);
   }
 }
 

@@ -1,6 +1,6 @@
 // Fake stand-in for core/game.js so the UI can be built before the core exists.
 // Same three exports and the same View shape. This is not game logic: one room with a
-// pillar, one rat, one potion. Visibility is a square radius, not real FOV.
+// pillar, one rat, one potion, two traps. Visibility is a square radius, not real FOV.
 // main.js imports this file until core/game.js lands (wave 2).
 
 export const MAX_DEPTH = 5, FOV_RADIUS = 8;
@@ -8,6 +8,10 @@ export const MAX_DEPTH = 5, FOV_RADIUS = 8;
 const W = 24, H = 14;
 const START = { x: 3, y: 3 };
 const STAIRS = { x: 21, y: 11 };
+const TRAPS = [
+  { kind: 'spike', glyph: '^', color: '#c9d1d9', x: 6, y: 3 },
+  { kind: 'teleport', glyph: '^', color: '#a371f7', x: 15, y: 9 },
+];
 const TILE_FG = { '#': '#94a3b8', '.': '#475569', '>': '#fde047' };
 const DIM = '#2a303b';
 const LOG_KEEP = 50;
@@ -46,6 +50,7 @@ function enterLevel(state) {
   const hp = 3 + state.depth - 1;
   state.monsters = [{ id: 1, kind: 'rat', glyph: 'r', color: '#b9a37e', x: 16, y: 4, hp, maxHp: hp, atk: 1, def: 0, xp: 1, ability: null }];
   state.items = [{ id: 2, kind: 'potion', glyph: '!', color: '#ff5fa2', effect: 'heal', amount: 8, x: 5, y: 8 }];
+  state.traps = TRAPS.map((t) => ({ ...t }));
   state.explored = new Array(W * H).fill(false);
 }
 
@@ -64,6 +69,7 @@ function updateFov(state) {
 
 const monsterAt = (state, x, y) => state.monsters.find((m) => m.x === x && m.y === y);
 const itemAt = (state, x, y) => state.items.find((it) => it.x === x && it.y === y);
+const trapAt = (state, x, y) => state.traps.find((t) => t.x === x && t.y === y);
 
 function attackMonster(state, m) {
   const p = state.player;
@@ -126,7 +132,7 @@ export function newGame(seed) {
       id: 0, kind: 'player', glyph: '@', color: '#f8fafc', x: START.x, y: START.y,
       hp: 12, maxHp: 12, atk: 3, def: 1, xp: 0, level: 1, inventory: [],
     },
-    monsters: [], items: [], visible: new Set(), explored: [],
+    monsters: [], items: [], traps: [], visible: new Set(), explored: [],
     log: ['Mock dungeon. Find the > stairs.'],
     turn: 0, status: 'playing',
   };
@@ -224,6 +230,8 @@ export function getView(state) {
     if (m) { cells.push({ ch: m.glyph, fg: m.color, bg: null }); continue; }
     const it = seen ? itemAt(state, x, y) : undefined;
     if (it) { cells.push({ ch: it.glyph, fg: it.color, bg: null }); continue; }
+    const tr = seen ? trapAt(state, x, y) : undefined;
+    if (tr) { cells.push({ ch: tr.glyph, fg: tr.color, bg: null }); continue; }
     const tile = map.tiles[i];
     if (seen) cells.push({ ch: tile, fg: TILE_FG[tile], bg: null });
     else if (explored[i]) cells.push({ ch: tile, fg: DIM, bg: null });
@@ -239,6 +247,9 @@ export function getView(state) {
       hp: p.hp, maxHp: p.maxHp, atk: p.atk, def: p.def, depth: state.depth,
       level: p.level, xp: p.xp, turn: state.turn, poison: 0,
     },
+    traps: state.traps
+      .filter((t) => visible.has(idx(t.x, t.y)))
+      .map(({ kind, glyph, color, x, y }) => ({ kind, glyph, color, x, y })),
     visibleMonsters: monsters
       .filter((m) => visible.has(idx(m.x, m.y)))
       .map(({ kind, glyph, color, hp, maxHp, ability }) => ({ kind, glyph, color, hp, maxHp, ability })),
