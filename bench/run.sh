@@ -13,7 +13,8 @@
 # Every run is scored three ways: the hidden acceptance tests, code-quality metrics
 # (bench/quality.py), and a blind review by a fixed reviewer (REVIEW_MODEL=opus, REVIEW_EFFORT=
 # medium, read-only tools, rubric in bench/<bench>/review.md) after .claude/ is removed, so it
-# can't tell the arm. The review's cost is recorded apart from the run's.
+# can't tell the arm. The review's cost is recorded apart from the run's. REVIEWS=N runs N
+# independent reviews of the same code in parallel (default 1), to measure the reviewer's noise.
 #
 # Results go to bench/<bench>/results/<UTC stamp>-<mode>/ (cost, scores, quality, review, the
 # team's plan and handoffs, the app's README) and are committed. The built app is deleted
@@ -44,6 +45,8 @@ out=$here/results/$stamp-$mode
 # The benchmark's version: what the model and the graders see. Measuring tools (quality.py,
 # coverage.py) only add fields, so they aren't part of it.
 version=$(cat "$here/prompt.md" "$here"/accept/*.py "$here/review.md" | sha256sum | cut -c1-12)
+kit=$(sed -n 's/^KIT_VERSION = "\(.*\)"$/\1/p' "$repo/team_kit.py")   # solo uses its tool list too
+reviews=${REVIEWS:-1}
 
 git -C "$repo" worktree remove --force "$ws" 2>/dev/null || true
 git -C "$repo" branch -D "$branch" >/dev/null 2>&1 || true
@@ -92,26 +95,34 @@ python3 "$repo/bench/quality.py" "$ws" --json "$out/quality.json" > /dev/null
 rm -rf "$ws/.claude" "$ws/.bench-end" "$ws/fin.db"
 review_prompt="$(cat "$here/review.md")
 $(sed 's/ {{MODE}}//' "$here/prompt.md")"
-(cd "$ws" && timeout 1800 claude -p --model "${REVIEW_MODEL:-opus}" --effort "${REVIEW_EFFORT:-medium}" \
-   --tools=Read,Glob,Grep --output-format json "$review_prompt" < /dev/null > "$out/review-raw.json" 2>/dev/null) || true
-python3 - "$out" <<'PY'
+for i in $(seq 1 "$reviews"); do
+  (cd "$ws" && timeout 1800 claude -p --model "${REVIEW_MODEL:-opus}" --effort "${REVIEW_EFFORT:-medium}" \
+     --tools=Read,Glob,Grep --output-format json "$review_prompt" < /dev/null > "$out/review-raw-$i.json" 2>/dev/null) &
+done
+wait || true
+python3 - "$out" "$reviews" <<'PY'
 import json, sys
-out = sys.argv[1]
-try:
-    raw = json.load(open(f"{out}/review-raw.json"))
-    text = raw.get("result", "")
-    review = json.loads(text[text.index("{"):text.rindex("}") + 1])
-    review["review_cost"] = round(raw.get("total_cost_usd") or 0, 4)
-except (ValueError, OSError) as e:
-    review = {"error": f"no review: {e}"}
-json.dump(review, open(f"{out}/review.json", "w"), indent=2)
+out, n = sys.argv[1], int(sys.argv[2])
+def load(i):
+    try:
+        raw = json.load(open(f"{out}/review-raw-{i}.json"))
+        text = raw.get("result", "")
+        review = json.loads(text[text.index("{"):text.rindex("}") + 1])
+        review["review_cost"] = round(raw.get("total_cost_usd") or 0, 4)
+    except (ValueError, OSError) as e:
+        review = {"error": f"no review: {e}"}
+    return review
+reviews = [load(i) for i in range(1, n + 1)]
+json.dump(reviews[0], open(f"{out}/review.json", "w"), indent=2)
+if n > 1:
+    json.dump(reviews, open(f"{out}/reviews.json", "w"), indent=2)
 PY
-rm -f "$out/review-raw.json"
+rm -f "$out"/review-raw-*.json
 lines=$(cd "$ws" && git ls-files --others --exclude-standard --cached -- '*.py' | xargs cat 2>/dev/null | wc -l)
 
-python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$ended" "$lines" <<'EOF'
-import json, re, sys
-out, bench, mode, model, effort, version, started, ended, lines = sys.argv[1:]
+python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$ended" "$lines" "$kit" <<'EOF'
+import json, os, re, sys
+out, bench, mode, model, effort, version, started, ended, lines, kit = sys.argv[1:]
 def tally(path):
     text = open(path).read()
     ran = re.search(r"Ran (\d+) test", text)
@@ -125,7 +136,8 @@ team = [a for a in cost["agents"] if a["role"] == "teammate"]
 quality = json.load(open(f"{out}/quality.json"))
 coverage = json.load(open(f"{out}/coverage.json"))
 review = json.load(open(f"{out}/review.json"))
-s = {"bench": bench, "mode": mode, "model": model, "effort": effort, "prompt": version,
+more = json.load(open(f"{out}/reviews.json")) if os.path.exists(f"{out}/reviews.json") else [review]
+s = {"bench": bench, "mode": mode, "model": model, "effort": effort, "prompt": version, "kit": kit,
      "started": started, "ended": ended, "accept_passed": acc[1], "accept_total": acc[0],
      "own_passed": own[1], "own_total": own[0], "python_lines": int(lines),
      "cost": round(cost["total_cost"], 4), "cost_cold": round(cost["cold_start_cost"], 4),
@@ -137,7 +149,9 @@ s = {"bench": bench, "mode": mode, "model": model, "effort": effort, "prompt": v
      "lead_compactions": sum(a["compactions"] for a in lead),
      "team_peak_ctx": max((a["peak_ctx"] for a in team), default=0),
      "coverage": coverage.get("coverage"), "least_covered": coverage.get("least_covered", []),
-     "quality": quality, "review": review}
+     "quality": quality, "review": review,
+     "reviews": [{"overall": r.get("overall"), "scores": r.get("scores"),
+                  "review_cost": r.get("review_cost")} for r in more]}
 json.dump(s, open(f"{out}/summary.json", "w"), indent=2)
 print(json.dumps(s, indent=2))
 EOF
@@ -147,7 +161,10 @@ if [ "${KEEP:-0}" != 1 ]; then
   echo "Deleted the built app ($ws, branch $branch)"
 fi
 cd "$repo"
-git add "$out"
-git commit -q -m "Bench $bench $mode $stamp (prompt $version)"
-git push -q origin HEAD
+(   # runs of the two arms may finish together
+  flock 9
+  git add "$out"
+  git commit -q -m "Bench $bench $mode $stamp (prompt $version, kit $kit)"
+  git push -q origin HEAD
+) 9>"$repo/.git/bench.lock"
 echo "Recorded $out"

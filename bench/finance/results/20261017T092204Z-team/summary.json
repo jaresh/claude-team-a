@@ -4,6 +4,7 @@
   "model": "sonnet",
   "effort": "medium",
   "prompt": "141f43ad9356",
+  "kit": "3.6",
   "started": "2026-10-17T09:22:04Z",
   "ended": "2026-10-17T09:34:21Z",
   "accept_passed": 41,
