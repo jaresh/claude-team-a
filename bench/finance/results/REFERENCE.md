@@ -71,3 +71,25 @@ contract can fix: name one shared module for validation, amount parsing and roun
 conventions (naming, argument style) every teammate follows, and have teammates reuse rather
 than re-implement. Plus a handoff file name the subagent guard doesn't block. The goal is the
 team's cost with solo's review score.
+
+## Later runs (same prompt version, team arm)
+
+| Run | Kit | Hidden | Review (consistency) | Cold $ | Lead msgs | Teammates | Consistency pass |
+|---|---|---|---|---|---|---|---|
+| 20261017T092204Z-team (reference) | 3.6 | 41/42 | 7 (6) | 0.715 | 12 | 5 | - |
+| 20261017T094531Z-team | 3.7 | 42/42 | 8 (7) | 0.732 | 14 | 5 | skipped |
+| 20261017T095916Z-team | 3.8 | 41/42 | 7 (6) | 0.957 | 19 | 7 | skipped, said so in README |
+
+- **3.7** (shared Conventions, `.txt` handoffs, team size left to the lead): solo's hidden-test
+  and review scores at the team's cost. Every handoff was written. The lead skipped the
+  consistency pass, so posting rules still live in three places.
+- **3.8** (the consistency pass as its own required step 4): the lead skipped it anyway. It
+  started seven teammates whose plan pointed at `.claude/team/spec.md` before writing that file,
+  then spent eight messages sending it to them (lead $0.75 vs $0.56). It put the HTTP server in
+  the same wave as invoices, so the server's tests never ran real invoice commands, and the
+  hidden API invoice test failed (`number` missing). It finished while one teammate was still
+  re-checking, never updated `status.md`, and committed although not asked.
+- **3.9** responds: the plan gets its `consistency` section at planning time and `status.md`
+  a `waiting` row for it; Finish waits for every row; the spec is saved before the first wave;
+  a layer over other tasks' code (an API, a UI) goes in a later wave; acceptance tests cover
+  interfaces between tasks; no commit, even at the end.

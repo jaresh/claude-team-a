@@ -45,7 +45,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.8"
+KIT_VERSION = "3.9"
 
 SKILL = """\
 ---
@@ -102,20 +102,29 @@ Then overwrite `.claude/team/plan.md` with:
   existing check the task must keep passing), and what it must not touch. A teammate that isn't
   told what it may change stops and asks, which costs you a merge round. A task fits one
   teammate's ~100K-token context: a few files, one module.
-  Work that needs another task's result goes in a later wave. Use names not already in
-  `handoff/`. Name tasks after what they build (`ledger`, `invoices`); avoid names with
-  "report", "summary", "review" or "analysis": Claude Code refuses Markdown files written by
-  subagents named like that.
+  Work that needs another task's result goes in a later wave, and so does a layer over other
+  tasks' code (an HTTP API over the commands, a UI over an API), so its tests run against the
+  real code. Use names not already in `handoff/`. Name tasks after what they build (`ledger`,
+  `invoices`); avoid names with "report", "summary", "review" or "analysis": Claude Code refuses
+  Markdown files written by subagents named like that.
+- **Consistency**: when more than one task writes code, the last section is `## consistency`
+  (step 4). Write it now, so the plan has it.
 
-Tests first: unless the user gave a check, write acceptance tests for the contract, in the
-repo's test layout, before starting the team, and run them once to see them fail. They are
-yours: teammates don't edit them, and they add unit tests for their own code.
+Teammates see only files, never this conversation. Before the first wave, save the user's
+request word for word as `.claude/team/spec.md` when tasks need more of it than the plan
+quotes, and make sure every file the plan or a prompt names exists.
+
+Tests first: unless the user gave a check, write acceptance tests for the contract, each
+interface between tasks included, in the repo's test layout, before starting the team, and run
+them once to see them fail. They are yours: teammates don't edit them, and they add unit tests
+for their own code.
 
 Tell the user the plan in a few lines.
 
 ## 2. Run a wave
 
-In one turn: overwrite `status.md` with a row per teammate (name, task, model, state, handoff
+In one turn: update `status.md` (for the first wave, overwrite it with a row per task in the
+plan, later waves and `consistency` included as `waiting`: name, task, model, state, handoff
 path), and start every task of the wave in parallel with the Agent tool:
 `subagent_type: "team-dev"`, `name: "<task>"`, `model: "haiku"`, `effort: "medium"`, prompt:
 
@@ -149,6 +158,9 @@ re-implemented rules (validation, parsing, rounding, errors) with the shared one
 patterns that break the conventions; change no behaviour; done check: the full check. Split it
 by module when that code is larger than about 60K tokens. Run the check once more after it.
 
+A passing check doesn't make this step optional: tests don't see duplicated logic, and this is
+the step that removes it, for the cost of one Haiku teammate.
+
 ## 5. Deploy (only when the user asked)
 
 Use the repo's documented staging deploy (README, CLAUDE.md, docs, package scripts, Makefile),
@@ -158,10 +170,12 @@ how; if no one can answer, skip it and say so.
 
 ## 6. Finish
 
-Update `status.md` and report to the user, in under 200 words, so they can assess the work:
+Finish only when every row in `status.md` is done: every teammate has handed back, and the
+consistency pass has run. Then update `status.md` and report to the user, in under 200 words, so they can assess the work:
 what changed (paths), how to try it (staging URL and steps), the tests added and the check
-result, your assumptions, what is still open, and how to undo it. Don't commit unless the user
-asked for it.
+result, your assumptions, what is still open, and how to undo it. Don't commit, even at the
+end: leave the changes in the working tree for the user to review, unless they asked you to
+commit.
 
 ## Rules
 
