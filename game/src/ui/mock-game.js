@@ -63,6 +63,14 @@ function updateFov(state) {
   state.visible = visible;
 }
 
+// Same formula as ARCHITECTURE "e5: score and stats", written out so the mock needs no core module.
+function scoreOf(stats, status) {
+  const kills = Object.values(stats.kills).reduce((sum, n) => sum + n, 0);
+  const raw = 100 * stats.deepest + 10 * kills + 5 * stats.itemsUsed - 2 * stats.trapsTriggered
+    + (status === 'won' ? 500 : 0);
+  return Math.max(0, raw);
+}
+
 const monsterAt = (state, x, y) => state.monsters.find((m) => m.x === x && m.y === y);
 const itemAt = (state, x, y) => state.items.find((it) => it.x === x && it.y === y);
 
@@ -75,6 +83,7 @@ function attackMonster(state, m) {
     return;
   }
   state.monsters = state.monsters.filter((x) => x !== m);
+  state.stats.kills[m.kind] = (state.stats.kills[m.kind] || 0) + 1;
   say(state, `You kill the ${m.kind}.`);
   p.xp += m.xp;
   const level = 1 + Math.floor(p.xp / 10);
@@ -94,6 +103,7 @@ function endTurn(state) {
     if (cheb(m.x, m.y, p.x, p.y) <= 1) {
       const dmg = Math.max(1, m.atk - p.def);
       p.hp -= dmg;
+      state.stats.damageTaken += dmg;
       say(state, `The ${m.kind} hits you for ${dmg}.`);
       if (p.hp <= 0) {
         p.hp = 0;
@@ -130,6 +140,7 @@ export function newGame(seed) {
     monsters: [], items: [], traps: [], visible: new Set(), explored: [],
     log: ['Mock dungeon. Find the > stairs.'],
     turn: 0, status: 'playing',
+    stats: { kills: {}, itemsUsed: 0, trapsTriggered: 0, deepest: 1, damageTaken: 0 },
   };
   enterLevel(state);
   updateFov(state);
@@ -182,6 +193,7 @@ export function act(state, action) {
       } else {
         p.inventory.splice(action.index, 1);
         p.hp = Math.min(p.maxHp, p.hp + item.amount);
+        state.stats.itemsUsed += 1;
         say(state, `You drink the ${item.kind}. +${item.amount} hp.`);
         takesTurn = true;
       }
@@ -198,6 +210,7 @@ export function act(state, action) {
         break;
       }
       state.depth += 1;
+      state.stats.deepest = Math.max(state.stats.deepest, state.depth);
       enterLevel(state);
       say(state, `You go down to depth ${state.depth}.`);
       takesTurn = true;
@@ -248,5 +261,7 @@ export function getView(state) {
       .map(({ kind, glyph, color, x, y }) => ({ kind, glyph, color, x, y })),
     log: state.log.slice(-5),
     status: state.status,
+    stats: { ...state.stats, kills: { ...state.stats.kills } },
+    score: scoreOf(state.stats, state.status),
   };
 }

@@ -5,11 +5,13 @@ import { MIN_CELL, cameraWindow } from './camera.js';
 import { endMessage, hpColor } from './hud.js';
 import { legendRows, poisonLabel } from './legend.js';
 import { HELP_KEYS, glyphRows } from './help.js';
+import { summaryRows } from './scores.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
 
-export function render(canvas, view, hudEl, logEl) {
+// scores: the high-score list from scores.js, best first; shown in the end panel.
+export function render(canvas, view, hudEl, logEl, scores = []) {
   const ctx = canvas.getContext('2d');
   const parentW = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
   const avail = parentW > 0 ? parentW : (window.innerWidth || 360) - 32;
@@ -64,7 +66,7 @@ export function render(canvas, view, hudEl, logEl) {
     `DEPTH ${h.depth}  TURN ${h.turn}${suffix}${poison === null ? '' : `  ${poison}`}`;
 
   renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
-  renderEnd(document.getElementById('end'), view);
+  renderEnd(document.getElementById('end'), view, scores);
   renderLegend(document.getElementById('legend'), view);
   renderHelp(document.getElementById('help'), view);
 
@@ -87,12 +89,34 @@ function renderHpBar(barEl, hp, maxHp) {
   fill.style.background = hpColor(hp, maxHp);
 }
 
-// The end panel shows while the game is over; the New game button in it is a plain data-action.
-function renderEnd(endEl, view) {
+// The end panel shows while the game is over: the message, the run summary, the high scores,
+// and the New game button, which is a plain data-action.
+function renderEnd(endEl, view, scores) {
   if (!endEl) return;
   const msg = endMessage(view);
   endEl.hidden = msg === null;
-  if (msg !== null) endEl.querySelector('.end-text').textContent = msg;
+  if (msg === null) return;
+  endEl.querySelector('.end-text').textContent = msg;
+
+  const summaryEl = document.getElementById('summary');
+  summaryEl.textContent = '';
+  for (const row of summaryRows(view)) {
+    const li = document.createElement('li');
+    const label = document.createElement('span');
+    label.textContent = row.label;
+    const value = document.createElement('span');
+    value.textContent = String(row.value);
+    li.append(label, value);
+    summaryEl.appendChild(li);
+  }
+
+  const scoresEl = document.getElementById('scores');
+  scoresEl.textContent = '';
+  for (const e of scores) {
+    const li = document.createElement('li');
+    li.textContent = `${e.score} pts, depth ${e.depth}, ${e.turns} turns${e.won ? ', won' : ''}`;
+    scoresEl.appendChild(li);
+  }
 }
 
 // One line per monster in sight, in the monster's colour. The list is empty when none are seen.

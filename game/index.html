@@ -63,6 +63,13 @@
   }
   #end[hidden] { display: none; }
   #end .end-text { margin: 0 0 8px; font-size: 16px; }
+  #end ul, #end ol {
+    margin: 0 0 8px; padding: 0 0 0 1.5em; text-align: left;
+    font: 13px/1.5 ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  }
+  #end #summary { list-style: none; padding: 0; }
+  #end #summary li { display: flex; justify-content: space-between; gap: 12px; }
+  #end h2 { font-size: 14px; font-weight: 600; margin: 8px 0 4px; color: #cbd5e1; }
   .hint { font-size: 12px; color: #6b7280; text-align: center; margin: 0; }
 </style>
 </head>
@@ -79,6 +86,9 @@
   <div class="controls">
     <div id="end" hidden>
       <p class="end-text" aria-live="polite"></p>
+      <ul id="summary" aria-label="Run summary"></ul>
+      <h2>High scores</h2>
+      <ol id="scores" aria-label="High scores"></ol>
       <button class="small" data-action="new">New game</button>
     </div>
     <div class="pad" role="group" aria-label="Move">
