@@ -1,0 +1,27 @@
+{
+  "app_files": 6,
+  "app_lines": 1232,
+  "test_files": 3,
+  "test_lines": 490,
+  "test_functions": 26,
+  "test_to_app_ratio": 0.4,
+  "functions": 114,
+  "mean_function_lines": 10.5,
+  "max_function_lines": 92,
+  "functions_over_50_lines": 2,
+  "mean_complexity": 4.3,
+  "max_complexity": 49,
+  "functions_complexity_over_10": 7,
+  "most_complex": [
+    "fin/cli.py:run (49)",
+    "fin/server.py:handle_any (20)",
+    "fin/server.py:route_post (17)"
+  ],
+  "docstring_coverage": 0.02,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 1,
+  "bare_except": 0,
+  "broad_except": 3,
+  "parse_errors": []
+}

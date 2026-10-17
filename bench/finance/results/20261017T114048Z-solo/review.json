@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 6,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 5,
+    "consistency": 7
+  },
+  "overall": 6,
+  "issues": [
+    "Several assertions in tests/test_business.py (test_audit lines 160-162 and 170-172) and tests/test_core.py (test_trial_balance_ledger line 203, test_import line 99) use `X if False else Y` constructs that reduce them to tautologies or hide the intended expected value, and lines like `self.fail(...) if False else None` (test_core.py:23,56; test_business.py:198) are dead code, so test_multi_currency_txn and test_errors_leave_stdout_empty_and_exit_2 check almost nothing.",
+    "fin/book.py is a ~900-line god class mixing ledger, FX, import, budgeting, invoicing, bills, aging and reports, with near-duplicate pairs (_invoice_doc/_bill_doc, _invoice_row/_bill_row, customer_list/vendor_list, the per-code net/tax summing in invoice_create/bill_create) instead of shared helpers.",
+    "Book._converted (used by report_income, _sheet and report_trial_balance) rounds each account's converted balance separately, so with foreign-currency postings total_debit may differ from total_credit and total_assets may differ from total_liabilities + total_equity by a few cents; nothing reconciles the rounding.",
+    "fin/server.py handle_any calls route_post twice (first with body=None just to probe the route), calls the no-op b.need('read'), and checks the user by hand alongside Book.need; it also maps KeyError/TypeError/AttributeError to 400, which hides programming bugs behind user-error responses.",
+    "fin/cli.py main only catches UserError and sqlite3.Error, so any other unexpected exception from the domain layer ends in a traceback rather than a clean exit; it also calls Book.loan_schedule(None, ...) as an unbound method with self=None, a fragile hack that should be a module-level function.",
+    "Book.txn_list filters descendants with SQL LIKE, which is case-insensitive in SQLite for ASCII, while account names are matched case-sensitively everywhere else; invoice_create also shows `price` rounded to cents while computing net from the unrounded price, so the displayed line may not multiply out."
+  ],
+  "strengths": [
+    "The `mutating` decorator puts the permission check, BEGIN IMMEDIATE/COMMIT/ROLLBACK and audit logging in one place, so every mutating command is atomic (whole-import and whole-recurring-run failure on a closed period come for free), and the closed-period check is enforced once, in _insert_txn.",
+    "Money handling is careful throughout: Decimal end to end (including parse_float=str for HTTP bodies), half-up quantize in q2, fmt normalising -0.00, and amounts stored as canonical strings; all SQL values are parameterised.",
+    "Tests drive the real CLI entry point and a live HTTP server against temporary databases, are independent per test, and check behavioural edge cases such as month-end recurrence, Feb 29 yearly rollover, the loan final-row adjustment, duplicate import rows within one file and closed-period rejection."
+  ],
+  "review_cost": 0.7296
+}
