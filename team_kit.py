@@ -45,7 +45,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.6"
+KIT_VERSION = "3.7"
 
 SKILL = """\
 ---
@@ -68,7 +68,7 @@ Working files, all in `.claude/team/` (git-ignored):
 | `plan.md` | goal, check, contract, one section per task (the current task only) |
 | `status.md` | one row per teammate and per heavy job (the current task only) |
 | `changes.md` | one line per edit to a shared file; teammates append |
-| `handoff/<name>.md` | each teammate's handoff |
+| `handoff/<name>.txt` | each teammate's handoff |
 | `scratch/<name>/` | each teammate's scratch files |
 
 ## 1. Plan
@@ -91,14 +91,21 @@ Then overwrite `.claude/team/plan.md` with:
   repo's tests, a build, a lint, or tests you write first).
 - **Contract**: what tasks working in parallel must agree on (function signatures, data shapes,
   file formats), exact enough that they fit together without talking to each other.
-- **Tasks**, usually 2-4, one section each, headed `## <task>`: the files it owns (no file in
+- **Conventions**: the shared module(s) for code more than one task needs (validation, parsing,
+  rounding and formatting, errors, command-line or request handling), which you write and test
+  before the team starts, and the rules every task follows (naming, how options, errors and
+  output are handled). Teammates import the shared code and never write their own version, so
+  modules written by different teammates read as one codebase.
+- **Tasks**, as many as the work needs, one section each, headed `## <task>`: the files it owns (no file in
   two tasks), what to do, what it may change to make its checks pass (all the tuning a contract
   allows for those checks, not a subset), its done check (one command, under a minute, that includes every
   existing check the task must keep passing), and what it must not touch. A teammate that isn't
   told what it may change stops and asks, which costs you a merge round. A task fits one
   teammate's ~100K-token context: a few files, one module.
   Work that needs another task's result goes in a later wave. Use names not already in
-  `handoff/`.
+  `handoff/`. Name tasks after what they build (`ledger`, `invoices`); avoid names with
+  "report", "summary", "review" or "analysis": Claude Code refuses Markdown files written by
+  subagents named like that.
 
 Tests first: unless the user gave a check, write acceptance tests for the contract, in the
 repo's test layout, before starting the team, and run them once to see them fail. They are
@@ -114,7 +121,7 @@ path), and start every task of the wave in parallel with the Agent tool:
 
 > You are teammate `<task>`; the lead is the main session. Your task is section `<task>` of
 > .claude/team/plan.md; read it and the Contract section. Done when `<done check>` passes.
-> Write .claude/team/handoff/<task>.md before your final message.
+> Write .claude/team/handoff/<task>.txt before your final message.
 
 Then end the turn. Completion notices wake you: don't poll, sleep, or check on teammates.
 
@@ -130,7 +137,13 @@ say so in your report.
   then `-3`) whose prompt names the handoff and the failing output. A successor reads the
   handoff and the files it names, not the old transcript.
 - If a handoff is missing, write it from the teammate's report before starting a successor.
-- Then the next wave, or finish.
+- Then the next wave, or the consistency pass.
+
+**Consistency pass.** After the last build wave passes the check, if more than one teammate
+wrote code, start one more teammate, `consistency`: it reads the Conventions and the code the
+team wrote, replaces duplicated helpers with the shared ones and fixes what breaks the
+conventions, changes no behaviour, and its done check is the full check. (Split it by module
+when that code is larger than about 60K tokens.) Run the check once more after it.
 
 ## 4. Deploy (only when the user asked)
 
@@ -189,6 +202,9 @@ files are in `.claude/team/`.
   files you change, and any handoff your task names. A successor (`<task>-2`) reads the handoff
   and the files it names.
 - If another teammate's file looks wrong, say so in your handoff; don't edit it.
+- Follow the plan's Conventions: import the shared helpers it names and never write your own
+  version of one. If you need a helper that doesn't exist, write it in your own files and say so
+  in your handoff, so the consistency pass can move it.
 - Stay within what your task says you may change. If your checks can't pass within that, stop
   and write the handoff with the options you found; never widen your own permissions.
 - Scratch files go only in `.claude/team/scratch/<your name>/`, generated output in a new empty
@@ -214,7 +230,7 @@ files are in `.claude/team/`.
 
 - Run your task's done check and fix your own code until it passes. Never hand back while a job
   you started is still running, and never report a partial count as final.
-- Write `.claude/team/handoff/<your name>.md` with four sections: **Done** (files changed,
+- Write `.claude/team/handoff/<your name>.txt` with four sections: **Done** (files changed,
   counts, check results), **In progress** (where you stopped), **Next step** (the exact next
   action and command, runnable without your history), **Do not redo** (what you checked and
   ruled out, with evidence).
