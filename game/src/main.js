@@ -1,6 +1,7 @@
 import { newGame, act, getView } from './core/game.js';
 import { render } from './ui/render.js';
 import { bindInput } from './ui/input.js';
+import { addScore, loadScores, saveScores } from './ui/scores.js';
 
 const canvas = document.getElementById('screen');
 const hudEl = document.getElementById('hud');
@@ -18,9 +19,32 @@ function randomSeed() {
 }
 
 let state = newGame(seedFromUrl());
+let recorded = false; // the current game has been added to the high scores
+// Storage can be missing or blocked (private mode); the game works without high scores.
+let scores = [];
+try {
+  scores = loadScores(localStorage);
+} catch {
+  scores = [];
+}
+
+function recordIfOver(view) {
+  if (view.status === 'playing' || recorded) return;
+  recorded = true;
+  scores = addScore(scores, {
+    score: view.score, depth: view.stats.deepest, turns: view.hud.turn, seed: state.seed, won: view.status === 'won',
+  });
+  try {
+    saveScores(localStorage, scores);
+  } catch {
+    // not saved; the list still shows for this page
+  }
+}
 
 function draw() {
-  render(canvas, getView(state), hudEl, logEl);
+  const view = getView(state);
+  recordIfOver(view);
+  render(canvas, view, hudEl, logEl, scores);
 }
 
 bindInput(document, (action) => {
@@ -34,6 +58,7 @@ bindInput(document, (action) => {
   }
   if (action.type === 'new') {
     state = newGame(randomSeed());
+    recorded = false;
   } else {
     state = act(state, action);
   }

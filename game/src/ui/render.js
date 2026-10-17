@@ -5,11 +5,13 @@ import { MIN_CELL, cameraWindow } from './camera.js';
 import { endMessage, hpColor } from './hud.js';
 import { legendRows, poisonLabel } from './legend.js';
 import { HELP_KEYS, glyphRows } from './help.js';
+import { summaryRows } from './scores.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
 
-export function render(canvas, view, hudEl, logEl) {
+// scores: the saved high-score list (see scores.js), shown in the end panel once the game is over.
+export function render(canvas, view, hudEl, logEl, scores = []) {
   const ctx = canvas.getContext('2d');
   const parentW = canvas.parentElement ? canvas.parentElement.clientWidth : 0;
   const avail = parentW > 0 ? parentW : (window.innerWidth || 360) - 32;
@@ -64,7 +66,7 @@ export function render(canvas, view, hudEl, logEl) {
     `DEPTH ${h.depth}  TURN ${h.turn}${suffix}${poison === null ? '' : `  ${poison}`}`;
 
   renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
-  renderEnd(document.getElementById('end'), view);
+  renderEnd(document.getElementById('end'), view, scores);
   renderLegend(document.getElementById('legend'), view);
   renderHelp(document.getElementById('help'), view);
 
@@ -87,12 +89,35 @@ function renderHpBar(barEl, hp, maxHp) {
   fill.style.background = hpColor(hp, maxHp);
 }
 
-// The end panel shows while the game is over; the New game button in it is a plain data-action.
-function renderEnd(endEl, view) {
+// The end panel shows while the game is over: the message, the run summary, then the high scores.
+// The New game button in it is a plain data-action.
+function renderEnd(endEl, view, scores) {
   if (!endEl) return;
   const msg = endMessage(view);
   endEl.hidden = msg === null;
-  if (msg !== null) endEl.querySelector('.end-text').textContent = msg;
+  if (msg === null) return;
+  endEl.querySelector('.end-text').textContent = msg;
+  fillList(document.getElementById('summary'), summaryRows(view).map((r) => [r.label, r.value]));
+  const rows = scores.map((e) => [
+    `${e.score}`,
+    `depth ${e.depth}, ${e.turns} turns${e.won ? ', won' : ''}`,
+  ]);
+  fillList(document.getElementById('scores'), rows.length > 0 ? rows : [['No high scores yet', '']]);
+}
+
+// One li per [left, right] pair; the right text is set apart by the list's flex layout.
+function fillList(listEl, pairs) {
+  if (!listEl) return;
+  listEl.textContent = '';
+  for (const [left, right] of pairs) {
+    const li = document.createElement('li');
+    const a = document.createElement('span');
+    a.textContent = left;
+    const b = document.createElement('span');
+    b.textContent = right;
+    li.append(a, b);
+    listEl.appendChild(li);
+  }
 }
 
 // One line per monster in sight, in the monster's colour. The list is empty when none are seen.

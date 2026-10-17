@@ -3,6 +3,7 @@ import { createRng } from './rng.js';
 import { generateMap, isWalkable, WALL, FLOOR, STAIRS } from './map.js';
 import { computeFov } from './fov.js';
 import { spawnMonsters, spawnItems, spawnTraps, attack, applyItem, monsterStep } from './rules.js';
+import { score } from './score.js';
 
 export const MAX_DEPTH = 5, FOV_RADIUS = 8;
 
@@ -95,6 +96,7 @@ function playerAttacks(state, target, rng) {
   const r = attack(state.player, target, rng);
   if (r.killed) {
     state.monsters = state.monsters.filter((m) => m !== target);
+    state.stats.kills[target.kind] = (state.stats.kills[target.kind] || 0) + 1;
     say(state, `You kill the ${target.kind}.`);
     gainXp(state, target.xp);
   } else {
@@ -112,11 +114,13 @@ function monsterPhase(state, rng) {
     const step = monsterStep(state.map, m, p, state.visible, isBlocked, rng);
     if (step.type === 'attack') {
       const r = attack(m, p, rng);
+      state.stats.damageTaken += r.damage;
       say(state, `The ${m.kind} hits you for ${r.damage}.`);
       if (m.ability === 'poison') p.poison = POISON_TURNS;
       if (p.hp <= 0) return;
     } else if (step.type === 'shoot') {
       const r = attack({ ...m, atk: Math.max(1, m.atk - 1) }, p, rng);
+      state.stats.damageTaken += r.damage;
       say(state, `The ${m.kind} shoots you for ${r.damage}.`);
       if (p.hp <= 0) return;
     } else if (step.type === 'move') {
@@ -141,6 +145,7 @@ function ticksPoison(state) {
   if (p.poison <= 0 || state.status !== 'playing') return;
   p.hp -= 1;
   p.poison -= 1;
+  state.stats.damageTaken += 1;
   say(state, 'Poison hurts you.');
 }
 
@@ -151,9 +156,11 @@ function triggerTrap(state, rng) {
   const trap = state.traps.find((t) => t.x === p.x && t.y === p.y);
   if (!trap) return;
   trap.hidden = false;
+  state.stats.trapsTriggered += 1;
   if (trap.effect === 'damage') {
     const before = p.hp;
     p.hp = Math.max(1, p.hp - trap.amount);
+    state.stats.damageTaken += before - p.hp;
     say(state, `A ${trap.kind} trap wounds you for ${before - p.hp}.`);
   } else if (trap.effect === 'poison') {
     p.poison = POISON_TURNS;
@@ -204,6 +211,7 @@ export function newGame(seed) {
     log: ['Welcome to the dungeon.'],
     turn: 0,
     status: 'playing',
+    stats: { kills: {}, itemsUsed: 0, trapsTriggered: 0, deepest: 1, damageTaken: 0 },
   };
   buildLevel(state, rng);
   state.rngState = rng.state();
@@ -261,6 +269,7 @@ export function act(state, action) {
         break;
       }
       const [item] = p.inventory.splice(i, 1);
+      state.stats.itemsUsed += 1;
       say(state, applyItem(p, item));
       takesTurn = true;
       break;
@@ -277,6 +286,7 @@ export function act(state, action) {
         say(state, 'You take the last stairs and escape the dungeon.');
       } else {
         state.depth += 1;
+        state.stats.deepest = Math.max(state.stats.deepest, state.depth);
         buildLevel(state, rng);
         say(state, `You descend to depth ${state.depth}.`);
       }
@@ -329,6 +339,8 @@ export function getView(state) {
     },
     log: state.log.slice(-VIEW_LOG),
     status: state.status,
+    stats: { ...state.stats, kills: { ...state.stats.kills } },
+    score: score(state.stats, state.status),
     player: { x: p.x, y: p.y },
     inventory: p.inventory.map((it) => ({
       kind: it.kind, glyph: it.glyph, color: it.color, effect: it.effect, amount: it.amount,
