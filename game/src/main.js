@@ -5,6 +5,7 @@ import { bindInput } from './ui/input.js';
 const canvas = document.getElementById('screen');
 const hudEl = document.getElementById('hud');
 const logEl = document.getElementById('log');
+const helpEl = document.getElementById('help');
 
 function seedFromUrl() {
   const raw = new URLSearchParams(location.search).get('seed');
@@ -23,6 +24,14 @@ function draw() {
 }
 
 bindInput(document, (action) => {
+  if (action.type === 'help') {
+    helpEl.hidden = !helpEl.hidden;
+    return;
+  }
+  if (action.type === 'close') {
+    helpEl.hidden = true;
+    return;
+  }
   if (action.type === 'new') {
     state = newGame(randomSeed());
   } else {
