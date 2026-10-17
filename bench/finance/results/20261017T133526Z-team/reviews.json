@@ -1,0 +1,80 @@
+[
+  {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/cli.py execute() catches only UserError and SystemExit, so sqlite3 errors print a traceback instead of exiting 2 with a message: a --db path that is not a SQLite file, an unwritable path, or an IntegrityError; the same goes for core.currency() calling fetchone()[0] on a database without meta.",
+      "fin/core.py get_rate() runs four queries, two of which repeat the first two just to read the date, balances() and direct_balances() repeat the same SQL-building code, and planning._check_postings() reimplements the balancing rules of post_transaction() and can drift from them.",
+      "fin/invoices.py and fin/bills.py duplicate party add/list, totals, paid-sum and pay logic, and the copies have already drifted: invoice_pay rejects a payment account in another currency but bill_pay does not, they validate in a different order, and one uses D(\"0\") where the other uses Decimal(0).",
+      "fin/api.py serves through ThreadingHTTPServer, but core sets getcontext().prec = 50 only in the importing thread (decimal contexts are per thread), so handler threads use precision 28; concurrent writes also have no busy timeout, and invoice_issue's COUNT(*)-based numbering can race.",
+      "fin/api.py _txn_body and _payment_body str() any JSON value, so float amounts such as 12.5 or 1e-7 are accepted silently instead of being rejected as non-string money.",
+      "fin/cli.py has leftover integration scaffolding: _check_perm wraps its logic in `if True:` with tangled nesting, and load_modules() lists a non-existent 'fxrules' module and silently skips missing modules, which could hide a dropped command group; in tests, test_reports.py inserts rows straight into internal tables and uses skipUnless(module exists) guards, which ties the tests to the schema."
+    ],
+    "strengths": [
+      "One command registry (cli.command with a perm level) drives the CLI, permissions and the HTTP API; the API reuses cli.run in-process, so JSON documents and validation are the same on both paths.",
+      "Money handling is careful: amounts are Decimal and stored as TEXT throughout, one q()/fmt() pair does half-up rounding and avoids -0.00, and SQL is parameterized (only fixed table names are interpolated).",
+      "Atomicity is structural: every command runs in one transaction that is committed only on success and rolled back otherwise (a failed init deletes the new file), so whole-import and whole-recurring-run failures in closed periods come for free; the tests drive the real CLI through helpers that check exit code 2, empty stdout and stderr, and cover month-end, leap-year, closed-period and multi-currency cases."
+    ],
+    "review_cost": 0.8517
+  },
+  {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 6,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "fin/cli.py execute() only catches UserError and SystemExit, so sqlite3.Error (e.g. a --db that is not a SQLite file, a missing directory, or 'database is locked' while the ThreadingHTTPServer in fin/api.py is writing) and OSError escape as tracebacks instead of a clean exit 2.",
+      "fin/planning.py _check_postings duplicates the balancing and blank-posting rules of core.post_transaction, so the recurring-add check and actual posting can drift apart; invoices.py and bills.py likewise duplicate the doc/paid/balance/pay logic (invoice_doc vs bill_doc, invoice_pay vs bill_pay).",
+      "Payment validation is inconsistent: invoices.py invoice_pay requires the asset account to be in the book currency, but bills.py bill_pay does not, and bill lines in _bill_lines never check the account's currency, so a foreign-currency account causes a confusing 'does not balance' error instead of a clear one; neither pay command rejects a payment dated before the document date.",
+      "fin/core.py get_rate runs four queries where two would do (d1/d2 re-select the dates of r/r2), and fin/cli.py has dead or misleading code: `if True:` in _check_perm, unused io/redirect_* imports, a nonexistent 'fxrules' module that load_modules() silently skips, and `\"--json\" in argv` scanning the whole argv instead of reading the parsed flag.",
+      "fin/api.py rebuilds CLI argv strings from HTTP bodies and re-runs argparse, which couples the HTTP layer to CLI syntax (e.g. ';' is forbidden in invoice line fields, and positional amounts like '-5' are parsed as options) and duplicates the role check from cli._check_perm in _authorize.",
+      "The tests check errors by exit code but rarely assert that nothing changed, and tests/test_core.py has only 3 broad tests: there is no coverage of multi-currency transactions, the inverse fx rate, txn list --from/--to, or the format of audit timestamps; some tests also insert tax codes with raw SQL (test_bills.py setUp) instead of using the CLI."
+    ],
+    "strengths": [
+      "Each command opens one connection and either commits on success or rolls back on any exception (fin/cli.py run), so failing imports, recurring runs and closed-period errors are atomic; a failed init even removes the new database file.",
+      "Money handling is careful: Decimal everywhere, one q()/fmt() pair in core that always gives two decimals with half-up rounding and never '-0.00', and every SQL value goes through parameters (the f-string table names come only from internal constants).",
+      "There is a clean command registry with a per-command perm level and *_doc functions that return plain data, so the CLI and the HTTP API share the same documents and permission model with little glue."
+    ],
+    "review_cost": 0.8182
+  },
+  {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/cli.py execute() does not catch sqlite3 errors such as a locked database, an unwritable --db path or a non-fin SQLite file, so these crash with a traceback; in fin/api.py the threaded server turns concurrent write locks into 500 errors.",
+      "Validation logic is duplicated: fin/planning.py _check_postings re-implements the balancing rules of core.post_transaction, core.balances and core.direct_balances repeat the same SQL builder, and the tax-rate lookup and paid-sum code is copied between invoices._line/_paid and bills._tax_rate/bill_doc.",
+      "fin/bills.py bill_pay (and bill_create line accounts) never checks the account's currency, while invoices.invoice_pay does, so a foreign-currency account gives a confusing 'does not balance' error instead of a clear message.",
+      "fin/api.py _dispatch reads the request body with plain json.loads, so a JSON-number amount becomes a float and is str()'d into the CLI argv (e.g. 1e-05 or float artefacts); parse_float=Decimal, or rejecting non-string amounts, would keep money exact.",
+      "fin/cli.py has leftover cruft: load_modules lists a nonexistent 'fxrules' module and silently swallows the import error, _check_perm is wrapped in a meaningless 'if True:', io/redirect_stdout are imported but unused, and execute() decides JSON vs pretty output with '\"--json\" in argv', which also matches a --desc value of '--json'.",
+      "tests/test_core.py packs sections 1-4 and 11-12 into three long tests, and the error tests across the suite seldom check that nothing changed after a user error; some setups seed data with raw SQL (e.g. the taxes table in test_bills) instead of the CLI."
+    ],
+    "strengths": [
+      "Each command runs in one connection with a single commit or rollback in cli.run (a failed init even removes the half-created DB), so multi-row operations like import, recurring run and invoice issue are all-or-nothing and the audit entry is written in the same transaction.",
+      "Money is Decimal throughout, stored as text and summed in Python, with one q()/fmt() pair for half-up rounding and no '-0.00'; every SQL value is parameterised, and only fixed table names are interpolated.",
+      "A clean command registry (@command with perm levels) and *_doc functions keep the domain logic reusable, and the HTTP API reuses the CLI in-process so its JSON matches the --json output by construction, which the API tests check."
+    ],
+    "review_cost": 0.5875
+  }
+]

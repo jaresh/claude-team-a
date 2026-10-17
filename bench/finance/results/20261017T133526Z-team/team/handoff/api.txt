@@ -1,0 +1,17 @@
+Done
+- fin/api.py (new): `serve --port N` command (perm read; runs make_server(ctx.args.db, port).serve_forever(), 127.0.0.1); `make_server(db, port)` returns an unstarted ThreadingHTTPServer (port 0 = free port). Route table ROUTES maps each spec section 10 endpoint to a CLI command (account list, txn list/add, balance, report income/balance-sheet/aging, invoice list/show/create/issue/pay, audit list). Every endpoint calls cli.run(argv) in-process, so bodies equal the --json output. Query/body fields become --flag=value args.
+- Status mapping: UserError -> 400 {"error"}; POST without X-User or unknown user -> 401; viewer, or admin-only command by non-admin -> 403 (checked in _authorize before run, reads core.get_user and cli.COMMANDS perm); unknown path or method -> 404; invalid JSON body or non-object body -> 400; missing required field -> 400; any other exception -> 500 {"error": "internal error"} (traceback to stderr). Successful POST /transactions and POST /invoices -> 201, others 200. GET needs no user.
+- tests/test_api.py (new): 28 tests, all pass: `python3 -m unittest tests.test_api` -> OK (about 17 s, mostly shutdown poll). `python3 -m unittest tests.test_core` -> OK (3 tests).
+- Smoke test: `python3 -m fin --db X serve --port 8765` serves; GET /accounts 200; POST with unknown X-User 401.
+- No shared files edited (changes.md not touched). No commit.
+
+In progress
+- Nothing.
+
+Next step
+- None needed for this task. Optional: the lead may run `python3 -m unittest discover -s tests` for the full suite.
+
+Do not redo
+- Checked that the CLI rejects postings to accounts that don't exist (unknown account), so the test fixture creates Expenses:Rent and Expenses:Fees. That is correct behaviour, not an API bug.
+- Checked that tests/helpers BookTest error messages are as expected. Option values are passed as --flag=value, so descriptions starting with '-' are safe.
+- Invoice line fields containing ';' are rejected with 400 in the API (the CLI line format cannot carry them).

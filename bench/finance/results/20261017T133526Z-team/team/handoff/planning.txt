@@ -1,0 +1,33 @@
+**Done**
+- Created /home/jaca/claude-team-a/bench/work/finance-team/fin/planning.py
+  - `recurring add NAME --every monthly|weekly|yearly --start DATE --posting ACCT=AMT ...` (perm write, audit recurring.add NAME). Returns {"id","name","every","start","postings":[{"account","amount"}]} (amount null when omitted).
+  - `recurring run --until DATE` (perm write, audit recurring.run with the until date string, also when 0 created). Returns {"created": N}.
+  - `loan schedule PRINCIPAL RATE MONTHS --start DATE` (perm read). Pure function `loan_doc(principal, rate, months, start)` is importable.
+  - Helper `occurrence(start_date, every, k)` (module level, reusable).
+- Created /home/jaca/claude-team-a/bench/work/finance-team/tests/test_planning.py (8 test methods covering add, add errors, monthly/weekly/yearly runs, idempotency, closed period, permissions, audit, loan zero-rate, loan with interest, loan errors).
+- Check: `python3 -m unittest tests.test_planning tests.test_core` -> Ran 14 tests, OK. No ResourceWarnings.
+- Loan expected values (1000 at 12% for 3 months: payment 340.02, interest 20.07) were computed independently with Decimal before writing the test.
+- No shared files edited; changes.md untouched; nothing committed.
+
+Assumptions (for README):
+- Recurring names are not required to be unique; each recurring is tracked by its id in recurring_done.
+- Posting rules for recurring add: at least two postings, every account must exist, at most one omitted amount, and the amounts must balance per currency (a currency with the omitted amount is exempt). Implemented in `_check_postings` in fin/planning.py rather than calling post_transaction, because post_transaction inserts rows and also rejects closed periods (recurring add is allowed for a start in a closed month; the closed check happens at run).
+- recurring run: an occurrence in a closed period (or any failing occurrence) raises UserError; the framework rolls back so nothing from that run is created.
+- Loan: principal must be > 0 (rounded to cents), months an integer >= 1, rate >= 0 (annual percent). Start date must be a valid YYYY-MM-DD. Principal is rounded with core.q before scheduling.
+- Loan rows: payment is the regular payment for rows 1..N-1; the last row's payment is its remaining balance plus its interest (may differ by a cent or so from the regular payment). total_interest is the sum of the per-row rounded interests.
+- The "payment" top-level field is the regular payment, not the last row's.
+
+Lead notes:
+- I edited the shared checkout (not a worktree) as my task said. The new files are untracked in the checkout; the lead decides how to commit.
+- `load_modules()` in fin/cli.py already imports "fin.planning" (no change needed).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for planning. Lead: run `python3 -m unittest discover -s tests` once all modules are in place (the full check), then commit fin/planning.py and tests/test_planning.py.
+
+**Do not redo**
+- Ran `python3 -m unittest tests.test_planning tests.test_core`: 14 tests OK.
+- Verified the loan figures against a standalone Decimal calculation (payment 340.02, interest 10.00/6.70/3.37, total 20.07, last payment 340.03). Matched.
+- Closed-period test: `period close 2026-03` closes everything through March (cutoff semantics), so the test checks a run through 2026-04-30 and a run through 2026-03-31 both fail with nothing created.

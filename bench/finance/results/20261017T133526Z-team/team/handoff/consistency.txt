@@ -1,0 +1,29 @@
+**Done**
+- fin/reports.py: `convert` is now called as `core.convert` (contract style, matches ledger.py); removed `convert` from the `from .core import` line.
+- fin/reports.py: `_check_range(frm, to, check=core.check_date)` takes the validator; networth_doc now calls `_check_range(frm, to, core.check_month)` instead of its own inline month check (same checks, same error message, same order).
+- fin/reports.py: balance_sheet_doc local `re` renamed `retained` (it shadowed the usual `re` module name).
+- fin/invoices.py: setup helpers renamed to the `_<command>_setup` pattern used elsewhere: `_create_setup` -> `_invoice_create_setup`, `_pay_setup` -> `_invoice_pay_setup`.
+- fin/bankimport.py: added `from decimal import Decimal` (stdlib imports grouped); budget_doc `.get(cur, 0)` -> `.get(cur, Decimal(0))`.
+- No behaviour change. `python3 -m py_compile fin/*.py` passes. `python3 -m unittest discover -s tests`: Ran 91 tests, OK (run after all edits above).
+- Not touched: core.py, cli.py, ledger.py, admin.py, tests/, api.py (reviewed, no duplicate helpers or pattern deviations worth changing).
+- Concurrent edits: reports, invoices and bankimport teammates were still editing their files when I edited. I messaged each one about my change. My edits were applied to the current file content (asserted single matches), and the files were re-read afterward.
+
+**In progress**
+- Nothing. Pass is complete unless the owners of reports/invoices/bankimport change their files again.
+
+**Next step**
+- Lead: after the owners finish, rerun `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests` to confirm the combined state. Then decide on the items below, which need core.py changes (not mine to edit).
+
+**Assumptions / notes for lead (items deliberately left alone)**
+1. Payment sum duplicated: invoices._paid (sum of kind='invoice' payments) vs inline loop in bills.bill_doc (kind='bill'). A shared `paid_amount(conn, kind, doc_id)` in core would remove it; left because core.py is out of my scope.
+2. Tax lookup duplicated: invoices._line (inline SELECT rate from taxes, "unknown tax code") vs bills._tax_rate. Only a core helper (`tax_rate(conn, code)`) would unify them.
+3. Totals duplicated: invoices._totals (formatted strings) vs inline sums in bills.bill_create. Small; could move to core if wanted.
+4. planning._check_postings re-implements the post_transaction rules (two-posting minimum, one blank posting, per-currency balance) without posting. Only a core `validate_postings` split out of post_transaction would remove it.
+5. Behaviour difference, not changed: invoices.invoice_pay also requires the payment account's currency to equal the book currency (user error); bills.bill_pay checks only type == "asset". A bill paid from a foreign-currency asset account fails later in post_transaction with a balance error rather than the clearer message. Worth deciding which message is intended.
+6. Setup helper naming is still mixed (lambdas for single-argument commands, named `_x_setup` for others, e.g. ledger's `_fx_setup`, `_conv_setup`). Left as is; it is consistent within each module.
+
+**Do not redo**
+- Checked that no module uses float, its own rounding, or its own strptime. Money goes through core.D/q/fmt, dates through core.parse_date/check_date/check_month/add_months/month_end, and postings through core.post_transaction/ensure_account (grep over fin/*.py, excluding core.py).
+- Checked that no test references the renamed names: grep of tests/ for `_create_setup`, `_pay_setup`, `_check_range`, `reports.convert` found no hits.
+- Baseline before my edits was also 91 tests OK, so the edits did not change any test outcome.
+- The worktree: cwd /home/jaca/claude-team-a/bench/work/finance-team is already a git worktree (per the environment note), so I did not call EnterWorktree. Nothing committed (lead's rule: teammates don't commit).

@@ -1,0 +1,27 @@
+**Done**
+- Files created: fin/bankimport.py (commands: rule add, rule list, import, budget set, report budget; helper budget_doc(conn, month) at module level), tests/test_bankimport.py (10 test methods, 15 tests with test_core).
+- Shared files: none edited. changes.md not touched. Nothing committed.
+- Check: `python3 -m unittest tests.test_bankimport tests.test_core` -> Ran 15 tests, OK.
+- Only warnings: ResourceWarning "unclosed database" printed during the run (see In progress, item 3).
+
+**Assumptions** (for README)
+1. rule add: pattern must compile as a case-insensitive regex (else user error); account must be a valid account name (account_type_of). The rule account does not have to exist; import creates it via ensure_account (book currency) when a row uses it.
+2. import: the --account must exist (core.get_account, unknown = user error). Blank CSV lines (no non-blank field) are ignored. Fields are stripped; the description is the stripped text.
+3. import: a row with too few columns, a bad date, a bad amount, or a bad column index (negative) is a user error naming the row number; the whole import fails and nothing is imported.
+4. import category: first matching rule (search, case-insensitive, in rule order), else Expenses:Uncategorized for amount < 0, else Income:Uncategorized (so zero amounts go there too). Category accounts are created in the book currency. A bank account in a non-book currency will therefore fail with "transaction does not balance" (user error) unless its categories already exist in its currency.
+5. import dedup: key = (account, date, description, amount as fmt string), tracked in the `imported` table, which is updated as rows are imported, so repeats inside one file are skipped.
+6. import audits (action "import", target account) on every successful run, including when imported = 0 (same as recurring run in the plan).
+7. budget set: ACCOUNT must already exist and be of type expense; MONTH must be YYYY-MM; amount must be >= 0 (negative = user error); INSERT OR REPLACE. Returns {"account","month","budget"}. Audit "budget.set" with target "ACCOUNT MONTH".
+8. report budget: actual = postings in the month (start of month to month end) to the account and its descendants, counted only in the account's own currency (postings in other currencies are not summed). Rows only for accounts with a budget that month, ordered by account. Strings via fmt.
+
+**In progress**
+- Nothing unfinished in my files.
+- Not my files, observed: fin/cli.py run() opens the sqlite connection and then runs the role checks (which can raise UserError) outside the try/finally, so the connection is leaked on a permission error. This produces the ResourceWarning lines in the test output. Fix belongs to the lead in fin/cli.py (move the role check inside the try, or close conn before raising). I did not edit it.
+
+**Next step**
+- Lead: once the other modules are merged, run `python3 -m unittest discover -s tests` from the repo root. Optionally fix the cli.py connection leak noted above.
+
+**Do not redo**
+- Ran the full bankimport + core test set: all 15 pass. No failures to investigate.
+- Checked fin/core.py: post_transaction already does check_open and the balance check; get_account raises for unknown accounts; balances() takes start/at as in budget_doc. I did not reimplement any helper.
+- Checked the rollback path in cli.run: any UserError from a handler rolls back the connection, so the "whole import fails" rule needs no extra code (verified by test_bad_input_imports_nothing and test_closed_period_fails_whole_import).

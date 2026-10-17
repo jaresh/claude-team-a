@@ -1,0 +1,37 @@
+# Plan
+**Goal**: small-business finance system per .claude/team/spec.md (read your sections there). Python stdlib only.
+**Check**: `python3 -m unittest discover -s tests` (full). Each task's done check: `python3 -m unittest tests.test_<task>` plus `python3 -m unittest tests.test_core`.
+
+## Contract (already built by the lead — READ fin/core.py, fin/cli.py, fin/ledger.py, fin/admin.py, tests/helpers.py first)
+- A command is a function in your module `fin/<task>.py`, registered with `@command("report income", perm="read"|"write"|"admin", setup=fn(parser))` from fin.cli. Handler `(ctx, a)` returns a JSON-able dict/list (printed by the framework). `ctx.conn` is the sqlite connection (framework commits / rolls back; never commit yourself), `ctx.currency` the book currency, `ctx.audit(action, target)` must be called by every data-changing command on success. Raise `core.UserError` for user errors. Read-only commands use perm="read"; all others "write".
+- perm="read" commands must return same data to API; put reusable logic in plain functions in your module (e.g. `invoice_doc(conn, id)`) so other code can import it.
+- Money: ONLY `core.D` (parse), `core.q` (round), `core.fmt` (to string), `core.convert`/`get_rate` (fx), `core.check_date/check_month/check_currency`, `core.add_months`, `core.month_end`. Post transactions ONLY through `core.post_transaction(conn, date, desc, [(account, Decimal|None)])` (it checks closed periods and balance) and create accounts with `core.ensure_account`. Never use float. Use `core.balances` / `core.direct_balances` for sums.
+- Shared tables are all in core.SCHEMA (don't alter it; if you need a change, log in changes.md and tell the lead in your handoff). Invoice/bill `lines` columns hold a JSON list of lines exactly as in output; `doc_payments(kind 'invoice'|'bill', doc_id, date, amount, txn_id)` holds payments; paid = sum of payments; invoice/bill `net,tax,total` stored as fmt strings.
+- Tests: subclass `tests.helpers.BookTest` (see tests/test_core.py); put yours in tests/test_<task>.py; cover every behaviour in your spec sections, including user errors (exit 2) and audit entries and closed periods where relevant.
+- Output for a non-`--json` run is indented JSON; nothing to do.
+## Conventions
+No float, no own rounding/parse helpers, no new global state. Don't edit files you don't own; don't edit fin/cli.py, fin/core.py, tests/helpers.py. Log each edit to a shared file in .claude/team/changes.md (you should not need any). Keep code compact, match style of fin/ledger.py. Assumptions you make: put them in your handoff (Done / Assumptions / Next step) — lead puts them in README.
+
+## bankimport
+Files: fin/bankimport.py, tests/test_bankimport.py. Spec sections 5, 6: `rule add`, `rule list`, `import`, `budget set`, `report budget` (register as "report budget"). Rule patterns validated as regex when added (user error if invalid). Rule account must exist or be creatable? Assumption: rule account must be a valid account name; created via ensure_account when used by import. CSV via `csv` module; bad rows/dates/amounts = user error for whole import (nothing imported). Amount zero row: use Income:Uncategorized. May change: nothing outside your files. Done: `python3 -m unittest tests.test_bankimport tests.test_core`.
+
+## planning
+Files: fin/planning.py, tests/test_planning.py. Spec sections 7, 9: `recurring add`, `recurring run`, `loan schedule` (perm read). Use `core.add_months` for monthly (anchor on start, n months from start — NOT iterated from previous date, so Jan 31 -> Feb 28 -> Mar 31). Track created occurrences in recurring_done. Store postings JSON in recurring.postings. Closed period in any occurrence => whole run fails. `recurring run` audits even when 0 created. Done: `python3 -m unittest tests.test_planning tests.test_core`.
+
+## invoices
+Files: fin/invoices.py, tests/test_invoices.py. Spec section 13 except aging: `tax add/list`, `customer add/list`, `invoice create/issue/pay/show/list`. Export `invoice_doc(conn, id)`. Tax rate stored/shown as given (string). Quantity/price decimals via core.D; price shown with fmt, quantity as given. Payment accounts must be asset accounts (user error otherwise; must exist). Done: `python3 -m unittest tests.test_invoices tests.test_core`.
+
+## bills
+Files: fin/bills.py, tests/test_bills.py. Spec section 14 except aging: `vendor add/list`, `bill create/pay/show/list`. Tax rates are read from the `taxes` table (tax add is built by teammate `invoices`; in your tests insert via `tax add` CLI command — it exists once merged; until then insert directly into the taxes table with sqlite3 in your test setUp helper). Export `bill_doc(conn, id)`. Bill status open/partial/paid. Done: `python3 -m unittest tests.test_bills tests.test_core`.
+
+## reports
+Files: fin/reports.py, tests/test_reports.py. Spec sections 8, 13 (aging only), 14 (`--payables` aging), 15, 17: `report income`, `report balance-sheet`, `report networth`, `report aging`, `report tax`, `report trial-balance`, `report ledger` (all perm read). Write document builder functions at module level taking (conn, ...) so the API can reuse them. Conversion: convert each account's per-currency balance with core.convert at the report date then sum, then fmt; totals are sums of the rounded? — decide: sum unrounded converted values per account, round each account to cents with core.q, totals = sum of the rounded account values. Invoice/bill data is read from tables invoices/bills/doc_payments per core.SCHEMA (tests may insert rows via the CLI once the invoices/bills modules exist; the modules are being built in parallel, so in your tests for aging/tax insert rows directly into the tables with sqlite3 and also add a test using the CLI guarded with `@unittest.skipUnless(...)` on module availability). Done: `python3 -m unittest tests.test_reports tests.test_core`.
+
+## reconcile
+Files: fin/reconcile.py, tests/test_reconcile.py. Spec section 16: `reconcile` command (perm write, audit `reconcile` target account). Uses `cleared` table. Account must exist. Done: `python3 -m unittest tests.test_reconcile tests.test_core`.
+
+## api   (wave 2)
+Files: fin/api.py, tests/test_api.py. Spec section 10: register command `serve --port N` (perm read) running http.server ThreadingHTTPServer until stopped (host 127.0.0.1). Implement each endpoint by calling `fin.cli.run(argv)` in-process (build argv: `--db`, `--user X-User`, command words...) and returning its data as JSON — so output is identical to the CLI `--json`. Map: UserError -> 400 {"error"}; POST without/unknown X-User -> 401; role may not do it (viewer, or per cli perms) -> 403: decide this before calling run by checking `core.get_user` and the command's perm in `cli.COMMANDS`. Unknown paths 404. POST /transactions: postings list -> `--posting acct=amt` or `acct`. Invoice endpoints per spec (invoice create body -> `--line "desc;qty;price;tax"`; payments -> `invoice pay`). GET /invoices/ID -> `invoice show`. Never let the handler thread die: unexpected exception -> 500 {"error"}. Tests start the server on port from socket bind(0) in a thread (ThreadingHTTPServer on port 0; expose a function `make_server(db, port)` returning the server) and use urllib. The CLI `--db` path and global `args.db` are passed via ctx.args.db. Done: `python3 -m unittest tests.test_api`.
+
+## consistency
+(see step 4 of the team skill) Done: `python3 -m unittest discover -s tests`.

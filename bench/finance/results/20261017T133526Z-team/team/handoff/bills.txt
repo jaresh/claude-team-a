@@ -1,0 +1,30 @@
+**Done**
+- Files changed: fin/bills.py (new), tests/test_bills.py (new). No shared files touched; changes.md not edited.
+- Commands: `vendor add NAME [--terms DAYS]`, `vendor list`, `bill create`, `bill pay ID AMOUNT --date --account`, `bill show ID`, `bill list [--status]`.
+- Exported: `bill_doc(conn, bid)` (plain function, read-only, raises UserError on unknown id).
+- Check: `python3 -m unittest tests.test_bills tests.test_core` -> 12 tests, OK.
+
+**Assumptions**
+- Bill line ACCOUNT must already exist and be an expense or asset account (not auto-created). Lines should be in the book currency; a line in another currency fails as an unbalanced transaction (user error).
+- Line format is exactly 4 fields `DESCRIPTION;AMOUNT;ACCOUNT;TAXCODE`; description must be non-empty; empty tax code = no tax.
+- Line net is rounded half up to cents; line tax = round(net*rate/100); bill tax = sum of line taxes; total = net + tax.
+- Tax receivable (Assets:TaxReceivable) and Liabilities:Payable are created with ensure_account if missing; TaxReceivable is only created/posted when bill tax is non-zero.
+- Negative or zero bill line amounts are not rejected (spec is silent).
+- Vendor terms: argparse int, must be >= 0. Vendor name is stripped and must be non-empty.
+- Bill due = bill date + vendor terms days.
+- `bill pay` rejects: non-positive amount, amount above balance, already-paid bill, non-asset or unknown payment account, bad date, closed period. Payment date is not checked against the bill date.
+- `bill pay` prints the updated bill (same as invoices print the invoice).
+- `bill list --status` is validated against open/partial/paid; an invalid status is a user error.
+- Audit: `vendor.add` target = vendor name; `bill.create` and `bill.pay` target = bill id.
+- Tests insert the VAT20 tax code directly into `taxes` via sqlite3 in setUp (no dependency on `tax add`).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for bills. Lead can run `python3 -m unittest tests.test_bills tests.test_core` to confirm after merge. Once `tax add` is merged, the setUp could switch to the CLI (optional).
+
+**Do not redo**
+- Ran both suites after the test fix: 12 tests OK. The one earlier failure was in my own test setup (Equity:Capital was not created), now fixed by adding it to setUp; no module change needed.
+- Checked cli.run(): viewer/unknown-user checks happen before the handler, so the viewer permission test exercises the framework path (user "vera" with role viewer).
+- Did not reimplement rounding or parsing; uses core.D, core.q, core.fmt, core.parse_date, core.check_date, core.get_account, core.ensure_account, core.post_transaction.

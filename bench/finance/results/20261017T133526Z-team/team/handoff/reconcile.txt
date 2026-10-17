@@ -1,0 +1,22 @@
+Done
+- Created fin/reconcile.py: `reconcile ACCOUNT --date DATE --balance AMOUNT [--clear ID ...]` (perm write, default), registered via @command("reconcile"). Output {"account","date","statement_balance","cleared_balance","difference","uncleared"} per spec section 16. Audits "reconcile" with target the account name on every successful run.
+- Created tests/test_reconcile.py: 7 test methods covering no-clears, clear + persistence across runs, rounding of the statement balance, later-dated txns rejected, exact-account matching, user errors changing nothing (unknown account, bad date, bad balance, unknown/later txn id, non-integer id, missing --date), viewer denied, and the audit entry.
+- Check: `python3 -m unittest tests.test_reconcile tests.test_core` -> Ran 10 tests, OK.
+- No shared files edited; changes.md untouched. Nothing committed.
+
+Assumptions (for README)
+- "Posting to ACCOUNT" means postings on exactly that account name, not descendants. Cleared balance and uncleared list use the same exact-name rule.
+- --clear ids are validated all before any mark is written, so a bad id leaves nothing marked.
+- Re-clearing an already cleared txn is a no-op (INSERT OR IGNORE).
+- Audit is written on every successful reconcile, including runs with no --clear.
+- Reconcile does not post, so closed periods do not block it.
+
+In progress
+- Nothing.
+
+Next step
+- Nothing required from this task. The lead can run `python3 -m unittest tests.test_reconcile tests.test_core`.
+
+Do not redo
+- Shared-framework ResourceWarnings ("unclosed database") appear when running tests.test_core alone too (6 warnings), so they are not caused by fin/reconcile.py. Not fixed here; core/cli.py is not mine to edit.
+- Worktree: the environment already reports this checkout as a git worktree on branch bench/finance-team, and the lead assigned files in this repo, so I edited in place rather than calling EnterWorktree.

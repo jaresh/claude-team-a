@@ -1,0 +1,133 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.9",
+  "started": "2026-10-17T13:35:26Z",
+  "ended": "2026-10-17T13:49:48Z",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 91,
+  "own_total": 91,
+  "python_lines": 2894,
+  "cost": 1.0771,
+  "cost_cold": 1.0771,
+  "lead_cost": 0.881,
+  "team_cost": 0.1961,
+  "teammates": [
+    "reports",
+    "invoices",
+    "planning",
+    "reconcile",
+    "bankimport",
+    "bills",
+    "api",
+    "consistency"
+  ],
+  "lead_messages": 24,
+  "lead_peak_ctx": 74005,
+  "lead_compactions": 0,
+  "team_peak_ctx": 66850,
+  "coverage": 0.955,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (0%)",
+    "fin/cli.py (87%)"
+  ],
+  "quality": {
+    "app_files": 13,
+    "app_lines": 1364,
+    "test_files": 10,
+    "test_lines": 1009,
+    "test_functions": 91,
+    "test_to_app_ratio": 0.74,
+    "functions": 170,
+    "mean_function_lines": 7.0,
+    "max_function_lines": 37,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.7,
+    "max_complexity": 13,
+    "functions_complexity_over_10": 2,
+    "most_complex": [
+      "fin/cli.py:_check_perm (13)",
+      "fin/bankimport.py:import_statement (11)",
+      "fin/core.py:post_transaction (10)"
+    ],
+    "docstring_coverage": 0.23,
+    "duplicate_share": 0.005,
+    "float_calls": 0,
+    "sql_built_from_strings": 5,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/cli.py execute() catches only UserError and SystemExit, so sqlite3 errors print a traceback instead of exiting 2 with a message: a --db path that is not a SQLite file, an unwritable path, or an IntegrityError; the same goes for core.currency() calling fetchone()[0] on a database without meta.",
+      "fin/core.py get_rate() runs four queries, two of which repeat the first two just to read the date, balances() and direct_balances() repeat the same SQL-building code, and planning._check_postings() reimplements the balancing rules of post_transaction() and can drift from them.",
+      "fin/invoices.py and fin/bills.py duplicate party add/list, totals, paid-sum and pay logic, and the copies have already drifted: invoice_pay rejects a payment account in another currency but bill_pay does not, they validate in a different order, and one uses D(\"0\") where the other uses Decimal(0).",
+      "fin/api.py serves through ThreadingHTTPServer, but core sets getcontext().prec = 50 only in the importing thread (decimal contexts are per thread), so handler threads use precision 28; concurrent writes also have no busy timeout, and invoice_issue's COUNT(*)-based numbering can race.",
+      "fin/api.py _txn_body and _payment_body str() any JSON value, so float amounts such as 12.5 or 1e-7 are accepted silently instead of being rejected as non-string money.",
+      "fin/cli.py has leftover integration scaffolding: _check_perm wraps its logic in `if True:` with tangled nesting, and load_modules() lists a non-existent 'fxrules' module and silently skips missing modules, which could hide a dropped command group; in tests, test_reports.py inserts rows straight into internal tables and uses skipUnless(module exists) guards, which ties the tests to the schema."
+    ],
+    "strengths": [
+      "One command registry (cli.command with a perm level) drives the CLI, permissions and the HTTP API; the API reuses cli.run in-process, so JSON documents and validation are the same on both paths.",
+      "Money handling is careful: amounts are Decimal and stored as TEXT throughout, one q()/fmt() pair does half-up rounding and avoids -0.00, and SQL is parameterized (only fixed table names are interpolated).",
+      "Atomicity is structural: every command runs in one transaction that is committed only on success and rolled back otherwise (a failed init deletes the new file), so whole-import and whole-recurring-run failures in closed periods come for free; the tests drive the real CLI through helpers that check exit code 2, empty stdout and stderr, and cover month-end, leap-year, closed-period and multi-currency cases."
+    ],
+    "review_cost": 0.8517
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 6,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 7
+      },
+      "review_cost": 0.8517
+    },
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 6,
+        "data_safety": 8,
+        "tests": 6,
+        "consistency": 6
+      },
+      "review_cost": 0.8182
+    },
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 7
+      },
+      "review_cost": 0.5875
+    }
+  ]
+}

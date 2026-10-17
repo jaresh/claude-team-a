@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 6,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/cli.py execute() catches only UserError and SystemExit, so sqlite3 errors print a traceback instead of exiting 2 with a message: a --db path that is not a SQLite file, an unwritable path, or an IntegrityError; the same goes for core.currency() calling fetchone()[0] on a database without meta.",
+    "fin/core.py get_rate() runs four queries, two of which repeat the first two just to read the date, balances() and direct_balances() repeat the same SQL-building code, and planning._check_postings() reimplements the balancing rules of post_transaction() and can drift from them.",
+    "fin/invoices.py and fin/bills.py duplicate party add/list, totals, paid-sum and pay logic, and the copies have already drifted: invoice_pay rejects a payment account in another currency but bill_pay does not, they validate in a different order, and one uses D(\"0\") where the other uses Decimal(0).",
+    "fin/api.py serves through ThreadingHTTPServer, but core sets getcontext().prec = 50 only in the importing thread (decimal contexts are per thread), so handler threads use precision 28; concurrent writes also have no busy timeout, and invoice_issue's COUNT(*)-based numbering can race.",
+    "fin/api.py _txn_body and _payment_body str() any JSON value, so float amounts such as 12.5 or 1e-7 are accepted silently instead of being rejected as non-string money.",
+    "fin/cli.py has leftover integration scaffolding: _check_perm wraps its logic in `if True:` with tangled nesting, and load_modules() lists a non-existent 'fxrules' module and silently skips missing modules, which could hide a dropped command group; in tests, test_reports.py inserts rows straight into internal tables and uses skipUnless(module exists) guards, which ties the tests to the schema."
+  ],
+  "strengths": [
+    "One command registry (cli.command with a perm level) drives the CLI, permissions and the HTTP API; the API reuses cli.run in-process, so JSON documents and validation are the same on both paths.",
+    "Money handling is careful: amounts are Decimal and stored as TEXT throughout, one q()/fmt() pair does half-up rounding and avoids -0.00, and SQL is parameterized (only fixed table names are interpolated).",
+    "Atomicity is structural: every command runs in one transaction that is committed only on success and rolled back otherwise (a failed init deletes the new file), so whole-import and whole-recurring-run failures in closed periods come for free; the tests drive the real CLI through helpers that check exit code 2, empty stdout and stderr, and cover month-end, leap-year, closed-period and multi-currency cases."
+  ],
+  "review_cost": 0.8517
+}

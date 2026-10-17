@@ -1,0 +1,29 @@
+**Done**
+- Files changed: fin/invoices.py (new), tests/test_invoices.py (new). No shared files edited, so no changes.md rows.
+- Commands: tax add, tax list, customer add, customer list, invoice create, invoice issue, invoice pay, invoice show, invoice list.
+- Exported: invoice_doc(conn, id) -> invoice dict as in spec section 13; raises UserError for an unknown id.
+- Check: `python3 -m unittest tests.test_invoices tests.test_core` -> Ran 12 tests, OK.
+- Full suite (`discover`) not run; other modules are not mine.
+
+**Assumptions** (for the README)
+- invoice create requires at least one --line (argparse required=True), so no lines = exit 2.
+- Quantity is stored and shown as the given string (stripped). Price is shown with fmt, but net uses the unrounded price (e.g. price 0.333 shows "0.33" and net = round(qty*0.333)). This follows the spec literally; flag it if you want the stored price rounded instead.
+- Negative quantity or price is not rejected (only unparseable input is). Tax rate and customer terms must be >= 0.
+- Tax codes are matched as given (case-sensitive); the empty TAXCODE field means no tax (tax_code null).
+- Duplicate tax code or customer name = user error.
+- invoice issue creates Assets:Receivable and Income:Sales if missing, and Liabilities:SalesTax only when tax != 0. Number = INV-YYYY-NNNN with NNNN = count of existing numbers with that year prefix + 1.
+- invoice pay: the payment account must exist, be type asset, and be in the book currency (otherwise user error). Status becomes paid when the balance reaches zero, else partial. Payment txn id is stored in doc_payments.txn_id.
+- invoice list --status validates against draft/issued/partial/paid (typo = user error).
+- Audit targets for invoice.create/issue/pay are the invoice id as a string; tax.add is the code; customer.add is the name.
+- invoice_doc computes paid and balance from doc_payments on every call; the invoices table stores net/tax/total only.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- The lead runs: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_invoices tests.test_core`
+- For the bills teammate: tax rates come from the taxes table (code TEXT PK, rate string); invoice_doc is in fin/invoices.py if the reports or API need it.
+
+**Do not redo**
+- The first test run failed only because my test helper passed several values after one --line flag. Fixed in tests/test_invoices.py (create() now repeats --line per line). Not a module bug.
+- Checked against the contract: all money goes through core.D/q/fmt, all postings through core.post_transaction, all accounts through core.ensure_account / core.get_account, all audit calls through ctx.audit; no float, no own rounding helpers, no changes to core.SCHEMA.
