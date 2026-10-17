@@ -4,6 +4,7 @@ import { generateMap, isWalkable, WALL, FLOOR, STAIRS } from './map.js';
 import { computeFov } from './fov.js';
 import { spawnMonsters, spawnItems, spawnTraps, attack, applyItem, monsterStep } from './rules.js';
 import { score } from './score.js';
+import { SHOP_STOCK, goldFor } from '../data/shop.js';
 
 export const MAX_DEPTH = 5, FOV_RADIUS = 8;
 
@@ -14,6 +15,7 @@ const PLAYER_START = { hp: 32, atk: 2, def: 0 };
 const POISON_TURNS = 3; // turns of poison a poison monster's melee hit gives the player
 const TILE_FG = { [WALL]: '#94a3b8', [FLOOR]: '#475569', [STAIRS]: '#fde047' };
 const DIM = '#2a303b';
+const SHOP_FG = '#fbbf24';
 
 // Seeds may be numbers or strings (from ?seed=). A string is hashed (FNV-1a) to a 32-bit number.
 function seedToNumber(seed) {
@@ -42,6 +44,16 @@ function monsterAt(state, x, y) {
 
 function itemAt(state, x, y) {
   return state.items.find((it) => it.x === x && it.y === y) || null;
+}
+
+// The rows the shop on the current level sells. A buy index is an index into this list.
+function currentStock(state) {
+  return SHOP_STOCK.filter((row) => row.minDepth <= state.depth);
+}
+
+function onShop(state) {
+  const { map, player: p } = state;
+  return p.x === map.start.x && p.y === map.start.y;
 }
 
 // A random FLOOR tile with no monster and no trap, from the game rng. Null if there is none.
@@ -98,6 +110,9 @@ function playerAttacks(state, target, rng) {
     state.monsters = state.monsters.filter((m) => m !== target);
     state.stats.kills[target.kind] = (state.stats.kills[target.kind] || 0) + 1;
     say(state, `You kill the ${target.kind}.`);
+    const gold = goldFor(target, state.depth);
+    state.player.gold += gold;
+    say(state, `You find ${gold} gold.`);
     gainXp(state, target.xp);
   } else {
     say(state, `You hit the ${target.kind} for ${r.damage}.`);
@@ -201,7 +216,7 @@ export function newGame(seed) {
     player: {
       id: 0, kind: 'player', glyph: '@', color: '#f8fafc', x: 0, y: 0,
       hp: PLAYER_START.hp, maxHp: PLAYER_START.hp, atk: PLAYER_START.atk, def: PLAYER_START.def,
-      xp: 0, level: 1, inventory: [], poison: 0,
+      xp: 0, level: 1, inventory: [], poison: 0, gold: 0,
     },
     monsters: [],
     items: [],
@@ -274,6 +289,25 @@ export function act(state, action) {
       takesTurn = true;
       break;
     }
+    case 'buy': {
+      // Buying takes no turn. Bought items are negative ids, so they never collide with tile-based ids.
+      const row = currentStock(state)[action.index];
+      if (!onShop(state)) {
+        say(state, 'There is no shop here.');
+      } else if (!Number.isInteger(action.index) || !row) {
+        say(state, 'Nothing like that is for sale.');
+      } else if (p.gold < row.price) {
+        say(state, `You need ${row.price} gold.`);
+      } else {
+        p.gold -= row.price;
+        p.inventory.push({
+          id: -(p.inventory.length + 1), kind: row.kind, glyph: row.glyph, color: row.color,
+          effect: row.effect, amount: row.amount, x: 0, y: 0,
+        });
+        say(state, `You buy a ${row.kind}.`);
+      }
+      break;
+    }
     case 'descend': {
       if (map.tiles[tileIndex(map, p.x, p.y)] !== STAIRS) {
         say(state, 'There are no stairs here.');
@@ -306,6 +340,7 @@ export function getView(state) {
   const monsterBy = new Map(monsters.map((m) => [tileIndex(map, m.x, m.y), m]));
   const itemBy = new Map(items.map((it) => [tileIndex(map, it.x, it.y), it]));
   const trapBy = new Map(traps.map((t) => [tileIndex(map, t.x, t.y), t]));
+  const shopIndex = tileIndex(map, map.start.x, map.start.y);
   const cells = [];
   for (let i = 0; i < map.w * map.h; i++) {
     const x = i % map.w, y = Math.floor(i / map.w);
@@ -320,6 +355,8 @@ export function getView(state) {
     } else if (visible.has(i) && trapBy.has(i) && !trapBy.get(i).hidden) {
       const t = trapBy.get(i);
       cells.push({ ch: t.glyph, fg: t.color, bg: null });
+    } else if (i === shopIndex && (visible.has(i) || explored[i])) {
+      cells.push({ ch: '$', fg: visible.has(i) ? SHOP_FG : DIM, bg: null });
     } else if (visible.has(i)) {
       const t = map.tiles[i];
       cells.push({ ch: t, fg: TILE_FG[t] || DIM, bg: null });
@@ -335,7 +372,18 @@ export function getView(state) {
     cells,
     hud: {
       hp: p.hp, maxHp: p.maxHp, atk: p.atk, def: p.def, depth: state.depth,
-      level: p.level, xp: p.xp, turn: state.turn, poison: p.poison,
+      level: p.level, xp: p.xp, turn: state.turn, poison: p.poison, gold: p.gold,
+    },
+    shop: {
+      x: map.start.x,
+      y: map.start.y,
+      open: onShop(state),
+      stock: onShop(state)
+        ? currentStock(state).map((row, index) => ({
+          index, kind: row.kind, glyph: row.glyph, color: row.color, effect: row.effect,
+          amount: row.amount, price: row.price,
+        }))
+        : [],
     },
     log: state.log.slice(-VIEW_LOG),
     status: state.status,

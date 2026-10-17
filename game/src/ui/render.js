@@ -62,7 +62,7 @@ export function render(canvas, view, hudEl, logEl, scores = []) {
   const suffix = view.status === 'playing' ? '' : `  ${view.status.toUpperCase()}`;
   const poison = poisonLabel(view);
   hudEl.textContent =
-    `HP ${h.hp}/${h.maxHp}  ATK ${h.atk}  DEF ${h.def}  LV ${h.level}  XP ${h.xp}  ` +
+    `HP ${h.hp}/${h.maxHp}  ATK ${h.atk}  DEF ${h.def}  LV ${h.level}  XP ${h.xp}  GOLD ${h.gold}  ` +
     `DEPTH ${h.depth}  TURN ${h.turn}${suffix}${poison === null ? '' : `  ${poison}`}`;
 
   renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
@@ -78,6 +78,14 @@ export function render(canvas, view, hudEl, logEl, scores = []) {
   }
 
   renderInventory(document.getElementById('inventory'), view.inventory);
+  renderShop(document.getElementById('shop'), view.shop);
+}
+
+// Pure: the shop buttons for a view.shop. Empty unless the player stands on the shop tile.
+// Each row's index is the one a buy action takes (an index into the current stock).
+export function shopRows(shop) {
+  if (!shop || !shop.open) return [];
+  return shop.stock.map((s) => ({ index: s.index, text: `${s.glyph} ${s.kind} ${s.price}g` }));
 }
 
 // The bar's inner .fill is hp / maxHp wide, coloured by hpColor.
@@ -165,4 +173,33 @@ function renderInventory(invEl, inventory) {
     btn.textContent = `${i + 1} ${item.glyph} ${item.kind}`;
     invEl.appendChild(btn);
   });
+}
+
+// The shop panel is shown only while the player stands on the shop tile; a tap on a row sends
+// { type: 'buy', index } through input.js.
+function renderShop(shopEl, shop) {
+  if (!shopEl) return;
+  shopEl.hidden = !(shop && shop.open);
+  shopEl.textContent = '';
+  if (shopEl.hidden) return;
+  const title = document.createElement('span');
+  title.className = 'title';
+  title.textContent = 'Shop';
+  shopEl.appendChild(title);
+  const rows = shopRows(shop);
+  if (rows.length === 0) {
+    const empty = document.createElement('span');
+    empty.className = 'empty';
+    empty.textContent = 'Nothing for sale';
+    shopEl.appendChild(empty);
+    return;
+  }
+  for (const row of rows) {
+    const btn = document.createElement('button');
+    btn.className = 'small';
+    btn.dataset.action = 'buy';
+    btn.dataset.index = String(row.index);
+    btn.textContent = row.text;
+    shopEl.appendChild(btn);
+  }
 }

@@ -53,6 +53,10 @@
   button.wide { grid-column: span 2; }
   #inventory { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: min(100%, 240px); }
   #inventory .empty { grid-column: 1 / -1; text-align: center; color: #6b7280; }
+  #shop { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: min(100%, 240px); }
+  #shop[hidden] { display: none; }
+  #shop .title { grid-column: 1 / -1; text-align: center; color: #fbbf24; }
+  #shop .empty { grid-column: 1 / -1; text-align: center; color: #6b7280; }
   #hpbar {
     height: 10px; background: #1f2937; border-radius: 5px; overflow: hidden; margin: 8px 0 0;
   }
@@ -108,6 +112,7 @@
       <button class="small" data-action="new">New game</button>
     </div>
     <div id="inventory" role="group" aria-label="Inventory"></div>
+    <div id="shop" role="group" aria-label="Shop" hidden></div>
     <p class="hint">Arrows or WASD / hjkl / yubn move. . wait, g pick up, &gt; descend, 1-9 use. ? help, Esc close.</p>
   </div>
 </main>

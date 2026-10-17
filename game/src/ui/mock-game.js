@@ -12,6 +12,13 @@ const START = { x: 3, y: 3 };
 const STAIRS = { x: 21, y: 11 };
 const TILE_FG = { '#': '#94a3b8', '.': '#475569', '>': '#fde047' };
 const DIM = '#2a303b';
+const SHOP_FG = '#fbbf24';
+// Fixed stock for the mock; buying is not implemented here, so the rows only drive the panel.
+const MOCK_STOCK = [
+  { kind: 'potion', glyph: '!', color: '#ff5fa2', effect: 'heal', amount: 8, price: 5 },
+  { kind: 'sword', glyph: '/', color: '#c9d1d9', effect: 'atk', amount: 2, price: 12 },
+  { kind: 'shield', glyph: ']', color: '#c9d1d9', effect: 'def', amount: 1, price: 9 },
+];
 const LOG_KEEP = 50;
 
 const idx = (x, y) => y * W + x;
@@ -129,7 +136,7 @@ export function newGame(seed) {
     seed, rngState: 0, depth: 1, map: null,
     player: {
       id: 0, kind: 'player', glyph: '@', color: '#f8fafc', x: START.x, y: START.y,
-      hp: 12, maxHp: 12, atk: 3, def: 1, xp: 0, level: 1, inventory: [],
+      hp: 12, maxHp: 12, atk: 3, def: 1, xp: 0, level: 1, gold: 0, inventory: [],
     },
     monsters: [], items: [], traps: [], visible: new Set(), explored: [],
     log: ['Mock dungeon. Find the > stairs.'],
@@ -217,6 +224,14 @@ export function act(state, action) {
   return state;
 }
 
+// The shop is the start tile. Stock rows carry their index into the stock, as the contract says.
+function shopView(state) {
+  const { x, y } = state.map.start;
+  const open = state.player.x === x && state.player.y === y;
+  const stock = open ? MOCK_STOCK.map((s, index) => ({ index, ...s })) : [];
+  return { x, y, open, stock };
+}
+
 export function getView(state) {
   const { map, player: p, monsters, items, traps, visible, explored } = state;
   const cells = [];
@@ -232,6 +247,10 @@ export function getView(state) {
     if (m) { cells.push({ ch: m.glyph, fg: m.color, bg: null }); continue; }
     const it = seen ? itemAt(state, x, y) : undefined;
     if (it) { cells.push({ ch: it.glyph, fg: it.color, bg: null }); continue; }
+    if (map.start.x === x && map.start.y === y && (seen || explored[i])) {
+      cells.push({ ch: '$', fg: seen ? SHOP_FG : DIM, bg: null });
+      continue;
+    }
     const tile = map.tiles[i];
     if (seen) cells.push({ ch: tile, fg: TILE_FG[tile], bg: null });
     else if (explored[i]) cells.push({ ch: tile, fg: DIM, bg: null });
@@ -245,8 +264,9 @@ export function getView(state) {
     cells,
     hud: {
       hp: p.hp, maxHp: p.maxHp, atk: p.atk, def: p.def, depth: state.depth,
-      level: p.level, xp: p.xp, turn: state.turn, poison: 0,
+      level: p.level, xp: p.xp, gold: p.gold, turn: state.turn, poison: 0,
     },
+    shop: shopView(state),
     visibleMonsters: monsters
       .filter((m) => visible.has(idx(m.x, m.y)))
       .map(({ kind, glyph, color, hp, maxHp, ability }) => ({ kind, glyph, color, hp, maxHp, ability })),
