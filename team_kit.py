@@ -45,7 +45,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.7"
+KIT_VERSION = "3.8"
 
 SKILL = """\
 ---
@@ -137,22 +137,26 @@ say so in your report.
   then `-3`) whose prompt names the handoff and the failing output. A successor reads the
   handoff and the files it names, not the old transcript.
 - If a handoff is missing, write it from the teammate's report before starting a successor.
-- Then the next wave, or the consistency pass.
+- Then the next wave, or step 4.
 
-**Consistency pass.** After the last build wave passes the check, if more than one teammate
-wrote code, start one more teammate, `consistency`: it reads the Conventions and the code the
-team wrote, replaces duplicated helpers with the shared ones and fixes what breaks the
-conventions, changes no behaviour, and its done check is the full check. (Split it by module
-when that code is larger than about 60K tokens.) Run the check once more after it.
+## 4. Consistency pass
 
-## 4. Deploy (only when the user asked)
+Required whenever more than one teammate wrote code: teammates working in parallel each bring
+their own helpers and style, and only this step makes their modules one codebase. Don't fix it
+yourself. After the last build wave passes the check, start one more teammate, `consistency`,
+whose task is: read the Conventions and the code the team wrote; replace duplicated helpers and
+re-implemented rules (validation, parsing, rounding, errors) with the shared ones; fix names and
+patterns that break the conventions; change no behaviour; done check: the full check. Split it
+by module when that code is larger than about 60K tokens. Run the check once more after it.
+
+## 5. Deploy (only when the user asked)
 
 Use the repo's documented staging deploy (README, CLAUDE.md, docs, package scripts, Makefile),
 never production. It is a heavy job: you run it, after the check passes, then verify the
 deployed copy with its smoke or health check. If no staging deploy is documented, ask the user
 how; if no one can answer, skip it and say so.
 
-## 5. Finish
+## 6. Finish
 
 Update `status.md` and report to the user, in under 200 words, so they can assess the work:
 what changed (paths), how to try it (staging URL and steps), the tests added and the check
