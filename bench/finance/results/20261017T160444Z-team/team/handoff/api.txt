@@ -1,0 +1,40 @@
+Done
+----
+Files changed (new, no shared files touched, .claude/team/changes.md unchanged, no commit):
+- fin/api.py: HTTP JSON API (spec 10) and the `serve --port N` command (spec 11, HTTP side). register(reg) adds "serve" (--port required, write=False).
+- tests/test_api.py: 16 tests in ApiCase(CliCase). setUp creates users ed (editor) and vi (viewer), accounts Assets:Bank and Income:Sales, customer Acme, then starts `python -m fin --db ... serve --port P` as a subprocess on a free 127.0.0.1 port.
+
+Check: `python3 -m unittest tests.test_api` -> Ran 16 tests, OK (about 3.5 s). `python3 -m py_compile fin/api.py tests/test_api.py` clean.
+
+Route table
+- GET /accounts, /transactions[?account&from&to], /balances[?at], /reports/income?from&to, /reports/balance-sheet?at, /reports/aging?at[&payables=1], /invoices[?status], /invoices/ID, /audit[?by]. No X-User needed.
+- POST /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200). Writes need X-User header.
+- Unknown path or method/path mismatch -> 404 (checked before auth).
+
+Behaviour
+- Order: route match (404) -> Book.open -> check_permission for writes (401 unknown or missing user, 403 viewer) -> body parsing (400) -> feature function -> commit. UserError -> rollback and 400 (or e.status). Other exceptions -> 500 with message.
+- Public entry point: fin.api.handle(db, method, target, user, raw=b"") -> (status, data). Each call opens its own connection.
+- Server: ThreadingHTTPServer bound to 127.0.0.1 only. Each request uses its own Book connection; the CLI's book is unused. Access log is silenced. Startup line goes to stderr; the command returns {"port": N}, which the CLI prints.
+
+Assumptions (spec silent or ambiguous)
+- Binding is 127.0.0.1 only, not 0.0.0.0.
+- Invalid invoice id in the path (e.g. "abc") -> 400, same as an unknown id (get_invoice raises UserError for unknown id).
+- Payables flag is `payables=1` on /reports/aging; any other value means receivables.
+- Missing required query params (e.g. /reports/income without `to`) -> 400 with "missing query parameter: to".
+- Bad body (non-JSON, non-object, missing field) -> 400 with a message; the permission check runs first, so an unauthorized caller never sees body errors.
+
+Test-side notes
+- The first run had one failure, a test bug: the body lacked both `description` and `postings` and the API reports `description` first. Test fixed to check each in turn. Also closed HTTPError responses to remove ResourceWarnings. No module changes were needed.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` once all modules are merged. To try it by hand: `python3 -m fin --db DB init` then `python3 -m fin --db DB serve --port 8080`, and `curl -H 'X-User: ed' ...` against it.
+- Lead: decide whether the serve command should be in a shared help/spec listing (the registry entry is in fin/api.py register()).
+
+Do not redo
+- Port selection in tests uses a bind-to-0 socket, then releases it before the server starts. This is a small race, but acceptable for local tests; do not add retries unless it flakes.
+- Permission and validation order was chosen on purpose (see above). Checked against admin.txt: add_txn validates balance, closed periods and accounts itself, so the API does not repeat those checks.
+- Checked against invoicing.txt: invoice functions return JSON-ready docs and audit their own writes, so the API adds no audit rows.
+- EnterWorktree is not in my tool list; I worked in place, as admin and reports did. This is the same process gap reports.txt flags, and the lead should know about it when merging.

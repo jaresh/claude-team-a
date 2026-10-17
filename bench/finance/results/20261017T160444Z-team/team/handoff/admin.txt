@@ -1,0 +1,60 @@
+Done
+----
+Files changed (new, no shared files edited, changes.md untouched):
+- fin/admin.py: accounts, txns, balances, fx, convert, users, audit list, period close/status. Registers:
+  "account add", "account list", "txn add", "txn list", "balance", "fx add", "convert", "user add",
+  "user list", "audit list", "period close", "period status". Write flags: add/fx add/user add/period close/txn add/account add = True;
+  the rest = False. ("init" is in cli.py, not here.)
+- tests/test_admin.py: 38 tests, covers sections 1, 2, 3, 4, 11, 12 and init (incl. exit-2 cases, the role matrix
+  viewer/editor/admin, unknown and missing --user on writes, closed periods, audit entries and --by).
+
+Check: `python3 -m unittest tests.test_admin` -> Ran 38 tests, OK (about 16 s).
+Syntax: python3 -m py_compile fin/admin.py OK.
+
+Public API (plain functions, python values; Decimal postings; all results JSON-ready):
+- add_account(book, name, currency=None) -> {"name","type","currency"}           [audits account.add name]
+- list_accounts(book) -> [{"name","type","currency"}]
+- add_txn(book, date, description, postings) -> txn dict                          [postings=[(acct, Decimal|None)]; audits txn.add id]
+- list_txns(book, account=None, frm=None, to=None) -> [txn dict]
+- balances(book, at=None) -> {acct: {cur: "0.00"}}
+- add_rate(book, date, frm, to, rate) -> {"date","from","to","rate"}              [audits fx.add "FROM/TO"]
+- convert(book, amount, frm, to, at) -> {"amount","currency"}   (amount: str or Decimal)
+- add_user(book, name, role) -> {"name","role"}                                   [audits user.add name]
+- list_users(book) -> [{"name","role"}]
+- audit_list(book, by=None) -> [{"seq","at","user","action","target"}]
+- close_period(book, month) -> {"closed_through"}                                  [audits period.close month]
+- period_status(book) -> {"closed_through"}
+The plain functions do NOT check permissions (cli.py / api.py call book.check_permission).
+
+Assumptions (spec silent)
+- account add returns the created leaf account dict; parents are created silently and not audited (only the named account is).
+- fx add: FROM and TO must be 3 uppercase letters; FROM == TO is a user error; rate must be > 0; stored and printed in
+  plain (non-exponent) decimal text.
+- convert: --at is required (argparse). Currency codes are validated the same way as fx add.
+- period close: audited on every successful call, even when it changes nothing (the contract says exactly once on success).
+  Spec 11 can be read as "only data-changing commands"; flip by moving the audit call under the `if` in close_period.
+- txn descriptions are not checked (empty allowed).
+- txn list --account matches the exact account or a descendant ("Expenses:Rent" does not match "Expenses:RentX").
+- audit list --by NAME for an unknown or silent user returns [] (not an error).
+- user add --role uses argparse choices (admin/editor/viewer), so a bad role exits 2 from argparse; add_user also checks.
+- balance lists accounts sorted by name, currencies sorted; zero sums print "0.00".
+
+Notes for lead
+- fin/admin.py has a private helper `_currency(text)` (regex [A-Z]{3}). core.py has no currency validator (only inside
+  Book.create). Move it to core if other modules need it: fin/admin.py `_currency`, used by add_account, add_rate, convert.
+- fin/cli.py MODULES lists "ledger", which no plan section owns (spec 17 is in reports per plan). It is skipped if missing,
+  so no effect now; the lead may want to drop it.
+- I did not run EnterWorktree (no such tool in my list); I worked in place in the shared checkout as my task names only
+  these two files.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for admin. Lead: run `python3 -m unittest discover -s tests` once all modules are in.
+
+Do not redo
+- Checked against core.py: post_txn already validates balance, closed period, unknown accounts, and quantizes amounts;
+  Book.rate handles the inverse rate; Book.balances already rolls up ancestors; check_permission handles
+  EDITOR_DENIED and viewer. Admin wraps these and does not re-implement them.
+- Test failures seen and fixed were test-side only (init test ran init once; audit-by-user had the wrong actor). No module bugs found.

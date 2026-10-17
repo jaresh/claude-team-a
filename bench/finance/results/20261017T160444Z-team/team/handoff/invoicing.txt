@@ -1,0 +1,43 @@
+DONE
+Files changed (new, none shared):
+- fin/invoicing.py: tax, customer, vendor, invoice, bill commands, plus "report aging" (--at, --payables). register(reg) registers 16 commands: tax add, tax list, customer add, customer list, vendor add, vendor list, invoice create, invoice issue, invoice pay, invoice show, invoice list, bill create, bill pay, bill show, bill list, report aging.
+- tests/test_invoicing.py: 34 tests (sections 13 and 14, aging buckets, payments on/before --at, closed-period errors, exit-2 error cases, audit rows, writes without --user).
+Check: `python3 -m unittest tests.test_invoicing` -> Ran 34 tests, OK (about 19 s). py_compile on fin/invoicing.py clean.
+No edits to changes.md (no shared files touched). No commit.
+
+Public API (plain functions, all take book first; writes audit once, return the spec JSON):
+- add_tax(book, code, rate) -> {"code","rate"}; list_taxes(book) -> list
+- add_customer(book, name, terms=30); list_customers(book)
+- add_vendor(book, name, terms=30); list_vendors(book)
+- create_invoice(book, customer, date, lines) -> invoice doc; lines = [{"description","quantity","price","tax_code"?}]
+- issue_invoice(book, id) -> invoice doc
+- pay_invoice(book, id, amount, date, account) -> invoice doc
+- get_invoice(book, id) -> invoice doc; list_invoices(book, status=None) -> list
+- create_bill(book, vendor, ref, date, lines) -> bill doc; lines = [{"description","net","account","tax_code"?}]
+- pay_bill(book, id, amount, date, account) -> bill doc
+- get_bill(book, id) -> bill doc; list_bills(book, status=None) -> list
+- aging(book, at, payables=False) -> {"current","1-30","31-60","61-90","90+","total"} (strings)
+Amounts are strings (fmt). Ids are ints in the function API; audit targets are str(id).
+
+Assumptions (spec silent or ambiguous):
+- bill pay ACCOUNT must be an asset account (invoice pay is explicit about this; bills mirror it).
+- Bill line ACCOUNT must be expense or asset (spec 14 wording).
+- Invoice number = next sequence within invoice-date year (max existing +1, zero-padded to 4).
+- Invoice price is stored and shown with fmt (two decimals); quantity is shown as given.
+- Per-line net and tax rounded half up to cents; invoice and bill totals are sums of lines.
+- aging: only issued/partial/paid invoices (status != draft) dated on or before --at; only payments dated on or before --at; balances <= 0 left out; bucket by (at - due) days, <= 0 is current.
+- Duplicate bill ref for the same vendor is a UserError (exit 2). Duplicate tax code / customer / vendor likewise.
+- Negative payment terms, negative tax rates, zero/negative quantities, negative prices and net are UserErrors.
+- Issued invoices have no txn_id column (schema fixed); the txn is found by description "Invoice INV-..."; payments store txn_id.
+
+DO NOT REDO
+- Module code passes its own tests; the two failures seen during development were test-side bugs (repeated setup calling tax add twice, and a dict that kept the last bank posting), both fixed in tests only.
+- No schema change needed; all INSERTs match fin/core.py SCHEMA column lists.
+- Account type names checked against core TYPES ("asset", "expense", "income", ...).
+
+IN PROGRESS
+- Nothing open. Not run: the full suite (`python3 -m unittest discover -s tests`), which needs the other modules; that is the lead's check.
+
+NEXT STEP
+- Lead: run `python3 -m unittest discover -s tests` once admin/reports are in, and check that the "report aging" name does not clash with anything in reports.py (the reports owner should register "report income", "report tax", etc., not "report aging").
+- Tests here create accounts through Book.ensure_account (not via `account add`), so they need no admin module.

@@ -1,0 +1,43 @@
+Done
+- Files changed: fin/reports.py (new), tests/test_reports.py (new). No other files touched. No commit.
+- Check: `python3 -m unittest tests.test_reports` -> Ran 37 tests, OK. `python3 -m py_compile fin/reports.py tests/test_reports.py` clean.
+- Sections covered: 8 (report income, report balance-sheet, report networth), 15 (report tax), 16 (reconcile), 17 (report trial-balance, report ledger).
+- Exit-2 cases tested: bad or reversed period, bad month, bad date, bad --currency, missing exchange rate, unknown account in ledger, reconcile clear id with no posting to the account on or before the date (also an id that doesn't exist), reconcile by viewer role, bad --balance.
+- Audit: reconcile writes one audit row (action "reconcile", target = account) per successful call. Tested.
+- Log: no shared-file edits, so .claude/team/changes.md is unchanged.
+- Process gap: I wrote fin/reports.py without calling EnterWorktree first. The cwd is not under .claude/worktrees/, so I edited in place. The lead should know this when merging.
+
+Public API (plain functions, values not argparse args; each returns JSON-ready data)
+- income_report(book, frm, to, currency=None) -> {"income": {acct: amt}, "expenses": {acct: amt}, "total_income", "total_expenses", "net"}
+- balance_sheet(book, at, currency=None) -> {"assets", "liabilities", "equity", "retained_earnings", "total_assets", "total_liabilities", "total_equity"}
+- networth(book, frm, to) -> [{"month": "YYYY-MM", "assets", "liabilities", "networth"}, ...]   (frm/to are YYYY-MM)
+- tax_report(book, frm, to) -> {"collected", "paid", "net", "by_code": {code: {"collected", "paid"}}}
+- reconcile(book, account, date, balance, clear_ids=()) -> {"account", "statement_balance", "cleared_balance", "difference", "uncleared": [txn ids]}; writes cleared rows and audits.
+- trial_balance(book, at) -> {"rows": [{"account", "debit", "credit"}], "total_debit", "total_credit"}
+- ledger(book, account, frm, to) -> {"account", "opening", "rows": [{"date", "id", "description", "amount", "balance"}], "closing"}
+- register(reg): commands "report income", "report balance-sheet", "report networth", "report tax", "report trial-balance", "report ledger" (write=False); "reconcile" (write=True; --date, --balance, --clear ID, repeatable or nargs).
+
+Assumptions (spec silent)
+- Income and balance-sheet convert each (account, currency) total at the period end date, then sum per account. Ledger converts each posting at its own txn date (opening too).
+- Income and liability/equity values are shown negated (sign flipped from raw balances). Retained earnings = income minus expenses up to the date.
+- networth uses the book currency (spec has no --currency for it). Trial balance uses the book currency.
+- Tax: invoices count when status != 'draft' and date in range; bills count by bill date. invoice_lines and bill_lines tax amounts are assumed to be in the book currency (no currency column in those tables). NULL tax_code rows are skipped.
+- reconcile: all clear ids are validated before any insert, so a bad id changes nothing. Clearing is idempotent (INSERT OR IGNORE). "uncleared" lists txn ids with a posting to the account on or before the date that are not cleared, ascending.
+- Report commands need no --user (read-only). from > to, or a malformed date or month, raises UserError (exit 2).
+
+In progress
+- Nothing. Module and tests are complete and passing.
+
+Known limitation (not verified by a test)
+- With several currencies, per-account conversion rounding can leave a one-cent difference between total_debit and total_credit, or between total_assets and the equity side. Single-currency books are exact (tests cover single currency and one foreign currency, and both totals matched in those cases).
+
+Next step
+- Lead: review fin/reports.py and tests/test_reports.py, then run `python3 -m unittest discover -s tests` once all modules are merged.
+- Optional: if you want --currency on networth, add it in register() and in networth(); it is not in the spec, so I left it out.
+
+Do not redo
+- Schema check: I compared the INSERT column lists in tests against SCHEMA in fin/core.py (invoices, invoice_lines, bills, bill_lines, fx with to_, audit, users). They match.
+- Error classes: AuthError and ForbiddenError subclass UserError, so cli.main maps them to exit 2. The viewer test relies on this and passes.
+- Report commands are not write commands, so run_cli(user=None) works for them (test_report_runs_without_user passes).
+- The earlier failing test (clearing transaction 2 with --date 2026-02-28 expected exit 2) was a bad test: transaction 2 posts to Assets:Bank. The test was corrected to use a transaction that doesn't touch the bank account. Module code was not changed for it.
+- Balance-sheet with --currency GBP and no rate fails with exit 2 only when there are postings; at a date with no postings there is no conversion and no error (by design, not a bug).

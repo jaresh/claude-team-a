@@ -1,0 +1,42 @@
+DONE
+Files changed (new, no shared files edited, nothing committed):
+- fin/banking.py: sections 5 (rule add, rule list, import), 6 (budget set, report budget), 7 (recurring add, recurring run), 9 (loan schedule, read-only).
+- tests/test_banking.py: 32 tests (RuleTests, ImportTests, BudgetTests, RecurringTests, LoanTests).
+Check: `python3 -m unittest tests.test_banking` -> Ran 32 tests in 8.5s, OK.
+
+Public API (plain functions, python values):
+- add_rule(book, pattern, account) -> {"pattern", "account"}; audit "rule.add" <pattern>
+- list_rules(book) -> [{"pattern", "account"}]
+- import_file(book, path, account, date_col=0, desc_col=1, amount_col=2, skip_header=False) -> {"imported", "skipped"}; audit "import" <account>
+- import_rows(book, account, rows, date_col=0, desc_col=1, amount_col=2, skip_header=False) -> same (rows = lists of cell strings)
+- set_budget(book, account, month, amount) -> {"account", "month", "budget"}; audit "budget.set" "<ACCOUNT> <MONTH>"
+- budget_report(book, month) -> [{"account", "budget", "actual", "remaining"}]
+- add_recurring(book, name, every, start, postings) -> {"id", "name", "every", "start", "postings"}; postings = [(acct, Decimal|None)]; audit "recurring.add" <name>
+- run_recurring(book, until) -> {"created"}; audit "recurring.run" <until>
+- loan_schedule(principal, rate, months, start) -> {"payment", "total_interest", "rows": [{"n","date","payment","interest","principal","balance"}]} (no book, read-only)
+- register(reg): commands "rule add" (write), "rule list", "import" (write), "budget set" (write), "report budget", "recurring add" (write), "recurring run" (write), "loan schedule" (read-only).
+
+Assumptions (where the spec is silent or I chose):
+- import: each row is validated before any insert (bad date, bad amount, too few columns, zero amount, check_open on the row's date, currency mismatch with category). Any failure imports nothing.
+- import: dedupe key is (date, description, amount) per account, checked against the `imported` table and within the same file. Repeat import skips all rows.
+- import: uncategorized rows go to Income:Uncategorized (positive) or Expenses:Uncategorized (negative), created on demand.
+- import: blank CSV lines are skipped. Column indexes are 0-based and must be >= 0.
+- budget: only expense accounts can have a budget. Setting again for the same account and month replaces the amount.
+- budget report: actual = sum of postings in the month to the account and its descendants, in the account's currency (no conversion). remaining = budget - actual (can be negative).
+- recurring: occurrences start at `start` and are computed as start + k periods (monthly via add_months, so Jan 31 gives Feb 28 and Mar 31; weekly +7k days; yearly add_years, so Feb 29 gives Feb 28 in non-leap years). Occurrences already in recurring_done are skipped, so repeated runs are idempotent.
+- recurring run: check_open is checked for all due occurrences before any post, so a closed period creates nothing.
+- loan: payment = principal * r / (1 - (1+r)^-n), rounded to cents; r = annual % / 1200; with rate 0, payment = principal / n. The last row pays the remaining balance plus its interest, so balance ends at 0.00. Rate must be >= 0, principal > 0, months >= 1.
+
+IN PROGRESS
+Nothing left in progress. Implementation and tests are complete and passing.
+
+NEXT STEP
+Lead: run `python3 -m unittest discover -s tests` once all modules are merged.
+Optional cleanup for lead: `_check_postings` in fin/banking.py duplicates the validation in Book.post_txn (balance, at-most-one blank, >= 2 postings). Moving it into fin/core.py as a shared helper would remove the copy. I did not edit core.py.
+
+DO NOT REDO
+- Audit targets already match the spec (rule.add pattern; import account; budget.set "ACCOUNT MONTH"; recurring.add name; recurring.run until date).
+- The tests seed accounts and txns through fin.core.Book in setUp, so they do not depend on admin's account/txn commands. Only `init` is used through the CLI.
+- Permission checks: viewer and no-user are denied on rule add, import, recurring run. loan schedule works without --user.
+- Closed-period behavior for import and recurring run is covered by tests (test_closed_period_imports_nothing, test_run_in_closed_period_creates_nothing).
+- The loan 12-month case gives payment 88.85, and principal and interest sums reconcile.

@@ -1,0 +1,73 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.10",
+  "started": "2026-10-17T16:04:45Z",
+  "ended": "2026-10-17T16:21:10Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 157,
+  "own_total": 157,
+  "python_lines": 3329,
+  "cost": 0.7349,
+  "cost_cold": 0.7771,
+  "lead_cost": 0.5834,
+  "team_cost": 0.1514,
+  "teammates": [
+    "reports",
+    "banking",
+    "invoicing",
+    "admin",
+    "api"
+  ],
+  "lead_messages": 20,
+  "lead_peak_ctx": 63884,
+  "lead_compactions": 0,
+  "team_peak_ctx": 62095,
+  "coverage": 0.971,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/api.py (94%)"
+  ],
+  "quality": {
+    "app_files": 9,
+    "app_lines": 1455,
+    "test_files": 7,
+    "test_lines": 1204,
+    "test_functions": 157,
+    "test_to_app_ratio": 0.83,
+    "functions": 188,
+    "mean_function_lines": 7.1,
+    "max_function_lines": 41,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.7,
+    "max_complexity": 14,
+    "functions_complexity_over_10": 4,
+    "most_complex": [
+      "fin/api.py:_route (14)",
+      "fin/banking.py:import_rows (13)",
+      "fin/core.py:post_txn (13)"
+    ],
+    "docstring_coverage": 0.31,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 7,
+    "bare_except": 0,
+    "broad_except": 1,
+    "parse_errors": []
+  },
+  "review": {
+    "error": "no review: substring not found"
+  },
+  "reviews": [
+    {
+      "overall": null,
+      "scores": null,
+      "review_cost": null
+    }
+  ]
+}
