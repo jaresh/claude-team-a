@@ -21,7 +21,8 @@
 # (KEEP=1 keeps it).
 #
 # The workspace is bench/work/<bench>-<mode> (git-ignored): a git worktree of this repo on an
-# empty orphan branch, bench/<bench>-<mode>, re-created for each run. A worktree shares this
+# empty orphan branch, bench/<bench>-<mode>, re-created for each run. SLOT=N appends -N to both,
+# so runs of the same arm can go in parallel (Claude Code keeps each session's team apart). A worktree shares this
 # repo's trust, so background sessions start there; a nested `git init` would not be trusted.
 # Sessions there don't load this repo's CLAUDE.md, but they do list its skills and agents (the
 # same for both arms; solo has no Agent tool). Auto memory is off in both arms.
@@ -39,8 +40,8 @@ esac
 model=${MODEL:-sonnet}
 effort=${EFFORT:-medium}
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
-ws=$repo/bench/work/$bench-$mode
-branch=bench/$bench-$mode
+ws=$repo/bench/work/$bench-$mode${SLOT:+-$SLOT}
+branch=bench/$bench-$mode${SLOT:+-$SLOT}
 out=$here/results/$stamp-$mode
 # The benchmark's version: what the model and the graders see. Measuring tools (quality.py,
 # coverage.py) only add fields, so they aren't part of it.

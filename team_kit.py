@@ -14,11 +14,13 @@ tracked files, `.gitignore` and `CLAUDE.md` stay as they are.
                                                      start a lean lead session on /team TASK
   python3 team_kit.py cost [--session ID] [...]      tokens and USD per agent of a session
                                                      (default: the latest one; cost --help)
+  python3 team_kit.py request                        in a session: save the user's messages
+                                                     to .claude/team/spec.md, word for word
 
 Installed files (all git-ignored):
 
   .claude/skills/team/SKILL.md     the lead's playbook, loaded when the team is asked for
-  .claude/skills/team/team_kit.py  a copy of this file (cost, status, uninstall)
+  .claude/skills/team/team_kit.py  a copy of this file (request, cost, status, uninstall)
   .claude/agents/team-dev.md       the teammate: Haiku, effort medium, its rules in its body
   .claude/rules/team.md            three lines, always loaded: a team request loads the skill
   .claude/settings.local.json      + agent teams on, Haiku auto-compact at 100K (merged)
@@ -45,7 +47,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.9"
+KIT_VERSION = "3.10"
 
 SKILL = """\
 ---
@@ -107,12 +109,12 @@ Then overwrite `.claude/team/plan.md` with:
   real code. Use names not already in `handoff/`. Name tasks after what they build (`ledger`,
   `invoices`); avoid names with "report", "summary", "review" or "analysis": Claude Code refuses
   Markdown files written by subagents named like that.
-- **Consistency**: when more than one task writes code, the last section is `## consistency`
-  (step 4). Write it now, so the plan has it.
 
-Teammates see only files, never this conversation. Before the first wave, save the user's
-request word for word as `.claude/team/spec.md` when tasks need more of it than the plan
-quotes, and make sure every file the plan or a prompt names exists.
+Teammates see only files, never this conversation. When tasks need more of the user's request
+than the plan quotes, run `python3 .claude/skills/team/team_kit.py request` before the first
+wave: it copies the user's messages from this session's transcript to `.claude/team/spec.md`,
+word for word, so you never retype them. Make sure every file the plan or a prompt names
+exists.
 
 Tests first: unless the user gave a check, write acceptance tests for the contract, each
 interface between tasks included, in the repo's test layout, before starting the team, and run
@@ -124,8 +126,7 @@ Tell the user the plan in a few lines.
 ## 2. Run a wave
 
 In one turn: update `status.md` (for the first wave, overwrite it with a row per task in the
-plan, later waves and `consistency` included as `waiting`: name, task, model, state, handoff
-path), and start every task of the wave in parallel with the Agent tool:
+plan, later waves included as `waiting`: name, task, model, state, handoff path), and start every task of the wave in parallel with the Agent tool:
 `subagent_type: "team-dev"`, `name: "<task>"`, `model: "haiku"`, `effort: "medium"`, prompt:
 
 > You are teammate `<task>`; the lead is the main session. Your task is section `<task>` of
@@ -146,32 +147,19 @@ say so in your report.
   then `-3`) whose prompt names the handoff and the failing output. A successor reads the
   handoff and the files it names, not the old transcript.
 - If a handoff is missing, write it from the teammate's report before starting a successor.
-- Then the next wave, or step 4.
+- Then the next wave; after the last one, step 4 or 5.
 
-## 4. Consistency pass
-
-Required whenever more than one teammate wrote code: teammates working in parallel each bring
-their own helpers and style, and only this step makes their modules one codebase. Don't fix it
-yourself. After the last build wave passes the check, start one more teammate, `consistency`,
-whose task is: read the Conventions and the code the team wrote; replace duplicated helpers and
-re-implemented rules (validation, parsing, rounding, errors) with the shared ones; fix names and
-patterns that break the conventions; change no behaviour; done check: the full check. Split it
-by module when that code is larger than about 60K tokens. Run the check once more after it.
-
-A passing check doesn't make this step optional: tests don't see duplicated logic, and this is
-the step that removes it, for the cost of one Haiku teammate.
-
-## 5. Deploy (only when the user asked)
+## 4. Deploy (only when the user asked)
 
 Use the repo's documented staging deploy (README, CLAUDE.md, docs, package scripts, Makefile),
 never production. It is a heavy job: you run it, after the check passes, then verify the
 deployed copy with its smoke or health check. If no staging deploy is documented, ask the user
 how; if no one can answer, skip it and say so.
 
-## 6. Finish
+## 5. Finish
 
-Finish only when every row in `status.md` is done: every teammate has handed back, and the
-consistency pass has run. Then update `status.md` and report to the user, in under 200 words, so they can assess the work:
+Finish only when every row in `status.md` is done and every teammate has handed back. Then
+update `status.md` and report to the user, in under 200 words, so they can assess the work:
 what changed (paths), how to try it (staging URL and steps), the tests added and the check
 result, your assumptions, what is still open, and how to undo it. Don't commit, even at the
 end: leave the changes in the working tree for the user to review, unless they asked you to
@@ -222,7 +210,7 @@ files are in `.claude/team/`.
 - If another teammate's file looks wrong, say so in your handoff; don't edit it.
 - Follow the plan's Conventions: import the shared helpers it names and never write your own
   version of one. If you need a helper that doesn't exist, write it in your own files and say so
-  in your handoff, so the consistency pass can move it.
+  in your handoff, so the lead can move it.
 - Stay within what your task says you may change. If your checks can't pass within that, stop
   and write the handoff with the options you found; never widen your own permissions.
 - Scratch files go only in `.claude/team/scratch/<your name>/`, generated output in a new empty
@@ -475,6 +463,40 @@ def lead(argv):
         return
     task = " ".join(argv).strip()
     os.execvp("claude", ["claude", *flags, *extra] + (["--", f"/team {task}"] if task else []))
+
+
+def request():
+    """Save the user's messages in this session, word for word, to .claude/team/spec.md."""
+    sid = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    if not sid:
+        sys.exit("Run it from a command in a Claude Code session (CLAUDE_CODE_SESSION_ID isn't set).")
+    base = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    found = glob.glob(os.path.join(base, "projects", "*", sid + ".jsonl"))
+    if not found:
+        sys.exit(f"No transcript for session {sid} under {base}/projects.")
+    texts = []
+    for line in open(found[0], encoding="utf-8"):
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue
+        if d.get("type") != "user" or (d.get("origin") or {}).get("kind") != "human":
+            continue
+        c = d["message"]["content"]
+        text = c if isinstance(c, str) else "\n".join(b.get("text", "") for b in c
+                                                      if b.get("type") == "text")
+        args = re.search(r"<command-args>(.*?)</command-args>", text, re.S)   # /team TASK
+        text = args.group(1) if args else text
+        text = re.sub(r"<system-reminder>.*?</system-reminder>", "", text, flags=re.S).strip()
+        if text:
+            texts.append(text)
+    if not texts:
+        sys.exit("No message from the user in this session's transcript.")
+    rel = ".claude/team/spec.md"
+    body = ("# The user's request, word for word (their messages in this session, oldest first)\n\n"
+            + "\n\n---\n\n".join(texts) + "\n")
+    write(os.path.join(repo_root("."), rel), body)
+    print(f"Wrote {rel}: {len(texts)} message(s), {len(body.split())} words.")
 
 
 def status(repo):
@@ -795,10 +817,13 @@ def main():
                    add_help=False)
     sub.add_parser("lead", help="start a lean lead session: lead [TASK] [-- CLAUDE_ARGS]",
                    add_help=False)
+    sub.add_parser("request", help="in a session: save the user's messages to .claude/team/spec.md")
     if len(sys.argv) > 1 and sys.argv[1] == "cost":
         return cost_main(sys.argv[2:])
     if len(sys.argv) > 1 and sys.argv[1] == "lead":
         return lead(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "request":
+        return request()
     a = ap.parse_args()
     repo = repo_root(a.repo)
     if a.cmd == "install":
