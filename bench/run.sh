@@ -13,9 +13,11 @@
 # Results go to bench/<bench>/results/<UTC stamp>-<mode>/ (cost, scores, the team's plan and
 # handoffs, the app's README) and are committed. The built app is deleted (KEEP=1 keeps it).
 #
-# The workspace is a fixed folder per arm, $BENCH_ROOT/<bench>-<mode> (default
-# <repo>/../bench-runs), because background sessions only start in a folder you have trusted:
-# run `claude` there once and accept the trust prompt. Each run empties it first.
+# The workspace is bench/work/<bench>-<mode> (git-ignored): a git worktree of this repo on an
+# empty orphan branch, bench/<bench>-<mode>, re-created for each run. A worktree shares this
+# repo's trust, so background sessions start there; a nested `git init` would not be trusted.
+# Sessions there don't load this repo's CLAUDE.md, but they do list its skills and agents (the
+# same for both arms; solo has no Agent tool). Auto memory is off in both arms.
 set -euo pipefail
 bench=${1:?usage: bench/run.sh <bench> team|solo}
 mode=${2:?usage: bench/run.sh <bench> team|solo}
@@ -30,20 +32,15 @@ esac
 model=${MODEL:-sonnet}
 effort=${EFFORT:-medium}
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
-ws=${BENCH_ROOT:-$(dirname "$repo")/bench-runs}/$bench-$mode
+ws=$repo/bench/work/$bench-$mode
+branch=bench/$bench-$mode
 out=$here/results/$stamp-$mode
 version=$(cat "$here/prompt.md" "$here"/accept/*.py | sha256sum | cut -c1-12)
 
-mkdir -p "$ws"
-if [ -n "$(ls -A "$ws")" ] && [ ! -f "$ws/.bench-workspace" ]; then
-  echo "$ws is not empty and not a bench workspace; not touching it." >&2; exit 1
-fi
-find "$ws" -mindepth 1 -delete   # empty it, keep the (trusted) folder
-touch "$ws/.bench-workspace"
-mkdir -p "$out"
-git -C "$ws" init -q
-printf '.bench-workspace\n' >> "$ws/.git/info/exclude"
-git -C "$ws" -c user.name=bench -c user.email=bench@localhost commit -q --allow-empty -m "empty"
+git -C "$repo" worktree remove --force "$ws" 2>/dev/null || true
+git -C "$repo" branch -D "$branch" >/dev/null 2>&1 || true
+mkdir -p "$(dirname "$ws")" "$out"
+git -C "$repo" worktree add -q --orphan -b "$branch" "$ws"
 deny=$(python3 "$repo/team_kit.py" lead --print-args)
 if [ "$mode" = team ]; then
   python3 "$repo/team_kit.py" install "$ws" >/dev/null
@@ -55,7 +52,7 @@ prompt=$(MODE="$mode_line" python3 -c 'import os,sys; print(open(sys.argv[1]).re
 cd "$ws"
 started=$(date -u +%FT%TZ)
 launch=$(claude --bg --model "$model" --effort "$effort" --permission-mode auto "$deny" \
-         --settings '{"promptCacheTtl":"1h"}' "$prompt" 2>&1) || true
+         --settings '{"promptCacheTtl":"1h","autoMemoryEnabled":false}' "$prompt" 2>&1) || true
 id=$(grep -oE 'backgrounded · [0-9a-f]+' <<<"$launch" | awk '{print $3}')
 [ -n "$id" ] || { echo "Could not start the session: $(tail -c 400 <<<"$launch")" >&2; rm -rf "$out"; exit 1; }
 echo "Bench $bench/$mode (prompt $version): session $id in $ws"
@@ -109,7 +106,9 @@ json.dump(s, open(f"{out}/summary.json", "w"), indent=2)
 print(json.dumps(s, indent=2))
 EOF
 if [ "${KEEP:-0}" != 1 ]; then
-  find "$ws" -mindepth 1 -delete && touch "$ws/.bench-workspace" && echo "Deleted the built app in $ws"
+  git -C "$repo" worktree remove --force "$ws"
+  git -C "$repo" branch -D "$branch" >/dev/null 2>&1 || true
+  echo "Deleted the built app ($ws, branch $branch)"
 fi
 cd "$repo"
 git add "$out"

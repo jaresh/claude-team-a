@@ -24,4 +24,7 @@ Rules for comparable results:
   sentence ("Work with team on it."); `solo` removes the Agent tool, so it really is one model.
 - Compare "Total $, cold start" (see `lab/protocol.md`) and hidden tests passed.
 
+Each arm builds in `bench/work/<bench>-<mode>` (git-ignored), a worktree of this repo on an
+empty orphan branch, so it is trusted without setup; it is removed after the run.
+
 Reference results: see `results/REFERENCE.md` once the first pair is in.
