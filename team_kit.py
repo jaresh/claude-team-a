@@ -10,6 +10,8 @@ tracked files, `.gitignore` and `CLAUDE.md` stay as they are.
   python3 team_kit.py install [REPO] [--force]       install or update (default REPO: cwd)
   python3 team_kit.py uninstall [REPO] [--keep-work] remove everything install added
   python3 team_kit.py status [REPO]                  what is installed
+  python3 team_kit.py lead [TASK] [-- CLAUDE_ARGS]   start a lean lead session: /team TASK
+                                                     with only the tools a lead uses
   python3 team_kit.py cost [--session ID] [...]      tokens and USD per agent of a session
                                                      (default: the latest one; cost --help)
 
@@ -22,6 +24,10 @@ Installed files (all git-ignored):
   .claude/team/                    working files: plan, status, change log, handoffs, scratch
 
 Restart Claude Code sessions that are already open in the repo to pick up the settings.
+`lead` is optional: it starts `claude` with `--tools` limited to what a lead uses (files,
+shell, teammates, asking you, web, skills and tool search, so MCP tools still load on demand),
+which halves the start-up prompt the lead re-reads every turn. Other flags (`--model`, ...) go
+after `--`. `lead --print-args` prints the flags, for scripts.
 Cost notes: the lead re-reads its whole context every turn, so a fresh session for a big team
 task is cheaper than a long one; a Sonnet lead costs much less than Opus for a well-defined task.
 """
@@ -36,7 +42,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.2"
+KIT_VERSION = "3.3"
 
 SKILL = """\
 ---
@@ -218,6 +224,9 @@ SETTINGS_ADD = {"env": {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"},
 MANIFEST = ".claude/team/.kit.json"
 EXCLUDE = [".claude/skills/team/", ".claude/agents/team-dev.md", ".claude/team/", SETTINGS]
 BEGIN, END = "# team_kit.py begin", "# team_kit.py end"
+# A lead's tools. ToolSearch keeps MCP tools deferred; without it they load in full.
+LEAD_TOOLS = ("Agent,Bash,Read,Edit,Write,Glob,Grep,SendMessage,TaskStop,AskUserQuestion,"
+              "WebFetch,WebSearch,Skill,ToolSearch")
 
 
 def git(repo, *args):
@@ -380,6 +389,17 @@ def uninstall(repo, keep_work=False):
             pass
     set_exclude(repo, [] if not keep_work else [".claude/team/"])
     print(f"team kit removed from {repo}" + (" (kept .claude/team/)" if keep_work else ""))
+
+
+def lead(argv):
+    """Replace this process with a lean lead session: claude --tools LEAD_TOOLS ... /team TASK."""
+    if "--print-args" in argv:
+        print(f"--tools {LEAD_TOOLS}")
+        return
+    extra = argv[argv.index("--") + 1:] if "--" in argv else []
+    task = " ".join(argv[:argv.index("--")] if "--" in argv else argv).strip()
+    cmd = ["claude", "--tools", LEAD_TOOLS, *extra] + ([f"/team {task}"] if task else [])
+    os.execvp("claude", cmd)
 
 
 def status(repo):
@@ -698,8 +718,12 @@ def main():
     p.add_argument("repo", nargs="?", default=".")
     sub.add_parser("cost", help="tokens and USD per agent of a session (cost --help)",
                    add_help=False)
+    sub.add_parser("lead", help="start a lean lead session: lead [TASK] [-- CLAUDE_ARGS]",
+                   add_help=False)
     if len(sys.argv) > 1 and sys.argv[1] == "cost":
         return cost_main(sys.argv[2:])
+    if len(sys.argv) > 1 and sys.argv[1] == "lead":
+        return lead(sys.argv[2:])
     a = ap.parse_args()
     repo = repo_root(a.repo)
     if a.cmd == "install":

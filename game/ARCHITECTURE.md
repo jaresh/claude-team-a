@@ -307,6 +307,51 @@ export function glyphRows(view) // -> [{ glyph, color, name }]:
   per `glyphRows(view)` row, in that row's colour.
 - `mock-game.js` returns `traps` in its view too (at least one trap, for the panel).
 
+### e5: score and stats (owner: score)
+
+`game/src/core/score.js`:
+
+```js
+export function score(stats, status) // -> integer, never below 0:
+//   100 * stats.deepest + 10 * (sum of the stats.kills values) + 5 * stats.itemsUsed
+//   - 2 * stats.trapsTriggered + (status === 'won' ? 500 : 0)
+```
+
+- `GameState` gets `stats: { kills: {}, itemsUsed: 0, trapsTriggered: 0, deepest: 1,
+  damageTaken: 0 }`, set by `newGame` and kept across levels. `game.js` updates it:
+  - `kills[kind] += 1` when the player kills a monster of that kind (missing kinds start at 0);
+  - `itemsUsed += 1` when a `use` action consumes an item;
+  - `trapsTriggered += 1` each time a trap fires;
+  - `deepest` is the deepest depth reached (`descend` raises it);
+  - `damageTaken` adds every hp the player loses: melee, shots, traps and poison.
+- `getView` adds `stats` (a deep copy: changing it, `kills` included, doesn't change the state) and
+  `score: score(state.stats, state.status)`.
+- Nothing else changes; the e2 balance is unaffected.
+
+### e5: run summary and high scores (owner: summary)
+
+`game/src/ui/scores.js`:
+
+```js
+export const MAX_SCORES = 5, SCORES_KEY = 'roguelike-scores';
+export function addScore(list, entry) // -> a new list; `list` is not changed.
+//   entry: { score, depth, turns, seed, won }. Sorted by score, highest first; equal scores:
+//   fewer turns first. At most MAX_SCORES entries.
+export function loadScores(storage) // storage: { getItem, setItem } (localStorage) -> list;
+//   [] when the key is missing or its value isn't a JSON array
+export function saveScores(storage, list) // writes JSON.stringify(list) under SCORES_KEY
+export function summaryRows(view) // -> [{ label, value }] in this order, values numbers:
+//   'Score' view.score, 'Depth reached' view.stats.deepest, 'Turns' view.hud.turn,
+//   'Kills' (sum of view.stats.kills), 'Items used', 'Traps triggered', 'Damage taken'
+```
+
+- `index.html` gets a high-score list, `id="scores"`, inside the end panel (`#end`).
+  `render.js` shows the `summaryRows` lines and the high scores in `#end` when the game has
+  ended. `main.js` adds each finished game once (when `status` leaves `'playing'`) with
+  `addScore`, using `{ score, depth: stats.deepest, turns: hud.turn, seed, won }`, and saves
+  it; storage access is wrapped in try/catch, so the game works without it.
+- `mock-game.js` returns `stats` and `score` in its view too.
+
 ### `sim/bot.mjs` (owner: sim, wave 3)
 
 `node game/sim/bot.mjs --seeds <file> --out <file>` plays each seed with a simple greedy policy
