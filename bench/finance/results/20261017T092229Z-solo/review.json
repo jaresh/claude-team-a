@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 8,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 9,
+    "tests": 7,
+    "consistency": 8
+  },
+  "overall": 8,
+  "issues": [
+    "fin/planning.py budget_report adds a child account's sums in different currencies straight into `actual` without converting them, so an expense tree with mixed currencies gives a wrong total.",
+    "fin/api.py _post_transaction/_post_invoice/_post_payment never check JSON field types, so a body like {\"account\": 5} or {\"customer\": 1} reaches `.strip()` and returns a 500 instead of a 400; _handle also decides between 200 and 201 by the number of regex groups and turns a POST NotFound into 400, which is fragile and hidden.",
+    "fin/cli.py main only catches UserError, so sqlite3.OperationalError (for example a locked database after the 15 s timeout) or any unexpected exception ends in a traceback; banking._read_rows also accepts negative --date-col/--desc-col/--amount-col values and silently indexes from the end of the row.",
+    "fin/billing.py create_bill accepts zero or negative line amounts while create_invoice requires a positive quantity, so validation is inconsistent; _invoice_row/_bill_row, invoice_dict/bill_dict and parse_invoice_line/parse_bill_line are near duplicates that could share one helper.",
+    "fin/util.py parse_amount silently rounds inputs with more than two decimals (postings, payments, budgets) instead of rejecting them, and ledger.convert rounds AMOUNT to cents before it applies the rate, which loses precision.",
+    "fin/cli.py render is a dense nested generator expression that is hard to follow, `serve` is registered with fn=None and special-cased in execute, and api.serve raises KeyboardInterrupt on SIGTERM through a generator `.throw` trick, which is obscure."
+  ],
+  "strengths": [
+    "The layers are cleanly separated: one command table in cli.py maps to domain functions in ledger, banking, planning, billing and reports. The API reuses the same functions, and db.session wraps every command in one BEGIN IMMEDIATE transaction with rollback, so an error changes nothing.",
+    "Money stays Decimal from start to finish: it is stored as TEXT, formatted through a single fmt() with half-up rounding and no -0.00, the API parses JSON floats as str, and all SQL uses parameters (f-strings only ever insert constant table names).",
+    "The tests run the real CLI in-process against a fresh temporary database for each test and check the documented JSON shapes, exit code 2 with empty stdout, and that nothing changed. They also cover tricky cases such as end-of-month and leap-year recurrences, duplicate rows in an import, rollback of a whole import, and the API's 401/403/404 responses."
+  ],
+  "review_cost": 0.8804
+}
