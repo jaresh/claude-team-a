@@ -1,0 +1,22 @@
+**Done**
+- Created fin/ledger.py: txn add, txn list, balance, fx add, convert (spec sections 2, 3, 4). register(sub) adds them; perms: txn add and fx add "write", the rest "read". Plain functions: do_txn_add(ctx, date, desc, posting_strs), do_txn_list(ctx, account=None, frm=None, to=None), do_balance(ctx, at=None), do_fx_add(...), do_convert(...).
+- Created tests/test_ledger.py: 17 tests (TxnTest, BalanceTest, FxTest) covering every command, the error cases, closed period, viewer role, and audit entries (txn.add with id, fx.add as "FROM/TO").
+- Check: `python3 -m unittest tests.test_ledger` -> Ran 17 tests, OK. (`python` is not on PATH in this environment; python3 is 3.14.4.)
+- No shared files edited (core.py, cli.py, changes.md untouched). Nothing committed.
+
+**Decisions beyond the spec**
+- fx add rejects FROM == TO (user error), and rejects a rate <= 0.
+- convert --at is required (the spec syntax shows it without brackets).
+- txn list --account matches the account and its descendants by path segment (substr check, so "Assets:Ban" does not match "Assets:Bank").
+- balance returns every currency that appears in an account's subtree, including zero sums ("0.00"), keys sorted.
+
+**In progress**
+- Nothing. Task finished.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_ledger` again after any core.py change, and the global check `python3 -m unittest discover -s tests` once the other modules are merged.
+
+**Do not redo**
+- Checked core.py (post_transaction, convert, txn_json, parse_posting, fmt): used as is, no change needed.
+- Checked cli.py: Parser.error raises UserError, so argparse errors (e.g. missing --at) come out as exit 2 with a message; the tests rely on this and pass.
+- The `python` command does not exist here; use `python3`.

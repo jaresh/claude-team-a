@@ -1,0 +1,18 @@
+Done
+- fin/bills.py: vendor add/list, bill create/pay/show/list, report tax (register_report exports `tax` only; no `report` group created here).
+  Functions: do_vendor_add, do_vendor_list, do_bill_create, do_bill_pay, do_bill_show, do_bill_list, do_tax_report, bill_json(conn, bid).
+- tests/test_bills.py: 25 tests (vendor, bill create incl. tax/rounding/account auto-create/errors/closed period/roles, bill pay partial/paid/over-pay/errors/closed period/roles, show/list/status filter, tax report by date range, drafts excluded, by_code, register_report flags).
+- Check: `python3 -m unittest tests.test_bills` -> Ran 25 tests, OK. (The `python` command is not on PATH here; python3 is 3.14.4.)
+- No shared files edited, so changes.md is untouched. Nothing committed.
+
+In progress
+- Nothing. Module and tests are complete.
+
+Next step
+- Lead: after the other modules merge, run `python3 -m unittest discover -s tests` from the repo root for the global check.
+- Note for consistency pass: bills.py defines a local `_add_days(d, n)` because core has no add_days helper. Move it to core if the lead adds one; the due-date calculation is in do_bill_create.
+
+Do not redo
+- Ran the module tests once after writing the file; all 25 passed on the first run. No failures to chase.
+- Stale expectations were corrected before the run: January tax report paid is 60.50 (bill A-1 tax 20.50 + A-2 tax 40.00), not 40.50.
+- Design choices, not bugs (spec silent): a line amount may be negative (not rejected); a zero-total bill is created with status "paid"; a payment's date is not checked against the bill date; the tax report uses bill date for paid tax and invoice date (non-draft) for collected tax.

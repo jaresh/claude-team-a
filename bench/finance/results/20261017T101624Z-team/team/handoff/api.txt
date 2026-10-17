@@ -1,0 +1,18 @@
+Done
+- fin/api.py: HTTP JSON API and `serve --port N` (perm "serve"). ThreadingHTTPServer on 127.0.0.1, one core.connect per request inside BEGIN/COMMIT/ROLLBACK (BEGIN IMMEDIATE for writes). Routes per spec section 10: GET accounts, transactions, balances, reports/income, reports/balance-sheet, reports/aging, invoices, invoices/{id}, audit; POST transactions, invoices, invoices/{id}/issue, invoices/{id}/payments. POSTs authenticate via X-User: 401 missing or unknown user, 403 role not admin/editor, then core.make_ctx(conn, user, "write"). Invalid JSON body -> 400; UserError -> 400 {"error"}; unknown path -> 404; unexpected exception -> 500 {"error": "internal error"}.
+- Exports make_server(db, port) (port 0 picks a free port) and serve(ctx, a). serve raises UserError when the db file is missing or empty.
+- tests/test_api.py: 11 tests (GET without user, POST transaction with omitted amount, unbalanced and bad bodies, 401/403/404, balances and reports, invoice flow with issue, partial and full payment, overpayment rejected, aging, invoice auth, audit, serve without a database exits 2).
+- Checks: `python3 -m unittest tests.test_api` OK (11 tests, also clean under -W error::ResourceWarning). `python3 -m unittest discover -s tests` OK (117 tests).
+- No shared files edited, so .claude/team/changes.md is untouched. Nothing committed.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review fin/api.py and tests/test_api.py, then commit when ready. Manual smoke test if wanted (do not run as a teammate): `python3 -m fin.cli serve --port 8000` against an initialised book.
+
+Do not redo
+- Overpayment is rejected by fin/invoices.py do_invoice_pay (line ~176), so the API test uses 200.00 against a 130.00 invoice to check the 400.
+- The HTTPError responses are closed with `with e:` in the test helper; without that, unittest reports ResourceWarning.
+- The 401 vs 403 split cannot come from core.make_ctx alone (it raises one UserError for both), so _writer in fin/api.py checks the users table first.
+- The shared helper list in the plan includes no HTTP helper; the api module's helpers are private to it.

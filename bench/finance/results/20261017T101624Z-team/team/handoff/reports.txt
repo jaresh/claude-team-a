@@ -1,0 +1,20 @@
+**Done**
+- Files changed (mine only): fin/reports.py (new), tests/test_reports.py (new). No shared files edited; changes.md untouched.
+- fin/reports.py: `register(sub)` creates the `report` group (dest="report") with income, balance-sheet, networth, trial-balance, ledger (all perm "read"). Then for imports/invoices/bills/recon it imports fin.<m> (skips only when that module is missing) and calls `register_report(rsub)` if the module defines it.
+- Functions: do_income(ctx, frm, to, currency=None), do_balance_sheet(ctx, at, currency=None), do_networth(ctx, frm, to), do_trial_balance(ctx, at), do_ledger(ctx, account, frm, to). Handlers are thin wrappers taking the argparse namespace.
+- Conversion: postings summed per account and currency, then core.convert at the report date (--to / --at; networth uses each month end; ledger converts each row at --to). Networth uses book currency.
+- tests/test_reports.py: 7 test methods (ReportTest). Covers income (incl. zero-sum account, empty range, errors), balance-sheet (identity, RE), networth (monthly, errors), trial-balance (sort, totals, zero rows, errors), ledger (opening/running/closing, parent tree, errors), no-user reads, and foreign currency (USD account converted with fx, GBP missing rate = user error).
+- Check: `python3 -m unittest tests.test_reports` -> Ran 7 tests, OK. `python3 -m unittest tests.test_admin` -> OK. (This shell has no `python`, only `python3`; the plan's command needs `python` on PATH.)
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Once ledger lands, optionally switch the test helper `post` to `self.txn` (ledger's `txn add`); it's not required because the tests use core.post_transaction directly and don't depend on ledger.
+- Lead: run `python3 -m unittest tests.test_reports` (or `python -m ...` where `python` exists) after merge.
+
+**Do not redo**
+- Schema/helpers: used only core.post_transaction, parse_posting, convert, parse_date, parse_month, month_end, next_month, require_account, book_currency, currency_code, fmt, connect. No new helpers in core.
+- Test data is built with core.connect + core.post_transaction and a direct fx INSERT, so tests don't need ledger or the fx command. A fx-row INSERT is used because `fx add` is ledger's.
+- Known limit: balance-sheet and trial-balance convert each account's sum to cents before totalling. With several currencies and non-exact rates, totals can differ by a cent from the exact identity (single-currency books are exact). Not covered by a test; fixing it would need unrounded conversion in core.convert, which the contract says not to change.
+- register_report is called via hasattr so modules without it (recon may not have one) are skipped silently.

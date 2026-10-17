@@ -1,0 +1,24 @@
+DONE
+- fin/core.py (additive helpers): WRITE_ROLES; add_days(day, n); total(values); add_to(totals, key, amt); closed_through(conn); tax_rate(conn, code); tax_on(net, rate). Added timedelta import. check_open, post_transaction, make_ctx now use them.
+- fin/bills.py: removed _add_days (core.add_days); _lines uses core.tax_rate/tax_on; _paid, bill_json, do_bill_create, do_tax_report use core.total; dropped unused Decimal, q, timedelta/date imports.
+- fin/invoices.py: removed _add_days and _tax_rate (core.add_days, core.tax_rate/tax_on); _sums, _paid, do_aging use core.total; dropped timedelta import.
+- fin/imports.py: do_budget_report uses core.total; _occurrence weekly uses core.add_days(start, 7 * k) (same result as timedelta(weeks=k)); dropped date/timedelta import.
+- fin/reports.py: _balances, do_ledger use core.add_to; _value, do_income, do_balance_sheet use core.total.
+- fin/ledger.py: do_balance uses core.add_to.
+- fin/recon.py: do_reconcile uses core.total; dropped unused Decimal import.
+- fin/admin.py: period_close and period_status use core.closed_through.
+- fin/api.py: _writer checks core.WRITE_ROLES (401/403 mapping unchanged).
+- .claude/team/changes.md: one line per shared-file edit (core, bills, invoices, imports, reports, ledger, recon, admin, api) appended.
+- Check: python3 -m unittest discover -s tests -> Ran 117 tests, OK. All fin/*.py compile. Manual unused-import scan clean (pyflakes not installed).
+- Not committed. Program not run.
+
+IN PROGRESS
+- Nothing in progress. Behaviour-neutral refactor is complete.
+
+NEXT STEP
+- Lead review: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests` (expect 117 OK). Then diff vs backups in .claude/team/scratch/consistency/ if desired.
+
+DO NOT REDO
+- Left as-is on purpose: "X exists" checks (require_account vs unknown-customer/unknown-invoice errors); invoice vs bill status logic (_status in bills vs invoice status strings); the customer_add strip vs vendor_add no-strip difference (report to lead, behaviour change if unified); API 401/403 mapping; loans.py total accumulator (plain loop, fine); reports._target and reports' per-currency loops; plain += accumulators (earnings, total_debit/total_credit).
+- Verified by test run: refactor keeps all 117 tests green.
+- Other modules outside my scope: none edited. No references to removed helpers (_add_days, _tax_rate) remain in fin/ or tests/.

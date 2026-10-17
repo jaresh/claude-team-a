@@ -1,0 +1,27 @@
+**Done**
+- fin/loans.py (new): do_loan_schedule(principal, rate, months, start); `loan schedule` (perm "none"), --start required.
+- fin/recon.py (new): do_reconcile(ctx, account, date, balance, clear_ids); top-level `reconcile` (perm "write"), --date, --balance, --clear ID ... (nargs="*", type int).
+- tests/test_loans.py (new, 4 tests), tests/test_recon.py (new, 6 tests).
+- Check: `python3 -m unittest tests.test_loans tests.test_recon` -> Ran 11 tests, OK.
+- Spot-check: 1000 @ 12% over 12 months -> payment 88.85, total interest 66.19, last row pays 88.84 and closes to 0.00; matches float calc 88.8488.
+- No shared files edited; changes.md not touched.
+
+**Decisions to review**
+- reconcile writes an audit entry on every successful run, including runs with no --clear (it is a write-perm command; the spec's "every successful data-changing command" was read as covering it).
+- Amounts summed from TEXT via core.dec; cleared postings filtered by txn date <= --date, so a later reconcile never leaks future cleared rows into an earlier one.
+
+**Gap in fin/cli.py (not my file, lead to fix)**
+- cli.run treats perm "none" like "read": it requires the db file to exist. Verified: `python3 -m fin --db /nonexistent.db --json loan schedule 1000 6 2 --start 2026-01-01` -> "error: no database at ...; run init first", exit 2. Contract says loan schedule needs no db. Fix idea: in run(), when perm == "none", skip the os.path.exists check and use conn = None (or only connect if the file exists) and pass ctx = core.Ctx(conn). Tests use BookTest so they don't catch this.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: patch fin/cli.py run() for perm "none" as above, then `python3 -m fin --db "$CLAUDE_JOB_DIR/tmp/nodb.db" --json loan schedule 1000 6 2 --start 2026-01-01` should print the schedule.
+- Then `python3 -m unittest tests.test_loans tests.test_recon`.
+
+**Do not redo**
+- Schedule math checked against float annuity formula (88.848789 vs 88.85 rounded); zero-rate case checked (333.33, 333.33, 333.34).
+- Month rule for dates confirmed with add_months: 2026-01-31 -> 2026-02-28 -> 2026-03-31 -> 2026-04-30.
+- Reconcile errors (unknown account, txn not touching exact account, txn dated after --date, bad date, bad balance, viewer role) all exit 2 with empty stdout; a failed call with a partial --clear list marks nothing (rollback verified by test_errors_mark_nothing).
+- `python` binary is absent in this environment; use `python3`.

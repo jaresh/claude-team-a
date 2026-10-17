@@ -1,0 +1,18 @@
+**Done**
+- fin/invoices.py (new): tax add/list, customer add/list, invoice create/issue/pay/show/list, report aging (register_report adds `aging`, handles --payables). Functions: do_tax_add, do_tax_list, do_customer_add, do_customer_list, do_invoice_create, do_invoice_issue, do_invoice_pay, do_invoice_show, do_invoice_list, do_aging, invoice_json. Audit: tax.add, customer.add, invoice.create, invoice.issue, invoice.pay.
+- tests/test_invoices.py (new): 27 tests covering every command, the spec examples (VAT20 invoice JSON, INV-YYYY-NNNN numbering, posted txn postings), error cases, audit rows, aging buckets (0/1/30/31/60/61/90/91 days), payments and dates after the as-of date, drafts and paid invoices excluded, and payables aging from bills tables inserted via SQL.
+- Check: `python3 -m unittest tests.test_invoices` -> Ran 27 tests, OK. (No `python` binary on PATH in this environment; use python3.)
+- No edits to shared files (core.py, cli.py, helpers.py, changes.md untouched). No commits.
+
+**In progress**
+- Nothing open. Task complete.
+
+**Next step**
+- Lead: run `python3 -m unittest discover -s tests` for the global check once the other modules are merged. Nothing else to do for invoices.
+
+**Do not redo**
+- Checked core.py helpers used (q, fmt, dec, amount, parse_date, require_account, ensure_account, post_transaction, audit, connect with sqlite3.Row row_factory). All exist with the signatures used.
+- Checked SCHEMA tables taxes, customers, invoices, invoice_lines, invoice_payments, bills, bill_lines, bill_payments: columns match the INSERTs and SELECTs.
+- Judgment calls, not in spec: quantity must be > 0 and price must be >= 0 (zero/negative quantity is a user error); price is rounded to cents before multiplying; the payment account may not be Assets:Receivable; a line with a description containing ";" is split on every ";" (so it fails with a user error rather than parsing).
+- Aging for payables reads bills by bill date and status is not checked (any bill dated on or before --at counts, minus bill_payments dated on or before --at). Bills task owns the bill_json and tax report.
+- `report aging` only works once fin/reports.py creates the `report` group; the tests rely on that and passed.

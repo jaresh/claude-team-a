@@ -1,0 +1,25 @@
+**Done**
+- Files changed: fin/imports.py (new), tests/test_imports.py (new). No shared files edited, so .claude/team/changes.md is unchanged. Nothing committed.
+- fin/imports.py: rule add/list; import FILE --account [--date-col --desc-col --amount-col --skip-header]; budget set; recurring add/run; register_report(rsub) adds `report budget MONTH`. Functions: do_rule_add, do_rule_list, do_import, do_budget_set, do_budget_report, do_recurring_add, do_recurring_run.
+- tests/test_imports.py: 15 tests, all passing. Covers rule add/list and errors (bad regex, unknown account, viewer role), rule audit, import with rule categorisation, Uncategorized fallback, dedupe, custom columns and header skip, all-or-nothing on a closed period, bad input (missing file, directory, bad date, bad amount, short row, unknown account, viewer), budget set/replace/errors, do_budget_report (prefix match, so Expenses:Foodie is not counted under Expenses:Food; sort by account; empty month), recurring add errors, monthly clamping from the original start, weekly and yearly (leap day) runs, run idempotence, closed-period run changing nothing, bad --until date.
+- Check: `python3 -m unittest tests.test_imports` from the worktree gives Ran 15 tests, OK. The sandbox has no `python` binary, only python3 (3.14.4), so I used python3. `python3 -m py_compile` passes for both files.
+- Fix made during testing: the SAVEPOINT name `check` is an SQL keyword, so it is now `validate_postings` in _check_postings.
+
+**In progress**
+- Nothing unfinished in my files.
+- Not covered by tests, because they need other teammates' modules: the `report budget` CLI path (only do_budget_report is tested directly), `txn add` and `fx` interaction with import/recurring, and the `report` group calling register_report. Those are for the reports task and the consistency pass.
+
+**Next step**
+- Lead: after the ledger and reports tasks are merged, run `python3 -m unittest discover -s tests` from the repo root. Optionally add a CLI-level test for `report budget` in tests/test_reports.py, which owns that command.
+- Caveats for the lead and reviewers:
+  1. Import into a non-book-currency account fails the balance check, because the Uncategorized counter-posting is in book currency. This is user error by design, not a bug.
+  2. A zero-amount import row is categorised as Income:Uncategorized.
+  3. recurring add checks the start date against closed periods via post_transaction, so a start in a closed period is rejected.
+  4. _check_postings uses a SAVEPOINT rather than an insert and delete, so AUTOINCREMENT ids are not consumed.
+  5. handlers call the `report` group only if reports.py calls register_report(rsub) for "imports".
+  6. `report budget` actual sums raw posting amounts for the account and its descendants, with no currency conversion. Spec section 6 does not say how to handle other currencies. This matches the spec for book-currency accounts only. If the lead wants conversion, it should go through core.convert at the month end, as the reports task does.
+
+**Do not redo**
+- Checked tests/helpers.py: `user add` takes --role with choices admin/editor/viewer; `audit list` returns seq, at, user, action, target; `period close` is admin-only. The tests use these correctly.
+- Ran the full imports suite after each fix. The only failure found was the SAVEPOINT keyword, and the only test error was an unregistered account in test_budget_report, now fixed in the test.
+- Did not use the `txn add` command in tests (ledger not merged). Postings go in through a raw SQL helper (ImportTest.post), which reads each account's currency from the accounts table.

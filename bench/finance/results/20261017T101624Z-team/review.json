@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 9,
+    "tests": 4,
+    "consistency": 6
+  },
+  "overall": 6,
+  "issues": [
+    "tests/helpers.py BookTest.fail overrides unittest.TestCase.fail, which assertIn, assertListEqual and assertDictEqual call on failure (and assertEqual uses for lists and dicts), so a failing check runs the CLI with the failure message as argv, gets exit 2 and passes silently; most list and dict assertions in the suite can never fail.",
+    "fin/invoices.py _parse_line rounds the price to cents with amount() before multiplying, so net = round(quantity \u00d7 rounded price) instead of round(quantity \u00d7 price), which gives wrong totals for prices with more than two decimals.",
+    "fin/bills.py duplicates invoice logic with its own _paid, _status, line parsing and JSON builder instead of sharing invoices._sums/_paid, and the copies differ: vendor names aren't stripped while customer names are, bill line amounts may be negative while invoice prices may not, and paying a fully paid bill reports 'more than the balance' instead of 'already paid'.",
+    "fin/imports.py _check_postings validates recurring add by posting a trial transaction, so recurring add fails when the start date is in a closed month, although the spec only requires the posting rules to be checked when the template is added.",
+    "fin/cli.py build_parser and fin/reports.py register load modules from hard-coded name lists and skip any that are missing (ModuleNotFoundError), so a misnamed or deleted module drops its commands without any error, and reports.py has to know about invoices, bills, imports and recon.",
+    "fin/api.py _writer repeats the role checks of core.make_ctx to map them to 401/403, and fin/cli.py main picks the output format with '\"--json\" in argv', which also matches that string appearing as an argument value."
+  ],
+  "strengths": [
+    "One core.post_transaction does all validation (balance per currency, at most one omitted amount, unknown accounts, closed periods), and the CLI and API both wrap every command in one SQLite transaction with rollback, so failed commands change nothing, including multi-row imports and recurring runs.",
+    "Money is Decimal throughout, formatted by one fmt() that never returns '-0.00'; all SQL values are parameters (the only f-string SQL uses internal table names).",
+    "Each command has a thin argparse adapter over a do_* domain function, so the HTTP API reuses the same domain code and returns the same documents as the CLI's --json output."
+  ],
+  "review_cost": 0.8141
+}
