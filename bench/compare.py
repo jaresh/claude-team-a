@@ -22,7 +22,16 @@ rows = [("Run", lambda r: r["dir"]), ("Mode", lambda r: r["mode"]),
         ("Lead / solo peak context", lambda r: f'{r["lead_peak_ctx"] // 1000}K'),
         ("Lead / solo compactions", lambda r: r["lead_compactions"]),
         ("Team peak context", lambda r: f'{r["team_peak_ctx"] // 1000}K'),
-        ("Wall time", lambda r: r["started"][11:16] + "-" + r["ended"][11:16])]
+        ("Wall time", lambda r: r["started"][11:16] + "-" + r["ended"][11:16]),
+        ("**Review overall** (1-10)", lambda r: r.get("review", {}).get("overall", "-")),
+        *[(f"Review: {k}", (lambda k: lambda r: r.get("review", {}).get("scores", {}).get(k, "-"))(k))
+          for k in ("structure", "readability", "correctness_risks", "error_handling", "data_safety",
+                    "tests", "consistency")],
+        *[(f"Metric: {k}", (lambda k: lambda r: r.get("quality", {}).get(k, "-"))(k))
+          for k in ("app_lines", "test_to_app_ratio", "mean_function_lines", "functions_over_50_lines",
+                    "max_complexity", "functions_complexity_over_10", "duplicate_share",
+                    "docstring_coverage", "float_calls", "sql_built_from_strings", "bare_except")],
+        ("Review cost $ (not in total)", lambda r: r.get("review", {}).get("review_cost", "-"))]
 print("| " + " | ".join(["Metric"] + [""] * len(runs)) + " |")
 print("|" + "---|" * (len(runs) + 1))
 for label, f in rows:

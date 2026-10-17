@@ -1,12 +1,21 @@
 # Benchmarks
 
 A fixed prompt built two ways in a fresh empty repo: by the team (`team_kit.py`, a Sonnet lead
-with Haiku teammates) and by one model working alone. Each run is scored with hidden acceptance
-tests, measured, recorded in `results/`, and the built app is deleted.
+with Haiku teammates) and by one model working alone. Each run is measured (tokens, USD) and
+scored three ways, then recorded in `results/`, and the built app is deleted:
+
+1. **Hidden acceptance tests** (`<bench>/accept/`): never shown to the model.
+2. **Code-quality metrics** (`quality.py`): size, function length, complexity, duplication,
+   docstrings, test/code ratio, and risky patterns (float, SQL from strings, bare except).
+3. **A blind review** (`<bench>/review.md`): Opus with read-only tools scores structure,
+   readability, correctness risks, error handling, data safety, tests and consistency (1-10)
+   and lists the top issues. `.claude/` is removed first, so it can't tell which arm built the
+   code. Its cost is recorded apart from the run's.
 
 | Benchmark | What | Hidden tests |
 |---|---|---|
-| `finance` | a finance system: ledger, FX, CSV import, budgets, recurring, reports, loans, HTTP API (Python, stdlib) | 25 |
+| `finance` (v2) | a small-business finance system: ledger, FX, import, budgets, recurring, reports, loans, users and audit, closed periods, invoices, bills, tax, reconciliation, ledger reports, an authenticated HTTP API (Python, stdlib) | 42 |
+| `finance/v1` (archived) | the first ten sections only; too small: Sonnet alone built it in 9 turns | 25 |
 
 ```
 bench/run.sh finance team        # MODEL=sonnet EFFORT=medium by default; KEEP=1 keeps the app
@@ -17,8 +26,9 @@ python3 team_kit.py cost --compare <run>/cost.json <run>/cost.json   # cost deta
 
 Rules for comparable results:
 
-- Don't edit `prompt.md` or `accept/` for a benchmark that has results: the prompt version (a
-  hash of both) is in every result, and `compare.py` warns when versions differ. A changed
+- Don't edit `prompt.md`, `accept/`, `review.md` or `quality.py` for a benchmark that has
+  results: the version (a hash of all four) is in every result, and `compare.py` warns when
+  versions differ. A changed
   benchmark is a new version, with a new reference pair.
 - Both arms use the same model, effort and cache. `team` differs only in the kit and the mode
   sentence ("Work with team on it."); `solo` removes the Agent tool, so it really is one model.
