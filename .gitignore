@@ -4,3 +4,6 @@
 # Per-teammate scratch and generated output
 scratch/
 out/
+
+# Benchmark workspaces (built apps, deleted after each run)
+bench/work/
