@@ -15,6 +15,8 @@ Protocol: `lab/protocol.md`. One section per run; cost reports in `results/metri
 | e4-B | Traps + help overlay, 2 teammates | kit 3.0 (/team skill); goal only, lead plans | 19369db | 20ab6038 session | 0.267 (cold 0.365) | 0.234 | 0.033 | lead 11, team 53 | 61K (traps) | yes, after 1 lead fix (balance: player hp 30 to 34) |
 | e4-C | Traps + help overlay, 2 teammates | kit 3.1; goal only, lead plans | b430470 (base + kit 3.1) | 87a904e7 session | 0.246 (cold 0.345) | 0.202 | 0.044 | lead 8, team 66 | 63K (traps) | yes, first check; but traps changed minDepth outside contract |
 | e4-D | Traps + help overlay, 2 teammates | kit 3.2; goal only, lead plans | 003a776 (base + kit 3.2) | 616fa41a session | 0.258 (cold 0.356) | 0.219 | 0.039 | lead 7, team 64 | 56K (traps) | yes, first check; tuning within the contract |
+| e5-A | Score, stats + high scores, 2 teammates | kit 3.3; goal only; default lead tools | 55561f3 | 156cf93c session | 0.229 (cold 0.328) | 0.201 | 0.028 | lead 7, team 44 | 51K (summary) | yes, first check |
+| e5-B | Score, stats + high scores, 2 teammates | kit 3.4; goal only; `team_kit.py lead` (removal list) | 55561f3 | 9e3c2255 session | 0.255 (cold 0.255) | 0.224 | 0.031 | lead 7, team 53 | 55K (summary) | yes, first check |
 
 ### m0 notes
 
@@ -55,3 +57,12 @@ cheaper than B, still 19% over A. Its plan gave the balance task too little room
 teammate stepped outside it (trap `minDepth`); kit 3.2 addresses both sides.
 D (kit 3.2): first check, no fix round, all tuning within the contract, same cost as C. Kit 3.2
 adopted: goal-only planning costs about 20-25% more than a full spec, at the same quality.
+
+### e5 notes
+
+Lean lead: `team_kit.py lead` starts the session without the tools a lead never uses (kit 3.4's
+removal list; the user preferred it to an allow-list, so new or unknown tools stay). Start-up
+prompt 40K to 25K tokens; 22% cheaper at a cold start, same quality. Adopted as the
+recommended way to start a team session (a plain session with `/team` still works). A first B
+attempt with a `--tools` allow-list never started (the list option swallowed the prompt);
+discarded and fixed. Details: `results/runs/e5/compare-A-B.md`.

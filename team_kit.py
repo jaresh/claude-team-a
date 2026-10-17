@@ -44,7 +44,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.4"
+KIT_VERSION = "3.5"
 
 SKILL = """\
 ---
@@ -197,7 +197,8 @@ files are in `.claude/team/`.
   counts, check results), **In progress** (where you stopped), **Next step** (the exact next
   action and command, runnable without your history), **Do not redo** (what you checked and
   ruled out, with evidence).
-- Final message: one status line and the handoff path.
+- Final message: one status line and the handoff path. If writing the handoff is refused, put
+  its four sections in your final message instead; the lead saves them.
 """
 
 STATUS = """\

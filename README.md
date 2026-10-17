@@ -15,10 +15,17 @@ The session you start is the lead. Type `/team <task>` (or ask for "the team") a
 
 A spec file in the prompt (`/team follow docs/spec.md`) replaces the planning step.
 
+Recommended start: `python3 .claude/skills/team/team_kit.py lead "<task>"` (`-- --model sonnet`
+and other claude flags after `--`). It opens the same session without the tools a lead never
+uses (artifacts, feedback reports, outside messages, Gmail), so the start-up prompt the lead
+re-reads every turn drops from about 40K to 25K tokens: 22% cheaper per team run in e5, with
+the same result. `--deny NAMES` removes more for one session.
+
 ```
 python3 team_kit.py install /path/to/repo     # or run it from inside the repo
 python3 team_kit.py status /path/to/repo
 python3 team_kit.py uninstall /path/to/repo   # --keep-work keeps .claude/team/
+python3 .claude/skills/team/team_kit.py lead "<task>"   # lean lead session on /team <task>
 python3 .claude/skills/team/team_kit.py cost  # tokens and USD of the latest session (cost --help)
 ```
 
