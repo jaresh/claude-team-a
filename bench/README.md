@@ -39,4 +39,13 @@ Rules for comparable results:
 Each arm builds in `bench/work/<bench>-<mode>` (git-ignored), a worktree of this repo on an
 empty orphan branch, so it is trusted without setup; it is removed after the run.
 
-Reference results: see `results/REFERENCE.md` once the first pair is in.
+Reference results: `finance/results/REFERENCE.md` (v2); v1's in `finance/v1/results/`.
+
+## Refresh
+
+Re-run both arms when a model changes (a new Sonnet or Haiku), when the kit changes, and from time
+to time: `bench/run.sh finance team` and `bench/run.sh finance solo`, then `bench/compare.py`
+against the reference pair. A change is adopted only if it keeps the reference's quality
+(hidden tests, review, metrics, coverage) at a lower cost. If the benchmark itself changes
+(prompt, hidden tests or review rubric), the version changes, and the first pair on it becomes
+the new reference.
