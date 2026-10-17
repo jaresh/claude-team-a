@@ -1,0 +1,82 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "fc0f4d31166f",
+  "started": "2026-10-17T09:22:04Z",
+  "ended": "",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 139,
+  "own_total": 139,
+  "python_lines": 3068,
+  "cost": 0.6731,
+  "cost_cold": 0.7153,
+  "lead_cost": 0.5103,
+  "team_cost": 0.1628,
+  "teammates": [
+    "books",
+    "data",
+    "api",
+    "reports",
+    "invoices"
+  ],
+  "lead_messages": 12,
+  "lead_peak_ctx": 58943,
+  "lead_compactions": 0,
+  "team_peak_ctx": 64610,
+  "quality": {
+    "app_files": 9,
+    "app_lines": 1347,
+    "test_files": 7,
+    "test_lines": 1122,
+    "test_functions": 139,
+    "test_to_app_ratio": 0.83,
+    "functions": 166,
+    "mean_function_lines": 7.2,
+    "max_function_lines": 36,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.9,
+    "max_complexity": 22,
+    "functions_complexity_over_10": 4,
+    "most_complex": [
+      "fin/cmd_api.py:_route (22)",
+      "fin/cli.py:execute (17)",
+      "fin/core.py:post_txn (13)"
+    ],
+    "docstring_coverage": 0.24,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 9,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 6,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "fin/cli.py execute and fin/cmd_api.py Handler catch only UserError, so sqlite3.OperationalError (for example 'database is locked' under the ThreadingHTTPServer, where no busy timeout is set) makes the CLI crash with a traceback and the API answer 500; also, a failed `init` (such as a bad currency) leaves behind a new database file that already has the schema.",
+      "fin/cmd_reports.py _typed/_trial_balance/_balance_sheet convert and round each account separately and then add up the rounded values, so with foreign-currency accounts total_debit can differ from total_credit by a cent, and total_assets can differ from total_liabilities + total_equity, even though the spec requires them to be equal.",
+      "Posting validation is written twice: Book.post_txn in core.py and _check_postings in cmd_data.py, and the cents check `_cents` exists in different forms in cmd_books.py and cmd_data.py (plus _posting in cmd_data.py), so the rules can drift apart.",
+      "Amount precision is handled differently in different places: txn add, import and budgets reject amounts with more than two decimals, but cmd_invoices._payment and _bill_line silently round them with rnd(), and Book.post_txn stores sub-cent amounts unrounded when they reach it from internal callers.",
+      "fin/cmd_api.py turns HTTP requests into CLI argv strings and runs them through execute(); this is clever but couples the HTTP layer to argparse, so for example GET /invoices/abc returns 400 instead of 404, a path id like '-1' is parsed as an option, and the command modules are loaded again on every request.",
+      "Naming differs between modules: cmd_books uses _x_cfg/_x_run, cmd_data uses public fx_add/convert with _cfg_x, and cmd_invoices uses _x_args with lambdas inside COMMANDS; also, tests/test_reports.py seeds data through Book internals and test_invoices.py reads the postings table directly, which ties the tests to the schema."
+    ],
+    "strengths": [
+      "The command registry (Command with a mode field) plus one transactional execute() keeps permission checks, BEGIN IMMEDIATE/ROLLBACK atomicity, and the CLI/API parity in one place, so a failed command changes nothing.",
+      "Money is Decimal throughout and stored as TEXT, every SQL value is passed as a parameter (the only f-strings insert internal table names), and fmt/rnd handle half-up rounding and avoid '-0.00' in one place.",
+      "The tests are thorough behavioural tests (139 of them) that run the real CLI in subprocesses against a temporary database for each test, check exit code 2 with empty stdout, and confirm that nothing changed after a failure, including the closed-period, partial-payment and rounding edge cases."
+    ],
+    "review_cost": 0.5524
+  }
+}
