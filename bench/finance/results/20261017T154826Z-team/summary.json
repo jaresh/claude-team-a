@@ -1,0 +1,104 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.10",
+  "started": "2026-10-17T15:48:27Z",
+  "ended": "2026-10-17T15:59:12Z",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 173,
+  "own_total": 173,
+  "python_lines": 3351,
+  "cost": 0.5602,
+  "cost_cold": 0.5602,
+  "lead_cost": 0.4347,
+  "team_cost": 0.1255,
+  "teammates": [
+    "invoices",
+    "bank",
+    "reports",
+    "books",
+    "api"
+  ],
+  "lead_messages": 14,
+  "lead_peak_ctx": 48960,
+  "lead_compactions": 0,
+  "team_peak_ctx": 65148,
+  "coverage": 0.976,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/cli.py (95%)"
+  ],
+  "quality": {
+    "app_files": 9,
+    "app_lines": 1374,
+    "test_files": 5,
+    "test_lines": 1340,
+    "test_functions": 173,
+    "test_to_app_ratio": 0.98,
+    "functions": 137,
+    "mean_function_lines": 9.7,
+    "max_function_lines": 71,
+    "functions_over_50_lines": 2,
+    "mean_complexity": 3.1,
+    "max_complexity": 14,
+    "functions_complexity_over_10": 3,
+    "most_complex": [
+      "fin/core.py:post_txn (14)",
+      "fin/cmd_bank.py:import_csv (13)",
+      "fin/cmd_reports.py:trial_balance (11)"
+    ],
+    "docstring_coverage": 0.11,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 2,
+    "bare_except": 0,
+    "broad_except": 1,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 6,
+      "readability": 7,
+      "correctness_risks": 6,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 8,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "fin/cli.py main and fin/server.py Handler._serve only catch UserError, so any other exception escapes. Examples are decimal.InvalidOperation from core.q on a large amount such as `txn add --posting A=1e30`, ValueError from add_months/add_days at the year-9999 edge, and sqlite3 errors: the CLI then prints a traceback and the HTTP client gets a dropped connection instead of a 500.",
+      "fin/cmd_reports.py balance_sheet does not compute retained_earnings as income minus expenses. It sets total_equity = assets \u2212 liabilities and makes retained earnings the leftover, so the identity always holds and any ledger or conversion inconsistency is hidden. trial_balance likewise pushes its rounding residue onto the largest account without saying so.",
+      "fin/core.py post_txn checks the balance on unrounded Decimals but stores fmt(amount), and only the caller txn_add_cmd rejects sub-cent amounts. recurring_add/recurring_run (and the blank-posting amount) can therefore store rounded postings that do not balance, while import_csv quietly rounds instead of rejecting.",
+      "fin/server.py turns JSON bodies back into CLI argv strings (`--posting=acct=amt`, `--line=a;b;c;d`) and parses them again with argparse, so an account containing '=' or a description containing ';' is mangled. It also rebuilds the parser and reloads the modules on every request.",
+      "Logic is duplicated or dead across modules: the budgets SCHEMA is defined in both cmd_bank.py and cmd_reports.py, `_name` exists in cmd_books.py and cmd_invoices.py with different stripping, core._rate is unused, and the comment in core.convert ('most recent rate wins, in whichever direction') contradicts what the code does.",
+      "Layers leak between modules: cmd_books.period_close_cmd calls cli.audit directly, cmd_invoices imports cli.Parser, cli.build_parser swallows ImportError for server, and load_modules checks whether the module files exist on disk. Reports also mix conversion dates: ledger converts at each posting's date, the other reports at the report date."
+    ],
+    "strengths": [
+      "cli.run is the single place for transactions (BEGIN/COMMIT/ROLLBACK), authorization and audit, so every command is atomic and audited the same way. SQL always uses parameters and money is stored as strings and handled as Decimal throughout.",
+      "Invoices and bills share one model (docs/doc_lines/doc_payments tables, plus _doc/_pay/_totals) with little duplication. Domain functions are short and clearly named.",
+      "The tests are thorough and organised by spec section. A fails() helper checks exit code 2, empty stdout and an unchanged database snapshot, each test uses its own temp DB, and edge cases such as zero-sum accounts, currency conversion and bad periods are covered. The harness helpers are duplicated across the test files, though."
+    ],
+    "review_cost": 0.8064
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 7,
+        "correctness_risks": 6,
+        "error_handling": 6,
+        "data_safety": 8,
+        "tests": 8,
+        "consistency": 6
+      },
+      "review_cost": 0.8064
+    }
+  ]
+}

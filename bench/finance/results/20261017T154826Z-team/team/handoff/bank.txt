@@ -1,0 +1,25 @@
+Done
+- fin/cmd_bank.py (new): SCHEMA (rules, imported, budgets, recurring tables; budgets DDL identical to reports' DDL), register() adds: rule add|list, import, budget set, recurring add|run, loan schedule.
+- tests/test_bank.py (new): 43 tests, all pass. Run: python3 -m unittest tests.test_bank  (OK, 0.9s)
+- No shared files edited; changes.md not touched. Nothing committed.
+- tests/ has no __init__.py; `python3 -m unittest tests.test_bank` works without it (namespace package).
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for bank. Lead: run `python3 -m unittest discover -s tests` once all modules exist.
+- Lead: list these assumptions in README.md:
+  - rule add requires the account to exist; rule accounts may be of any type.
+  - import: file read as UTF-8 with optional BOM; amounts rounded half up to cents before posting; description stripped; blank CSV lines skipped; zero amounts go to Income:Uncategorized (only negatives go to Expenses:Uncategorized).
+  - import dedupe key is (bank ACCOUNT, date, stripped description, amount) and only counts rows previously imported by this command, not manually entered transactions.
+  - budget set requires an existing expense account; negative budgets rejected; zero allowed; setting replaces.
+  - recurring add: postings are checked by posting them inside a SAVEPOINT (check_closed off) then rolled back; stored as the raw --posting strings and re-parsed at run time.
+  - recurring run: a closed period hit by any occurrence fails the whole run (exit 2, nothing created); occurrence n is computed from start, so Jan 31 monthly -> Feb 28 -> Mar 31; yearly Feb 29 -> Feb 28 in non-leap years.
+  - loan: principal rounded to cents first; last row pays remaining balance plus its interest; rate and months validated; loan is perm read (no --user needed).
+
+Do not redo
+- Checked fin/core.py and fin/cli.py: post_txn, get_account, ensure_account, parse_posting, add_months, add_days, dec, fmt, q, parse_month, parse_date all exist with the signatures used. cli.run wraps each command in BEGIN/ROLLBACK, so import and recurring run are atomic without extra work.
+- Nested subcommands use type(parent parser) as parser_class so argparse errors become UserError (exit 2) like the rest of the CLI, instead of SystemExit printing argparse usage.
+- Tests build the book directly with core.SCHEMA + cmd_bank.SCHEMA inserts (meta currency USD, admin user, accounts), so they do not depend on cmd_books being finished.
+- Possible concern for others, not a bug in my files: cli.main() calls load_modules() and open_db() on every invocation, so my SCHEMA runs there too; the reports DDL for budgets must stay byte-identical to mine for IF NOT EXISTS to be a no-op.

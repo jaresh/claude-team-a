@@ -1,0 +1,25 @@
+Done
+- fin/server.py (new): register(sub, report) adds `serve --port N` (perm read). Routes reuse the CLI parser and cli.run:
+  GET /accounts, /transactions (?account=&from=&to=), /balances?at=, /reports/income?from=&to=, /reports/balance-sheet?at=,
+  /reports/aging?at= (&payables=1), /invoices (?status=), /invoices/ID, /audit (?by=).
+  POST /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200).
+  Auth on POST: missing or unknown X-User -> 401; role viewer -> 403 (cli.check_role). User errors -> 400 {"error"}. Unknown path -> 404 {"error"}.
+  Each request opens its own sqlite connection via cli.open_db and runs cli.run, so it is atomic and audited with the CLI's actions.
+  Serve binds 127.0.0.1, single-threaded HTTPServer, stops on KeyboardInterrupt and prints {"port", "stopped": true}.
+  Bind failure, bad port, or missing DB -> exit 2 with nothing on stdout.
+- tests/test_api.py (new): 20 tests. Starts `python -m fin --db DB serve --port N` as a subprocess and checks reads against the CLI --json output, auth, errors, invoice flow, closed period, and serve error cases.
+- No shared files edited; changes.md untouched; nothing committed.
+- Check: `python3 -m unittest tests.test_api` -> Ran 20 tests in 1.080s, OK (re-run just now).
+
+In progress
+- Nothing.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` for the whole suite once the other modules are done. server.py depends on cli.build_parser, cli.run, cli.open_db, cli.check_role, cli.load_modules, and the command names registered by the books and invoices modules (txn, invoice, audit, account, balance, report).
+- For the README: the server only listens on 127.0.0.1, and requests are handled one at a time.
+- Nothing is printed at serve startup, because the contract says command modules never print. Operators get no "listening" line.
+
+Do not redo
+- Negative payment amounts: a body amount starting with "-" gets 400 from _pos, which stops argparse from reading it as an option. This is deliberate.
+- Invoice payment test: the invoice totals 110.00, so paying 100.00 correctly gives status "partial". The test bug was the amount, and the test now pays 110.00 and expects "paid". Do not change the status logic.
+- tests/ has no __init__.py; `python3 -m unittest tests.test_api` works without it.

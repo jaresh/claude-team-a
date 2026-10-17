@@ -1,0 +1,26 @@
+Done
+- fin/cmd_reports.py (new): report budget MONTH, income, balance-sheet, networth, trial-balance, ledger. All perm 'read', no audit. SCHEMA defines budgets table with the DDL from the plan (bank uses the same).
+- tests/test_reports.py (new): 23 tests, all pass. Builds its own book with core.connect + core SCHEMA + cmd_reports.SCHEMA and core.post_txn, inserts fx and budgets rows directly. Does not need cmd_books or cmd_bank. Runs through fin.cli.main with --json.
+- Check: `python3 -m unittest tests.test_reports` -> OK (23 tests).
+- Shared files: not touched. changes.md not edited (no shared-file edits).
+
+Assumptions (for README)
+- budget report: actual = postings to the account and its descendants in the month, converted to the book currency at month end. No --currency flag.
+- income / balance-sheet / trial-balance: --currency converts each posting at the report date (--to or --at). Missing rate -> UserError (exit 2).
+- income: from > to is a user error. networth: from > to is a user error. Months must be YYYY-MM.
+- balance-sheet: totals are built from per-account rounded values. total_equity = total_assets - total_liabilities (so the identity holds to the cent). retained_earnings = total_equity - sum of equity accounts (the balancing figure; equals income minus expenses when no conversion is involved).
+- networth: assets and liabilities in book currency, converted at each month's last day. networth = assets - liabilities. No --currency flag.
+- trial-balance: rows for every account name with postings up to --at. If per-account rounding leaves a residue, it goes onto the largest balance so debit and credit totals are equal.
+- ledger: in the account's currency. Each posting is converted at its own date (no-op when the currency matches). Row id = transaction id. Opening = balance before --from, including descendants.
+- Rows and accounts are listed by the posting's account name (not rolled up), except budget and ledger which use prefix matching.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: after books and bank land, run `python3 -m unittest discover -s tests`. No action needed from reports.
+
+Do not redo
+- Ran the tests: 23/23 OK. Syntax check via py_compile is clean. Pyflakes not installed; checked imports by hand.
+- Not checked: the full CLI path through cmd_books (init, txn add). The tests write the book directly, so they do not depend on books being present.
+- The working directory is already a git worktree (per the environment note), so I did not call EnterWorktree. Files were written at the paths the plan names.

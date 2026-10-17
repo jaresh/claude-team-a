@@ -1,0 +1,31 @@
+**Done**
+- fin/cmd_books.py (new): register() adds init, account add|list, txn add|list, balance, fx add, convert, user add|list, audit list, period close|status. Read-only commands use perm 'read'; user add and period close use 'admin'; the rest 'write'; init 'none'.
+- tests/test_books.py (new): 59 tests covering spec sections 1, 2, 3, 4, 11, 12, including error cases (exit 2, no rows changed, no audit entry).
+- Check: `python3 -m unittest tests.test_books` -> Ran 59 tests, OK.
+- Shared files (fin/core.py, fin/cli.py) not edited. changes.md not touched (no shared edits).
+- Not committed. Scratch dir .claude/team/scratch/books/ created, empty.
+
+**In progress**
+- Nothing open.
+
+**Next step**
+- Lead: run `python3 -m unittest discover -s tests` once all modules exist; my module needs nothing from other teammates.
+- Lead, decide on core.post_txn (shared, not mine): it checks balance on raw Decimals but stores fmt()-rounded amounts, so inputs with more than two decimals can store unbalanced rows (e.g. 0.005, 0.005, -0.01 passes the check, stores 0.01+0.01-0.01 != 0). I guard this only in `txn add` (cmd_books.txn_add_cmd rejects amounts with more than 2 decimals). bank (recurring/import), invoices and bill code call post_txn directly with their own Decimals and are NOT protected. Suggested fix in core.post_txn: reject any amount with q(amt) != amt, or check balance on the rounded values. Teammates for bank/invoices should be told.
+
+**Decisions and assumptions (for README)**
+- period close audits inside the function via cli.audit, not via set_defaults(audit=...): a no-op close (month not later than closed_through) changes nothing and writes no audit entry. The contract's audit lambda cannot skip an entry, so this is the only way. The lambda is not set for this command.
+- init on an existing book (meta currency present) is a user error. If validation fails, the db file may still be created by open_db with an empty schema (cli creates it before the command runs); no rows are written.
+- txn add: description must be non-empty; amounts with more than two decimals are rejected; at least two postings (core).
+- fx add: rate must be > 0; FROM must differ from TO; rate stored as a plain decimal string (format 'f'), so 1E+1 is stored as 10.
+- convert: --at is required (no default date).
+- balance: includes every account on or below a posted account (zero balances included when they have postings); keys sorted; currencies sorted.
+- txn list --account matches by segment (Assets matches Assets:Bank, not Assets:Ban).
+- user add --role uses argparse choices (admin, editor, viewer); invalid role is exit 2.
+- audit list --by filters on user name; no --by lists all.
+- Empty names (user, admin, description) are user errors.
+
+**Do not redo**
+- Checked cli.run: audit lambda return must be a 2-tuple, so no-op skip cannot be done via set_defaults.
+- Checked core.post_txn: balance uses raw amounts before fmt(); this is the sub-cent gap described above.
+- Checked that the spec's `--user` on read commands is optional (authorize returns early for 'read').
+- Checked a failing command leaves tables unchanged (tests in fails() compare a full snapshot of all book tables).

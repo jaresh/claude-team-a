@@ -1,0 +1,32 @@
+Done
+- fin/cmd_invoices.py (new): SCHEMA (tax_codes, parties, docs, doc_lines, doc_payments, cleared), register(sub, report) with tax add/list, customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list, report aging [--payables], report tax --from --to, reconcile ACCOUNT --date --balance [--clear ID ...]. Audit actions: tax.add, customer.add, vendor.add, invoice.create, invoice.issue, invoice.pay, bill.create, bill.pay, reconcile.
+- tests/test_invoices.py (new): 28 tests covering every command, viewer/editor roles, closed period block on issue, error cases with nothing changed, audit rows, aging, tax report, reconcile.
+- Check: `python3 -m unittest tests.test_invoices` -> Ran 28 tests, OK.
+- Note: tests/test_invoices.py changed on disk after my last edit (someone else edited it, not me). The run above was on the version present at that time, which passed. Re-run before relying on it.
+- No shared files edited, so .claude/team/changes.md is untouched. Nothing committed.
+
+Assumptions (for README)
+- Invoice numbers INV-YYYY-NNNN, assigned at issue, counted per year (no delete command exists, so no gaps).
+- Bill and invoice ids are per kind, assigned at create (bills) and create (invoices, draft ids).
+- Due date = date + party terms (customers default 30).
+- Invoice issue posts Assets:Receivable (total), Income:Sales (-net), Liabilities:SalesTax (-tax, if any).
+- Bill create posts each line's account (net), Assets:TaxReceivable (tax), Liabilities:Payable (-total). Line accounts must be expense or asset in book currency.
+- Payments: invoice pay posts to the given asset account (+) and Assets:Receivable (-); bill pay posts Liabilities:Payable (+) and the given asset account (-). Payment cannot exceed balance; drafts cannot be paid; Assets:Receivable cannot be a pay account.
+- Tax is rounded per line (core.q). Lines with no tax code carry zero tax and are excluded from the tax report.
+- Status: invoice draft/issued/partial/paid; bill open/partial/paid. Bill ref must be unique per vendor.
+- Aging: buckets use days past due as of --at, counting only payments dated on or before --at; drafts excluded; "current" = not yet due.
+- Tax report: only non-draft documents dated in range; collected from invoices, paid from bills.
+- Reconcile: --clear marks transactions with a posting to that account on or before --date (stored in cleared table, persists across runs); reports cleared balance, difference, and uncleared transaction ids.
+
+In progress
+- Nothing. Work is complete for the invoices section.
+
+Next step
+- Lead: review the tests/test_invoices.py change that appeared on disk, then run `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_invoices`.
+- Lead: copy the assumptions above into README.md if the team keeps assumptions there (not my file, not edited).
+
+Do not redo
+- Read plan.md, spec.md, core.py, cli.py; the Contract and sections 11-16 were checked against the implementation.
+- Closed-period check uses meta closed_through (as core.check_period does); verified by test_closed_period_blocks_issue.
+- Postings sums in tests must be done in Python with Decimal: SQL SUM over TEXT amounts returns float (e.g. 100.0), so balances() helper does the sum.
+- audit table key is seq, not id.
