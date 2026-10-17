@@ -2,6 +2,7 @@
 // The map.js constants are repeated here because this module must not import core/map.js.
 import { MONSTERS } from '../data/monsters.js';
 import { ITEMS } from '../data/items.js';
+import { TRAPS } from '../data/traps.js';
 
 const FLOOR = '.', STAIRS = '>';
 const NEIGHBOURS = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
@@ -76,6 +77,21 @@ export function spawnItems(rng, map, depth, occupied) {
     amount: row.amount,
     x,
     y,
+  }));
+}
+
+// Traps are spawned last, so their ids (tile index + 1) never collide with monster or item ids.
+export function spawnTraps(rng, map, depth, occupied) {
+  return spawnFrom(rng, map, depth, occupied, 1 + depth, TRAPS, (row, id, x, y) => ({
+    id,
+    kind: row.kind,
+    glyph: row.glyph,
+    color: row.color,
+    effect: row.effect,
+    amount: row.amount,
+    x,
+    y,
+    hidden: true,
   }));
 }
 

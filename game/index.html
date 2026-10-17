@@ -31,6 +31,12 @@
     font: 13px/1.5 ui-monospace, Menlo, Consolas, "Courier New", monospace;
   }
   #legend:empty { display: none; }
+  #help {
+    list-style: none; margin: 8px 0 0; padding: 8px 10px;
+    background: #111827; border: 1px solid #334155; border-radius: 6px;
+    font: 13px/1.5 ui-monospace, Menlo, Consolas, "Courier New", monospace;
+  }
+  #help[hidden] { display: none; }
   .controls { display: flex; flex-direction: column; align-items: center; gap: 12px; margin-top: 16px; }
   .pad {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
@@ -68,6 +74,7 @@
   <div id="hud" aria-live="polite"></div>
   <ul id="log" aria-live="polite"></ul>
   <ul id="legend" aria-label="Monsters in sight"></ul>
+  <ul id="help" aria-label="Help" hidden></ul>
 
   <div class="controls">
     <div id="end" hidden>
@@ -88,10 +95,11 @@
     <div class="actions" role="group" aria-label="Actions">
       <button class="small" data-action="pickup">Pick up</button>
       <button class="small" data-action="descend">Descend</button>
+      <button class="small" data-action="help" aria-label="Help">?</button>
       <button class="small" data-action="new">New game</button>
     </div>
     <div id="inventory" role="group" aria-label="Inventory"></div>
-    <p class="hint">Arrows or WASD / hjkl / yubn move. . wait, g pick up, &gt; descend, 1-9 use.</p>
+    <p class="hint">Arrows or WASD / hjkl / yubn move. . wait, g pick up, &gt; descend, 1-9 use. ? help, Esc close.</p>
   </div>
 </main>
 <script type="module" src="src/main.js"></script>

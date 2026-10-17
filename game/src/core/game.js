@@ -2,14 +2,14 @@
 import { createRng } from './rng.js';
 import { generateMap, isWalkable, WALL, FLOOR, STAIRS } from './map.js';
 import { computeFov } from './fov.js';
-import { spawnMonsters, spawnItems, attack, applyItem, monsterStep } from './rules.js';
+import { spawnMonsters, spawnItems, spawnTraps, attack, applyItem, monsterStep } from './rules.js';
 
 export const MAX_DEPTH = 5, FOV_RADIUS = 8;
 
 const LOG_KEEP = 50; // lines kept in state.log
 const VIEW_LOG = 5; // lines returned by getView
 const XP_PER_LEVEL = 10;
-const PLAYER_START = { hp: 30, atk: 2, def: 0 };
+const PLAYER_START = { hp: 32, atk: 2, def: 0 };
 const POISON_TURNS = 3; // turns of poison a poison monster's melee hit gives the player
 const TILE_FG = { [WALL]: '#94a3b8', [FLOOR]: '#475569', [STAIRS]: '#fde047' };
 const DIM = '#2a303b';
@@ -43,6 +43,19 @@ function itemAt(state, x, y) {
   return state.items.find((it) => it.x === x && it.y === y) || null;
 }
 
+// A random FLOOR tile with no monster and no trap, from the game rng. Null if there is none.
+function teleportTarget(state, rng) {
+  const { map } = state;
+  const taken = new Set([...state.monsters, ...state.traps].map((e) => tileIndex(map, e.x, e.y)));
+  const free = [];
+  for (let i = 0; i < map.tiles.length; i++) {
+    if (map.tiles[i] === FLOOR && !taken.has(i)) free.push(i);
+  }
+  if (free.length === 0) return null;
+  const i = free[rng.int(0, free.length - 1)];
+  return { x: i % map.w, y: Math.floor(i / map.w) };
+}
+
 function updateFov(state) {
   const p = state.player;
   state.visible = computeFov(state.map, p.x, p.y, FOV_RADIUS);
@@ -58,6 +71,7 @@ function buildLevel(state, rng) {
   const occupied = new Set();
   state.monsters = spawnMonsters(rng, map, state.depth, occupied);
   state.items = spawnItems(rng, map, state.depth, occupied);
+  state.traps = spawnTraps(rng, map, state.depth, occupied);
   state.explored = new Array(map.w * map.h).fill(false);
   updateFov(state);
 }
@@ -130,6 +144,30 @@ function ticksPoison(state) {
   say(state, 'Poison hurts you.');
 }
 
+// The player stands on tile (x, y): a trap there reveals itself and fires, every time. Monsters
+// never trigger traps.
+function triggerTrap(state, rng) {
+  const p = state.player;
+  const trap = state.traps.find((t) => t.x === p.x && t.y === p.y);
+  if (!trap) return;
+  trap.hidden = false;
+  if (trap.effect === 'damage') {
+    const before = p.hp;
+    p.hp = Math.max(1, p.hp - trap.amount);
+    say(state, `A ${trap.kind} trap wounds you for ${before - p.hp}.`);
+  } else if (trap.effect === 'poison') {
+    p.poison = POISON_TURNS;
+    say(state, 'A poison needle pricks you.');
+  } else if (trap.effect === 'teleport') {
+    const dest = teleportTarget(state, rng);
+    if (dest) {
+      p.x = dest.x;
+      p.y = dest.y;
+    }
+    say(state, 'A teleport trap moves you.');
+  }
+}
+
 // Ends a turn: monsters act (unless skipped), poison ticks, FOV and explored update, turn goes up,
 // death check.
 function endTurn(state, rng, monstersAct) {
@@ -160,6 +198,7 @@ export function newGame(seed) {
     },
     monsters: [],
     items: [],
+    traps: [],
     visible: new Set(),
     explored: [],
     log: ['Welcome to the dungeon.'],
@@ -194,6 +233,7 @@ export function act(state, action) {
         p.x = nx;
         p.y = ny;
         takesTurn = true;
+        triggerTrap(state, rng);
       } else {
         say(state, 'A wall blocks the way.');
       }
@@ -252,9 +292,10 @@ export function act(state, action) {
 }
 
 export function getView(state) {
-  const { map, player: p, monsters, items, visible, explored } = state;
+  const { map, player: p, monsters, items, traps, visible, explored } = state;
   const monsterBy = new Map(monsters.map((m) => [tileIndex(map, m.x, m.y), m]));
   const itemBy = new Map(items.map((it) => [tileIndex(map, it.x, it.y), it]));
+  const trapBy = new Map(traps.map((t) => [tileIndex(map, t.x, t.y), t]));
   const cells = [];
   for (let i = 0; i < map.w * map.h; i++) {
     const x = i % map.w, y = Math.floor(i / map.w);
@@ -266,6 +307,9 @@ export function getView(state) {
     } else if (visible.has(i) && itemBy.has(i)) {
       const it = itemBy.get(i);
       cells.push({ ch: it.glyph, fg: it.color, bg: null });
+    } else if (visible.has(i) && trapBy.has(i) && !trapBy.get(i).hidden) {
+      const t = trapBy.get(i);
+      cells.push({ ch: t.glyph, fg: t.color, bg: null });
     } else if (visible.has(i)) {
       const t = map.tiles[i];
       cells.push({ ch: t, fg: TILE_FG[t] || DIM, bg: null });
@@ -294,5 +338,8 @@ export function getView(state) {
       .map((m) => ({
         kind: m.kind, glyph: m.glyph, color: m.color, hp: m.hp, maxHp: m.maxHp, ability: m.ability,
       })),
+    traps: traps
+      .filter((t) => !t.hidden && visible.has(tileIndex(map, t.x, t.y)))
+      .map((t) => ({ kind: t.kind, glyph: t.glyph, color: t.color, x: t.x, y: t.y })),
   };
 }

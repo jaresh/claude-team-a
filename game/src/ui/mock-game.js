@@ -46,6 +46,7 @@ function enterLevel(state) {
   const hp = 3 + state.depth - 1;
   state.monsters = [{ id: 1, kind: 'rat', glyph: 'r', color: '#b9a37e', x: 16, y: 4, hp, maxHp: hp, atk: 1, def: 0, xp: 1, ability: null }];
   state.items = [{ id: 2, kind: 'potion', glyph: '!', color: '#ff5fa2', effect: 'heal', amount: 8, x: 5, y: 8 }];
+  state.traps = [{ id: 3, kind: 'spike', glyph: '^', color: '#c9d1d9', x: 6, y: 4 }];
   state.explored = new Array(W * H).fill(false);
 }
 
@@ -126,7 +127,7 @@ export function newGame(seed) {
       id: 0, kind: 'player', glyph: '@', color: '#f8fafc', x: START.x, y: START.y,
       hp: 12, maxHp: 12, atk: 3, def: 1, xp: 0, level: 1, inventory: [],
     },
-    monsters: [], items: [], visible: new Set(), explored: [],
+    monsters: [], items: [], traps: [], visible: new Set(), explored: [],
     log: ['Mock dungeon. Find the > stairs.'],
     turn: 0, status: 'playing',
   };
@@ -210,7 +211,7 @@ export function act(state, action) {
 }
 
 export function getView(state) {
-  const { map, player: p, monsters, items, visible, explored } = state;
+  const { map, player: p, monsters, items, traps, visible, explored } = state;
   const cells = [];
   for (let i = 0; i < map.w * map.h; i++) {
     const x = i % map.w;
@@ -242,6 +243,9 @@ export function getView(state) {
     visibleMonsters: monsters
       .filter((m) => visible.has(idx(m.x, m.y)))
       .map(({ kind, glyph, color, hp, maxHp, ability }) => ({ kind, glyph, color, hp, maxHp, ability })),
+    traps: traps
+      .filter((t) => visible.has(idx(t.x, t.y)))
+      .map(({ kind, glyph, color, x, y }) => ({ kind, glyph, color, x, y })),
     log: state.log.slice(-5),
     status: state.status,
   };
