@@ -14,6 +14,7 @@ Protocol: `lab/protocol.md`. One section per run; cost reports in `results/metri
 | e4-A | Traps + help overlay, 2 teammates | kit 3.0 (/team skill); full spec | 19369db | a8dfb567 session | 0.191 (cold 0.289) | 0.156 | 0.035 | lead 5, team 41 | 62K (traps) | yes, first check: 128 tests, 35 acceptance, smoke ok |
 | e4-B | Traps + help overlay, 2 teammates | kit 3.0 (/team skill); goal only, lead plans | 19369db | 20ab6038 session | 0.267 (cold 0.365) | 0.234 | 0.033 | lead 11, team 53 | 61K (traps) | yes, after 1 lead fix (balance: player hp 30 to 34) |
 | e4-C | Traps + help overlay, 2 teammates | kit 3.1; goal only, lead plans | b430470 (base + kit 3.1) | 87a904e7 session | 0.246 (cold 0.345) | 0.202 | 0.044 | lead 8, team 66 | 63K (traps) | yes, first check; but traps changed minDepth outside contract |
+| e4-D | Traps + help overlay, 2 teammates | kit 3.2; goal only, lead plans | 003a776 (base + kit 3.2) | 616fa41a session | 0.258 (cold 0.356) | 0.219 | 0.039 | lead 7, team 64 | 56K (traps) | yes, first check; tuning within the contract |
 
 ### m0 notes
 
@@ -52,3 +53,5 @@ cost`); the e3 runs were also cache-warm (cold: 0.307 and 0.313). Details:
 C (B on kit 3.1, tasks name what they may change) removed B's merge round: lead 8 turns, 6%
 cheaper than B, still 19% over A. Its plan gave the balance task too little room, and the
 teammate stepped outside it (trap `minDepth`); kit 3.2 addresses both sides.
+D (kit 3.2): first check, no fix round, all tuning within the contract, same cost as C. Kit 3.2
+adopted: goal-only planning costs about 20-25% more than a full spec, at the same quality.

@@ -1,0 +1,29 @@
+{
+  "files": [
+    ".claude/agents/team-dev.md",
+    ".claude/skills/team/SKILL.md",
+    ".claude/skills/team/team_kit.py"
+  ],
+  "settings_prior": [
+    [
+      [
+        "env",
+        "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS"
+      ],
+      false,
+      null
+    ],
+    [
+      [
+        "modelSettings",
+        "claude-haiku-5-5",
+        "autoCompactWindow"
+      ],
+      false,
+      null
+    ]
+  ],
+  "settings_created": true,
+  "settings_text": null,
+  "version": "3.2"
+}

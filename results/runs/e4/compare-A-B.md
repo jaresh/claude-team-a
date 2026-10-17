@@ -52,3 +52,14 @@ contract allows, and the lead accepted it (noted in `C.md`). Kit 3.2 from this: 
 the contract parts its checks depend on and gives a task all the tuning the contract allows;
 a teammate never widens its own permissions (it stops and hands off with options); the lead
 treats an out-of-permission change as a design decision (revert, or keep and tell the user).
+
+## Variant D (B on kit 3.2)
+
+D costs $0.356 at a cold start: the same as C within noise (+3%), 3% under B, 23% over A. Lead
+turns 8. Accepted on the first check with no fix round, and the quality problem of C is gone:
+the plan gave `traps` everything the e2 and e4 sections allow (it tuned spike damage 3 -> 2 and
+player hp 30 -> 34, both allowed, both logged), and its done check covered every acceptance
+suite the task could break. Kit 3.2 is adopted.
+
+Summary of e4: planning from a goal costs about 20-25% more than a full spec (two more lead
+turns and more reading), and kit 3.2 makes its quality match the spec's.
