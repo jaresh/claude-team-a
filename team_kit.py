@@ -36,7 +36,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.1"
+KIT_VERSION = "3.2"
 
 SKILL = """\
 ---
@@ -68,15 +68,16 @@ If the user names a spec or plan file, follow it instead: it replaces this step,
 teammate prompts are used word for word.
 
 Otherwise read only what planning needs (the repo's CLAUDE.md or README for build and test
-commands, the files the task touches) and overwrite `.claude/team/plan.md` with:
+commands, the files the task touches, and the parts of any contract or spec that the checks
+depend on, such as targets and allowed changes) and overwrite `.claude/team/plan.md` with:
 
 - **Goal** in two or three lines, and the **Check**: one command that decides "done" (the
   repo's tests, a build, a lint, or tests you write first).
 - **Contract**: what tasks working in parallel must agree on (function signatures, data shapes,
   file formats), exact enough that they fit together without talking to each other.
 - **Tasks**, usually 2-4, one section each, headed `## <task>`: the files it owns (no file in
-  two tasks), what to do, what it may change to make its checks pass (for example the tuning
-  values a contract allows), its done check (one command, under a minute, that includes every
+  two tasks), what to do, what it may change to make its checks pass (all the tuning a contract
+  allows for those checks, not a subset), its done check (one command, under a minute, that includes every
   existing check the task must keep passing), and what it must not touch. A teammate that isn't
   told what it may change stops and asks, which costs you a merge round. A task fits one
   teammate's ~100K-token context: a few files, one module.
@@ -103,6 +104,8 @@ Then end the turn. Completion notices wake you: don't poll, sleep, or check on t
 When every teammate of the wave has handed back, in one turn: read `changes.md` and each
 handoff's Done and Next step (the rest only when a decision needs it), update `status.md`, and
 run the check once on the merged result. Teammates' reports aren't trusted until it passes.
+A logged change outside a task's permissions is a design decision: revert it, or keep it and
+say so in your report.
 
 - If it fails: one fix round. Fix a small problem yourself, or start a successor (`<task>-2`,
   then `-3`) whose prompt names the handoff and the failing output. A successor reads the
@@ -157,6 +160,8 @@ files are in `.claude/team/`.
   files you change, and any handoff your task names. A successor (`<task>-2`) reads the handoff
   and the files it names.
 - If another teammate's file looks wrong, say so in your handoff; don't edit it.
+- Stay within what your task says you may change. If your checks can't pass within that, stop
+  and write the handoff with the options you found; never widen your own permissions.
 - Scratch files go only in `.claude/team/scratch/<your name>/`, generated output in a new empty
   folder.
 - Log each edit to a shared file (a config, a data table, a shared generator) with one line in

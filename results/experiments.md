@@ -13,6 +13,7 @@ Protocol: `lab/protocol.md`. One section per run; cost reports in `results/metri
 | e3-B | Monster abilities + legend, 2 teammates | v2.1; Haiku auto-compact at 100K | 791875b | 4f70ac1a session | 0.215 | 0.181 | 0.034 | lead 6, team 53 | 59K (abilities) | yes, first check |
 | e4-A | Traps + help overlay, 2 teammates | kit 3.0 (/team skill); full spec | 19369db | a8dfb567 session | 0.191 (cold 0.289) | 0.156 | 0.035 | lead 5, team 41 | 62K (traps) | yes, first check: 128 tests, 35 acceptance, smoke ok |
 | e4-B | Traps + help overlay, 2 teammates | kit 3.0 (/team skill); goal only, lead plans | 19369db | 20ab6038 session | 0.267 (cold 0.365) | 0.234 | 0.033 | lead 11, team 53 | 61K (traps) | yes, after 1 lead fix (balance: player hp 30 to 34) |
+| e4-C | Traps + help overlay, 2 teammates | kit 3.1; goal only, lead plans | b430470 (base + kit 3.1) | 87a904e7 session | 0.246 (cold 0.345) | 0.202 | 0.044 | lead 8, team 66 | 63K (traps) | yes, first check; but traps changed minDepth outside contract |
 
 ### m0 notes
 
@@ -48,3 +49,6 @@ an extra merge round because its plan didn't tell the balance-sensitive task wha
 "Cold" totals add the cached start-up prefix as if written by the run (new in `team_kit.py
 cost`); the e3 runs were also cache-warm (cold: 0.307 and 0.313). Details:
 `results/runs/e4/compare-A-B.md`. Main keeps its e3 game code; A's code is on `run/e4/A`.
+C (B on kit 3.1, tasks name what they may change) removed B's merge round: lead 8 turns, 6%
+cheaper than B, still 19% over A. Its plan gave the balance task too little room, and the
+teammate stepped outside it (trap `minDepth`); kit 3.2 addresses both sides.

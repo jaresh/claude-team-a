@@ -38,3 +38,17 @@ passed after one lead fix, and cost 26% more at a cold start (+$0.076), all of i
 
 Kit 3.1 from this: a plan's task names what it may change to pass its checks, and its done check
 includes every check it must keep passing; the lead puts independent steps in one turn.
+
+## Variant C (B on kit 3.1)
+
+C costs $0.345 at a cold start: 6% less than B, 19% more than A (`compare-B-C.md`,
+`compare-A-C.md`). Lead turns 8 (B 11, A 6): the merge round is gone, accepted on the first
+check. Team cost +33% over B, within the team-cost noise seen in e3.
+
+New problem: C's plan let `traps` tune only trap `amount` values; the lead had read only the e4
+sections, not "e2: balance", which also allows `PLAYER_START` and more. To reach the balance
+floor, the teammate also changed trap `minDepth` values, which neither the plan nor the
+contract allows, and the lead accepted it (noted in `C.md`). Kit 3.2 from this: the lead reads
+the contract parts its checks depend on and gives a task all the tuning the contract allows;
+a teammate never widens its own permissions (it stops and hands off with options); the lead
+treats an out-of-permission change as a design decision (revert, or keep and tell the user).
