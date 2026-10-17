@@ -1,0 +1,22 @@
+**Done**
+- Files created: fin/reports.py (report income, balance-sheet, networth, trial-balance, ledger; all read-only, write=False, no audit), tests/test_reports.py (9 tests, FinCase).
+- Shared files: none edited, no changes.md rows needed.
+- Check: `python3 -m unittest tests.test_reports tests.test_core` -> Ran 13 tests, OK (about 17 s).
+- Design, from spec sections 8 and 17:
+  * Amounts are grouped by (account, currency), summed, then converted once with book.convert at the report date (--to for income and ledger, --at for balance-sheet and trial-balance, month end for networth). The same helper, `_sums`, is used for every report.
+  * Income and liabilities/equity are shown as negated raw balances. Accounts appear only if they have postings in range, so zero-sum accounts show "0.00".
+  * retained_earnings = -(sum of income and expense raw balances) up to the date.
+  * ledger converts each posting to the account's currency at --to. Opening is the sum of the converted postings before --from, over the account and its descendants.
+
+**In progress**
+- Nothing. Work is complete for the reports task.
+- Known limit: with --currency conversion, the rounding is per (account, currency) group, so total_assets vs total_liabilities+total_equity, and total_debit vs total_credit, can differ by 0.01 when several currencies are involved. In a single currency they are exact. Tests only cover the single-currency totals and one converted case. The spec does not say how to handle this, so I did not add a plug.
+
+**Next step**
+- Lead: decide whether the 0.01 multi-currency rounding gap needs a fix. If it does, the fix is in `_sums` in fin/reports.py.
+- Then run the full suite: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests`
+
+**Do not redo**
+- Read core.py, ledger.py, cli.py, admin.py, tests/helpers.py, tests/test_core.py, and spec sections 8 and 17 (.claude/team/spec.md lines 20-25 and 71+).
+- I did not reuse ledger.balances: it gives every parent prefix, but the spec wants leaf names only ("by the name the postings are on"), so it does not match.
+- Tests: the test file inserts the fx row via sqlite3 because the rates module's `fx add` may not exist yet in the CLI. If `fx add` lands, the test can use it instead.

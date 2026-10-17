@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "fin/cli.py main only catches UserError, so sqlite3 errors such as 'database is locked' or a non-SQLite --db file end in a traceback with exit code 1; and because Book.__init__ in fin/core.py runs BEGIN IMMEDIATE even for read-only commands, concurrent GETs on the ThreadingHTTPServer in fin/server.py queue behind one write lock and can time out with a 500.",
+    "fin/admin.py init runs with Book(create=True), and sqlite3.connect creates the database file before anything is checked, so a failed init (for example a bad --currency) still leaves an empty fin.db behind, which breaks the 'changes nothing' rule.",
+    "Logic is duplicated between fin/invoices.py and fin/bills.py: _tax_rate vs tax_rate (one divides by 100, the other does not), _add_party/_list_party vs vendor_add/vendor_list (only vendor_add strips the name), and invoice_dict vs bill_dict; fin/aging.py also recomputes document totals from the JSON lines instead of reusing those helpers.",
+    "fin/bills.py bill_pay checks less than invoice_pay: it never checks that the payment account is an asset account and works out 'already paid' from the balance rather than the status, although the spec says bills have 'the same errors' as invoices.",
+    "Currency conversion rounds in different places: reports._sums converts once per (account, currency) group, but budgets.report_budget and reports.ledger convert and round every posting, so multi-currency totals can differ by cents between reports.",
+    "fin/reconcile.py check_may_clear re-implements cli.check_permission because reconcile is registered as a read command with a write side effect, and bankimport.rule_add stores a rule's account without checking it, so category_for creates it silently at import time (or fails then, for an invalid type or a mismatched currency)."
+  ],
+  "strengths": [
+    "Clear layering: every command is a handler(book, args) registered through one reg() helper, and the HTTP API turns each request into CLI argv and calls cli.execute, so the API and CLI share validation, permissions and transactions instead of duplicating them.",
+    "Money is handled safely throughout: amounts are stored as TEXT and handled as Decimal, there is one cents()/fmt() pair for half-up rounding that never prints -0.00, all SQL values are bound parameters, and every command runs in a single transaction that is rolled back on any exception (validate-then-post for import and recurring run).",
+    "The tests are black-box CLI and HTTP tests on a fresh database per test; they cover every section, often confirm that errors change nothing, and test edge cases such as month-end clamping, Feb 29, invoice numbering per year and partial payments, although some suites sit in oddly named files and core txn list/balance --at filtering is thinly covered."
+  ],
+  "review_cost": 0.921
+}

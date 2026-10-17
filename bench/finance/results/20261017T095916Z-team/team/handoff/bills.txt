@@ -1,0 +1,22 @@
+**Done**
+- Added fin/bills.py: vendor add/list, bill create/pay/show/list, plus register(reg). Spec section 14, with section 11 audit names (vendor.add, bill.create, bill.pay) and section 12 closed-period checks (through post_txn).
+- Added tests/test_bills.py (7 tests): vendor add/list, bill create (totals, lines, balances, txn description, audit), rounding (33.33 at VAT5 gives tax 1.67), create error cases (unknown vendor, duplicate ref, unknown tax code, unknown or wrong-type account, bad line, bad amount, bad date, viewer, no user; nothing changed afterwards), bill pay (partial, paid, over-balance, zero, already paid, audit), closed period (pay and create blocked, pay in next month allowed), show/list with --status, editor vs viewer.
+- Check: `python3 -m unittest tests.test_bills tests.test_core` gives Ran 10 tests, OK.
+- No shared files edited, so changes.md is untouched.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- The lead runs `python3 -m unittest tests.test_bills tests.test_core` in the integrated tree when ready. Nothing else pending for bills.
+
+**Do not redo**
+- Choices the spec does not state, which the lead may want to check:
+  - bill pay with AMOUNT <= 0 is a user error.
+  - bill pay does not require the ACCOUNT to be an asset account; it only has to exist (spec says "same errors" as invoices, and invoice pay requires an asset account, so this is a judgement call).
+  - bill list with an unknown --status is a user error.
+  - line ACCOUNT must be expense or asset (spec); a line with an unknown tax code is a user error.
+  - vendor add rejects negative --terms.
+- The tax lookup (`tax_rate`) and bill-line parser live in fin/bills.py. There is no core helper for tax codes, so this is local, not a copy of a shared helper.
+- Tests insert the VAT20 and VAT5 rows into `taxes` with sqlite3 in setUp, so they do not depend on the invoices teammate's `tax add`.
+- Other teammates' files (invoices.py, rates.py, and so on) are present in the tree; I did not read or change them.

@@ -1,0 +1,31 @@
+{
+  "coverage": 0.964,
+  "covered_lines": 1240,
+  "executable_lines": 1286,
+  "tests_passed_under_coverage": true,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/cli.py (92%)"
+  ],
+  "per_file": {
+    "fin/__init__.py": 0.0,
+    "fin/__main__.py": 0.75,
+    "fin/admin.py": 0.923,
+    "fin/aging.py": 0.975,
+    "fin/bankimport.py": 0.962,
+    "fin/bills.py": 0.969,
+    "fin/budgets.py": 0.971,
+    "fin/cli.py": 0.922,
+    "fin/core.py": 0.956,
+    "fin/invoices.py": 0.981,
+    "fin/ledger.py": 0.982,
+    "fin/loans.py": 0.974,
+    "fin/rates.py": 0.962,
+    "fin/reconcile.py": 0.975,
+    "fin/recurring.py": 0.962,
+    "fin/reports.py": 0.991,
+    "fin/server.py": 0.969,
+    "fin/taxreport.py": 0.96
+  }
+}

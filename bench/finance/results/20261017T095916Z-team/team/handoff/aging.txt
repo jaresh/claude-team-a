@@ -1,0 +1,22 @@
+**Done**
+- Spec read from .claude/team/spec.md sections 11, 12, 13 (aging), 14 (payables aging), 15, 16.
+- Created fin/aging.py: `report aging --at DATE [--payables]` (register; read-only). Reads invoices/bills and payments tables directly; total = sum(line net + line tax) from lines JSON; paid = payments dated <= DATE; only non-draft docs dated <= DATE with balance > 0; buckets current / 1-30 / 31-60 / 61-90 / 90+ by DATE - due; returns current, 1-30, 31-60, 61-90, 90+, total.
+- Created fin/taxreport.py: `report tax --from DATE --to DATE` (read-only). collected = invoices (non-draft) dated in period, paid = bills dated in period; sums line tax; by_code has every tax code used on a line in the period; returns collected, paid, net, by_code.
+- Created fin/reconcile.py: `reconcile ACCOUNT --date DATE --balance AMOUNT [--clear ID ...]`. Registered with write=False, because viewers may run it without --clear. When --clear is given, handler does its own role check (no user = Unauthorized, viewer = Forbidden, unknown user = Unauthorized); that mirrors cli.check_permission for write commands. Each cleared id must have a posting to exactly ACCOUNT dated <= DATE, else UserError with nothing marked. Inserts into cleared (INSERT OR IGNORE), audit "reconcile" target ACCOUNT, only when --clear is given. Returns account, date, statement_balance, cleared_balance, difference, uncleared (ascending).
+- Created tests/test_aging.py: 7 tests (receivable buckets, payables, errors, viewer read-only for aging and tax, tax report, reconcile incl. error cases and audit, reconcile viewer rules). Test data is inserted with sqlite3 (invoices/bills/payments rows) and txns via CLI.
+- Check: `python3 -m unittest tests.test_aging tests.test_core` → Ran 9 tests, OK.
+- No shared files edited (changes.md not touched). Nothing committed.
+
+**In progress**
+- Nothing. Work is complete for the aging section.
+
+**Next step**
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_aging tests.test_core`, then the consistency pass. Points to check:
+  1. The reconcile role check (`check_may_clear` in fin/reconcile.py) duplicates part of cli.check_permission. If a shared helper is wanted, move it to core and import it.
+  2. Invoice and bill line totals are read from the stored lines[].net and lines[].tax (per lead's note), not recomputed. If the invoices/bills teammates store different keys, aging.py and taxreport.py must follow them.
+  3. Bucket boundaries: days <= 0 current, 1-30 covers 1..30, 31-60 covers 31..60, 61-90 covers 61..90, 90+ is >90. Matches the spec wording "bucketed by days past due".
+
+**Do not redo**
+- Read core.py, cli.py, ledger.py, admin.py, helpers.py, test_core.py in full already. Do not re-read.
+- The tests pass as they stand. Don't retry them with other data shapes.
+- Using `report aging --payables` with no user works (read-only), so no role check is needed there. Verified by test_aging_is_read_only_for_viewers and the payables test.

@@ -1,0 +1,18 @@
+**Done**
+- fin/rates.py: `fx add DATE FROM TO RATE` (write, audit fx.add "FROM/TO", rate must be > 0), `convert AMOUNT FROM TO --at DATE` (read; uses book.convert; output {"amount","currency"}).
+- fin/budgets.py: `budget set ACCOUNT MONTH AMOUNT` (write, audit budget.set "ACCOUNT MONTH"; account must be type expense, amount >= 0, upserts budgets row), `report budget MONTH` (read; one row per budget that month, sorted by account; actual = month postings of account and descendants, converted to book currency at month end via book.convert).
+- fin/loans.py: `loan schedule PRINCIPAL RATE MONTHS --start DATE` (read-only; payment via closed form, rate 0 -> principal/months; last row pays remaining balance; row n date = add_months(start, n)).
+- tests/test_rates.py: 9 tests with the rates/core pair.
+- Check: `python3 -m unittest tests.test_rates tests.test_core` -> Ran 9 tests, OK.
+- No shared files edited (changes.md not touched).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_rates tests.test_core` once more with the others, then consistency pass. Choices to review: `convert` requires --at (spec shows it without brackets); budget amounts are assumed to be in book currency (no --currency on budget commands).
+
+**Do not redo**
+- Spec sections 4, 6, 9 read from .claude/team/spec.md. Loans have no table; none needed.
+- Core helpers used: parse_amount/parse_decimal/parse_currency/parse_date/parse_month, add_months, month_last_day, cents, fmt, book.account, book.posting_rows, book.convert, book.rate (indirectly), book.audit. No helper written by me.
+- Failures seen and fixed were in my own test assertions (audit list ordering), not in code.

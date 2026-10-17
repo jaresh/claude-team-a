@@ -1,0 +1,27 @@
+bankimport handoff (status: DONE, check passes)
+
+**Done**
+- fin/bankimport.py (new): rule add, rule list, import (CSV, --account, --date-col/--desc-col/--amount-col, --skip-header). Spec section 5.
+- fin/recurring.py (new): recurring add, recurring run --until. Spec section 7, closed-period check from section 12.
+- tests/test_bankimport.py (new): 11 tests in total for both modules (rules incl. viewer denial and audit, import categorisation/dedupe/columns/errors/closed period, recurring add validation, monthly/weekly/yearly dates, idempotence, closed period atomicity). Audit entries checked for rule.add, import, recurring.run.
+- Check: `python3 -m unittest tests.test_bankimport tests.test_core` -> Ran 11 tests, OK.
+- No shared files edited (fin/core.py, cli.py, ledger.py, tests/helpers.py untouched). No changes.md rows needed.
+- Core helpers used: parse_date, parse_amount, fmt, parse_posting_args, add_months, add_days, post_txn, check_open, ensure_account, account, audit.
+
+**In progress**
+- Nothing. Not committed (per team rules).
+
+**Next step**
+- Lead: review the two new modules and run `python3 -m unittest tests.test_bankimport tests.test_core` once more with the whole team's files in place.
+
+**Do not redo**
+- Decisions taken where the spec is silent (flag for the consistency pass / lead):
+  * Import dedupe key is (account, date, description, fmt(amount)); description is stripped. Within-file repeats are caught because each imported row is inserted into `imports` immediately.
+  * Import checks every row against closed periods before posting anything, including rows that would be skipped as duplicates.
+  * An amount of exactly 0.00 goes to Income:Uncategorized (spec only names negative and positive).
+  * A rule's account is created lazily (ensure_account) at import time when a row matches it, not at `rule add`. An invalid account name in a rule therefore fails at import, not at rule add.
+  * rule add accepts an empty pattern (it matches everything); the spec does not forbid it.
+  * recurring add validates postings by calling book.post_txn(check_period=False) inside a SAVEPOINT named `recurring_check` and rolling it back. SAVEPOINT "check" is a syntax error in SQLite, which is why the name differs.
+  * recurring run computes every occurrence from the start date (not chained), so Jan 31 → Feb 28 → Mar 31 holds. Occurrences already in recurring_done are skipped. All closed-period checks run before any posting.
+  * Output of recurring add is {"id","name","every","start"}; the spec does not define it.
+- The working tree is the shared checkout (untracked fin/ and tests/), so no EnterWorktree was used. Decision stands unless the lead asks otherwise.

@@ -1,0 +1,42 @@
+**Done**
+- fin/server.py (new): `serve --port N [--read-only]` registered via reg("serve", ...), write=False.
+  - GET routes: /accounts, /transactions (account, from, to), /balances (at), /reports/income (from, to),
+    /reports/balance-sheet (at), /reports/aging (at, payables=1 -> --payables), /invoices (status),
+    /invoices/ID, /audit (by). Unknown query parameter -> 400.
+  - POST routes: /transactions (201), /invoices (201, lines -> --line=desc;qty;price;tax), /invoices/ID/issue (200),
+    /invoices/ID/payments (200, positional amount, --date, --account).
+  - Every request runs cli.execute(db, argv, user). GET passes user None; POST passes the X-User header.
+  - Status mapping: Unauthorized 401, Forbidden 403, other UserError 400 {"error"}, unknown path 404 {"error"},
+    bad JSON / wrong types / float amounts / ';' or '=' in fields 400, unexpected exception 500 {"error":"internal error"}.
+  - Order for POST: unknown path 404 -> missing X-User 401 (body not read) -> read-only 403 -> body 400 -> execute.
+  - serve(): book.rollback(); book.close(); ThreadingHTTPServer on 127.0.0.1; prints "serving on http://127.0.0.1:PORT"
+    to stderr; serve_forever until interrupted (Ctrl-C returns 130 via main, no traceback).
+  - Interpretation: `--read-only` makes every POST answer 403 (not in the spec text; my reading of the plan).
+- tests/test_server.py (new): 15 tests with tests.test_core. Unit tests for the argv builders plus subprocess
+  tests (`serve --port 0`, port read from stderr) for reads, auth (401/403), validation (400, nothing changed),
+  404, and --read-only.
+- Check: `python3 -m unittest tests.test_server tests.test_core` -> 15 tests OK (about 10 s). Re-run after
+  the external change to tests/test_server.py: still OK.
+- Shared files: none edited (changes.md not touched). cli.py, core.py, helpers.py untouched.
+- Environment: EnterWorktree is not available in this session, so I worked in the shared checkout, as the team
+  layout expects. Nothing committed.
+
+**In progress**
+- Nothing. The task is complete.
+
+**Next step**
+- Lead: integrated run once the other modules exist: `python3 -m unittest discover -s tests`, then manual
+  `python3 -m fin --db PATH serve --port 8080` and a POST with `-H 'X-User: admin'`. The invoice and
+  report routes are only unit-tested for argv shape here, since invoices/reports are not in fin/ yet.
+
+**Do not redo**
+- Checked that core.Book.rollback() is safe on a closed connection (it catches sqlite3.Error, which covers
+  ProgrammingError), so an interrupted serve() unwinds through run() without a traceback. Verified: a server started
+  from a Python parent with SIGINT sent exits with returncode 130 and prints only the "serving on" line.
+  Pitfall: a server started with `&` from a non-interactive bash inherits SIGINT as ignored, so SIGINT does nothing
+  and the process must be stopped with SIGTERM. That is a harness artifact, not a server bug.
+- Checked that cli.run() calls book.commit() after the handler returns, which would fail on a closed connection,
+  so serve() never returns normally. It only exits by exception (KeyboardInterrupt or kill). Do not add a return.
+- Parser.error raises UserError, so argparse failures become 400 without printing. A positional amount beginning
+  with '-' is rejected with 400 before argparse sees it (to avoid "--help" and similar). Option values use the
+  `--name=value` form for the same reason.

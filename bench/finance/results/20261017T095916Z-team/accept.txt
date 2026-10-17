@@ -1,0 +1,64 @@
+test_account_currency (test_fin.TestAccounts.test_account_currency) ... ok
+test_bad_root_and_duplicate_are_user_errors (test_fin.TestAccounts.test_bad_root_and_duplicate_are_user_errors) ... ok
+test_init_twice_is_a_user_error (test_fin.TestAccounts.test_init_twice_is_a_user_error) ... ok
+test_parents_are_created_and_listed_sorted (test_fin.TestAccounts.test_parents_are_created_and_listed_sorted) ... ok
+test_post_transactions_and_errors (test_fin.TestApi.test_post_transactions_and_errors) ... /usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 404: 'Not Found'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_reads_match_the_command_line (test_fin.TestApi.test_reads_match_the_command_line) ... ok
+test_invoice_flow_and_reports (test_fin.TestApiV2.test_invoice_flow_and_reports) ... ERROR
+test_users_on_writes (test_fin.TestApiV2.test_users_on_writes) ... /usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 401: 'Unauthorized'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 403: 'Forbidden'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_rollup_and_as_of_date (test_fin.TestBalances.test_rollup_and_as_of_date) ... ok
+test_bill_amounts_and_posting (test_fin.TestBills.test_bill_amounts_and_posting) ... ok
+test_payments_and_payables_aging (test_fin.TestBills.test_payments_and_payables_aging) ... ok
+test_budget_vs_actual (test_fin.TestBudgets.test_budget_vs_actual) ... ok
+test_direct_inverse_latest_and_rounding (test_fin.TestFx.test_direct_inverse_latest_and_rounding) ... ok
+test_column_options (test_fin.TestImport.test_column_options) ... ok
+test_rules_categories_and_duplicates (test_fin.TestImport.test_rules_categories_and_duplicates) ... ok
+test_aging (test_fin.TestInvoices.test_aging) ... ok
+test_draft_amounts (test_fin.TestInvoices.test_draft_amounts) ... ok
+test_issue_numbers_and_posting (test_fin.TestInvoices.test_issue_numbers_and_posting) ... ok
+test_payments_and_status (test_fin.TestInvoices.test_payments_and_status) ... ok
+test_tax_codes_and_customers (test_fin.TestInvoices.test_tax_codes_and_customers) ... ok
+test_account_ledger (test_fin.TestLedgerReports.test_account_ledger) ... ok
+test_trial_balance (test_fin.TestLedgerReports.test_trial_balance) ... ok
+test_annuity_schedule (test_fin.TestLoans.test_annuity_schedule) ... ok
+test_fractional_rate_and_month_ends (test_fin.TestLoans.test_fractional_rate_and_month_ends) ... ok
+test_zero_rate (test_fin.TestLoans.test_zero_rate) ... ok
+test_close_blocks_postings (test_fin.TestPeriods.test_close_blocks_postings) ... ok
+test_import_and_recurring_fail_whole (test_fin.TestPeriods.test_import_and_recurring_fail_whole) ... ok
+test_clearing_across_statements (test_fin.TestReconcile.test_clearing_across_statements) ... ok
+test_monthly_month_ends_and_idempotent (test_fin.TestRecurring.test_monthly_month_ends_and_idempotent) ... ok
+test_unbalanced_recurring_is_a_user_error (test_fin.TestRecurring.test_unbalanced_recurring_is_a_user_error) ... ok
+test_weekly_and_yearly (test_fin.TestRecurring.test_weekly_and_yearly) ... ok
+test_conversion_in_reports (test_fin.TestReportCurrency.test_conversion_in_reports) ... ok
+test_balance_sheet (test_fin.TestReports.test_balance_sheet) ... ok
+test_income_statement (test_fin.TestReports.test_income_statement) ... ok
+test_networth (test_fin.TestReports.test_networth) ... ok
+test_collected_and_paid_by_code (test_fin.TestTaxReport.test_collected_and_paid_by_code) ... ok
+test_add_with_balancing_posting (test_fin.TestTransactions.test_add_with_balancing_posting) ... ok
+test_each_currency_must_balance (test_fin.TestTransactions.test_each_currency_must_balance) ... ok
+test_invalid_transactions_are_rejected_and_not_stored (test_fin.TestTransactions.test_invalid_transactions_are_rejected_and_not_stored) ... ok
+test_list_order_and_filters (test_fin.TestTransactions.test_list_order_and_filters) ... ok
+test_audit_log (test_fin.TestUsers.test_audit_log) ... ok
+test_roles (test_fin.TestUsers.test_roles) ... ok
+
+======================================================================
+ERROR: test_invoice_flow_and_reports (test_fin.TestApiV2.test_invoice_flow_and_reports)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 719, in test_invoice_flow_and_reports
+    self.assertEqual((status, inv["number"]), (200, "INV-2026-0001"))
+                              ~~~^^^^^^^^^^
+KeyError: 'number'
+
+----------------------------------------------------------------------
+Ran 42 tests in 49.499s
+
+FAILED (errors=1)

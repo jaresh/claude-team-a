@@ -1,0 +1,18 @@
+**Done**
+- Created fin/invoices.py: tax add/list, customer add/list, invoice create/issue/pay/show/list, and exported invoice_dict(book, row) (spec section 13 JSON; sums net/tax/total from stored lines, paid from payments kind='invoice').
+- Created tests/test_invoices.py (FinCase): tax/customer add/list, duplicates and bad input (exit 2, nothing changed), create example matches the spec JSON exactly, rounding and no-tax lines, issue numbering (INV-YYYY-NNNN, per year), issue postings and balances, skipped SalesTax when tax is zero, pay partial/paid, pay errors, closed period blocks issue and pay, show/list with status filter, viewer cannot write, audit actions.
+- No shared files edited, so changes.md has no new lines. Core and other modules untouched.
+- Check: `python3 -m unittest tests.test_invoices tests.test_core` -> 15 tests, OK.
+
+**In progress**
+- Nothing. Section 13 except aging is done; aging is the aging teammate's (report aging --at).
+
+**Next step**
+- None required for this task. The lead can run `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_invoices tests.test_core`.
+- For the aging teammate: fin/invoices.py exports invoice_dict(book, row) and the invoices table holds number, due, status and lines; payments with kind='invoice' carry doc_id, date and amount.
+- For the bills teammate: parse_line/invoice_dict are invoice-specific; bills need their own line parser.
+
+**Do not redo**
+- Spec section 13 is in .claude/team/spec.md (verbatim); the earlier "spec not in repo" blocker is resolved.
+- Known gaps, not spec-required and left as-is: invoice pay does not reject an --account equal to Assets:Receivable; the issue number is max existing sequence for the year +1; payment date is not checked against the invoice date.
+- The core helpers used: parse_decimal, parse_amount, cents, fmt, parse_date, add_days, book.post_txn, book.ensure_account, book.account, book.audit. No core gaps found.
