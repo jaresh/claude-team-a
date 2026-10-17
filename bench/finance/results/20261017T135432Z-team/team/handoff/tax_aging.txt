@@ -1,0 +1,23 @@
+tax_aging handoff
+
+**Done**
+- Files: fin/tax_aging.py (new), tests/test_tax_aging.py (new). No shared files edited, so .claude/team/changes.md is unchanged.
+- Commands: report aging --at DATE [--payables] (read), report tax --from DATE --to DATE (read).
+- Plain functions: aging(book, at, payables=False), tax_report(book, frm, to).
+- Check: `python3 -m unittest discover -s tests -p test_tax_aging.py` -> 17 tests, OK.
+- Full suite `python3 -m unittest discover -s tests` -> 158 tests, OK (at the time of this run, api.py did not exist yet).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: nothing needed for tax_aging. The api module can call tax_aging.aging / tax_report through the CLI like any other command.
+
+**Decisions (spec was silent; lead may override)**
+- aging: only docs with status != 'draft' and date <= DATE count (invoices, or bills with --payables). Payments count only when dated <= DATE. Docs with balance <= 0 are left out. Days past due = DATE - due; <= 0 is current, then 1-30, 31-60, 61-90, 90+. Output keys in spec order, plus total.
+- tax report: collected = line tax of non-draft invoices dated in range; paid = line tax of all bills dated in range. Lines with no tax code are counted in the totals (they are always 0.00 today) but not in by_code. by_code lists each code that appears on any in-range line from either side, with both keys present (0.00 when one side is empty). net = collected - paid.
+- Range check: --from after --to is a user error, same as reports.py. Bad dates are user errors via parse_date/date_str.
+
+**Do not redo**
+- Checked invoicing.py (invoices.paid is maintained by pay_invoice, status draft/issued/partial/paid) and billing.py (bill statuses open/partial/paid, payments kind='bill'). Aging uses the payments table with the date filter instead of the paid column, because the paid column includes payments after DATE.
+- No core helper was needed. Nothing in core.py, cli.py, or helpers.py was changed.

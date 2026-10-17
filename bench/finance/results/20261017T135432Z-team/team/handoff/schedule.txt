@@ -1,0 +1,23 @@
+**Done**
+- fin/schedule.py (new): COMMANDS for `recurring add` (write), `recurring run --until` (write), `loan schedule PRINCIPAL RATE MONTHS --start` (read). Plain functions: recurring_add(book, name, every, start, postings), recurring_run(book, until), loan_schedule(principal, rate, months, start).
+- tests/test_schedule.py (new): 22 tests, all pass. Covers monthly end-of-month clamp (Jan31 -> Feb28 -> Mar31 -> Apr30), weekly, yearly leap day, rerun creates nothing new, until before start, posting shape, closed period fails whole run (nothing posted, recurring_done empty), open occurrences after a closed period are posted, audit entries (recurring.add, recurring.run), viewer role denied, add validation (duplicate, unbalanced, unknown account, two postings minimum, one blank max, bad period/date), loan standard/zero-rate/one-month/invalid inputs/read without user.
+- Check: `python3 -m unittest discover -s tests` -> Ran 141 tests, OK (run after the ledger tests settled; an earlier full run showed 3 transient test_ledger failures while that file was being edited, and they did not reproduce).
+- Shared files: none edited, no changes.md rows.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- Lead: nothing required for schedule. Optional for consistency pass: move `_check_postings` in fin/schedule.py into core (see below).
+- Command to re-verify: `cd <repo root> && python3 -m unittest discover -s tests -p 'test_schedule.py'`
+
+**Notes for the lead / consistency pass**
+- `_check_postings(book, postings)` in fin/schedule.py duplicates the balance/count rules of Book.post_txn (2+ postings, at most one blank, currencies sum to zero) but without posting or checking the period. I wrote it locally because core has no validate-only helper and `post_txn` would insert and enforce closed periods (recurring add is not period-checked by spec). Suggest core gets `validate_postings(book, postings) -> rows` used by both post_txn and this module, and that the ledger's txn add validation uses it too.
+- Recurring audit: `recurring.run` is audited on every successful run, including when 0 are created (same choice as admin's period.close).
+- Stored postings in table recurring: JSON list of [account, str(Decimal) or null]; amounts are not rounded on storage (txn add stores fmt()). Only differs for inputs with more than two decimals.
+- Loan row n date = add_months(start, n) per spec sec 9 (row 1 is one month after start). Principal must have at most two decimals (else user error).
+
+**Do not redo**
+- Checked core.py/cli.py: `execute()` rolls back on handler exception, so partial posts would not persist anyway; I still check all dates first so the error is raised before any posting.
+- `D()` only accepts str or Decimal, not int (caused a bug, fixed with D("0")).
+- Checked that `--posting` and `--until` argparse dests match handlers (`posting`, `until`, `name`, `every`, `start`, `principal`, `rate`, `months`).

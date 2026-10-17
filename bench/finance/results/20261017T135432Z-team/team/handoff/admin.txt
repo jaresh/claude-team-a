@@ -1,0 +1,20 @@
+**Done**
+- Added fin/admin.py: commands user add (admin), user list (read), audit list [--by] (read), period close MONTH (admin), period status (read). Plain functions: add_user, list_users, audit_entries, period_status, close_period.
+- Added tests/test_admin.py: 16 tests (UserTest, RoleTest, AuditTest, PeriodTest). RoleTest patches fin.cli.load_commands to add a stub write command (probe write) so editor/viewer write rules are checked end to end, since no other module exists yet in this worktree.
+- Check: `python3 -m unittest discover -s tests` -> Ran 20 tests, OK (16 admin + 4 core).
+- No shared files edited; changes.md untouched. Nothing committed.
+
+Choices the lead may want to know about (spec silent):
+- user add returns {"name","role"}; period close returns {"closed_through": ...} (same as period status).
+- user add strips the name and rejects an empty one; role is argparse choices (invalid role => user error).
+- period close validates with core.parse_month and compares YYYY-MM strings to keep the max.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- None for admin. Once ledger/others merge, optionally run `python3 -m unittest discover -s tests` again; the RoleTest stub can stay as is.
+
+**Do not redo**
+- Checked core.py and cli.py: cli.execute already enforces --user for non-read perms, viewer blocked on "write", and admin perm checks. admin.py relies on that and adds no role logic of its own.
+- Did not call EnterWorktree: cwd is already the git worktree bench/finance-team, and EnterWorktree would create a fresh checkout without the untracked fin/ and tests/ files and .claude/team.

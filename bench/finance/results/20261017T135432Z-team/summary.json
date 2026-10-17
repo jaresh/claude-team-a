@@ -1,0 +1,109 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.9",
+  "started": "2026-10-17T13:54:32Z",
+  "ended": "2026-10-17T14:08:58Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 181,
+  "own_total": 181,
+  "python_lines": 3756,
+  "cost": 0.9421,
+  "cost_cold": 0.9843,
+  "lead_cost": 0.7247,
+  "team_cost": 0.2174,
+  "teammates": [
+    "schedule",
+    "admin",
+    "ledger",
+    "billing",
+    "banking",
+    "invoicing",
+    "reports",
+    "tax_aging",
+    "api",
+    "consistency"
+  ],
+  "lead_messages": 21,
+  "lead_peak_ctx": 67424,
+  "lead_compactions": 0,
+  "team_peak_ctx": 66095,
+  "coverage": 0.96,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (0%)",
+    "fin/cli.py (85%)"
+  ],
+  "quality": {
+    "app_files": 13,
+    "app_lines": 1496,
+    "test_files": 11,
+    "test_lines": 1509,
+    "test_functions": 181,
+    "test_to_app_ratio": 1.01,
+    "functions": 194,
+    "mean_function_lines": 6.8,
+    "max_function_lines": 37,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.5,
+    "max_complexity": 17,
+    "functions_complexity_over_10": 2,
+    "most_complex": [
+      "fin/api.py:_plan (17)",
+      "fin/cli.py:execute (15)",
+      "fin/billing.py:create_bill (10)"
+    ],
+    "docstring_coverage": 0.38,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 5,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/core.py Book.resolve_postings/post_txn checks that a transaction balances using the unrounded amounts but stores them rounded with fmt(), so input like 1.005 + 1.005 = 2.01 is accepted and saved as an unbalanced transaction (amounts with more than two decimals are also rounded silently).",
+      "fin/cli.py execute catches only UserError, so sqlite3 errors (a --db path that isn't a SQLite file, a constraint violation) end in a traceback instead of exit code 2; its permission block also repeats the same `c.perm != \"read\" or args.user` condition inside itself.",
+      "fin/api.py _plan/_txn_add turns each JSON request back into CLI argv strings and runs execute(): the HTTP layer depends on the CLI's option syntax, JSON numbers are read as float and passed on with str() (e.g. 1e-07 is then rejected), and the server-wide lock makes all requests run one at a time.",
+      "fin/invoicing.py pay_invoice and fin/billing.py pay_bill are near-duplicates whose validation has drifted apart: bills require the payment account to be in the book currency but invoices don't, so a foreign-currency asset account fails with a confusing 'does not balance' message, and the checks run in a different order.",
+      "fin/reports.py trial_balance and _sheet convert and round each account separately, so with multi-currency postings total_debit can differ from total_credit and total_assets from total_liabilities + total_equity by a few cents; nothing reconciles the rounding.",
+      "Conventions differ between modules (invoicing.COMMANDS uses lambdas while the others use named handlers; _no_args is copied into three modules; validation order differs), and several test classes (test_billing.seed, test_reports.fx/post) set up data with direct SQL INSERTs and Book calls instead of the commands, which ties them to the schema."
+    ],
+    "strengths": [
+      "Clear layering around one core: core.Book owns posting, period checks, FX and tax, and each feature module declares Cmd entries (words, setup, handler, perm) that the CLI loads and checks for permission in one place, with commit/rollback in a single place.",
+      "Money is handled carefully: Decimal everywhere via the strict D() parser, ROUND_HALF_UP q2, fmt() that never prints -0.00, amounts stored as TEXT, and every SQL statement parameterised (the only interpolated SQL fragments are fixed table names and the subtree_sql helper).",
+      "All-or-nothing operations are handled well (import and recurring run validate every row and period before posting, reconcile checks every ID before marking any), and the 181 tests run the real CLI in-process, check exit code 2 with empty stdout and no changes left behind, and cover roles, closed periods, rounding and the HTTP status codes."
+    ],
+    "review_cost": 0.8328
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 8,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 7
+      },
+      "review_cost": 0.8328
+    }
+  ]
+}

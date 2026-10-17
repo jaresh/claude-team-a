@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/core.py Book.resolve_postings/post_txn checks that a transaction balances using the unrounded amounts but stores them rounded with fmt(), so input like 1.005 + 1.005 = 2.01 is accepted and saved as an unbalanced transaction (amounts with more than two decimals are also rounded silently).",
+    "fin/cli.py execute catches only UserError, so sqlite3 errors (a --db path that isn't a SQLite file, a constraint violation) end in a traceback instead of exit code 2; its permission block also repeats the same `c.perm != \"read\" or args.user` condition inside itself.",
+    "fin/api.py _plan/_txn_add turns each JSON request back into CLI argv strings and runs execute(): the HTTP layer depends on the CLI's option syntax, JSON numbers are read as float and passed on with str() (e.g. 1e-07 is then rejected), and the server-wide lock makes all requests run one at a time.",
+    "fin/invoicing.py pay_invoice and fin/billing.py pay_bill are near-duplicates whose validation has drifted apart: bills require the payment account to be in the book currency but invoices don't, so a foreign-currency asset account fails with a confusing 'does not balance' message, and the checks run in a different order.",
+    "fin/reports.py trial_balance and _sheet convert and round each account separately, so with multi-currency postings total_debit can differ from total_credit and total_assets from total_liabilities + total_equity by a few cents; nothing reconciles the rounding.",
+    "Conventions differ between modules (invoicing.COMMANDS uses lambdas while the others use named handlers; _no_args is copied into three modules; validation order differs), and several test classes (test_billing.seed, test_reports.fx/post) set up data with direct SQL INSERTs and Book calls instead of the commands, which ties them to the schema."
+  ],
+  "strengths": [
+    "Clear layering around one core: core.Book owns posting, period checks, FX and tax, and each feature module declares Cmd entries (words, setup, handler, perm) that the CLI loads and checks for permission in one place, with commit/rollback in a single place.",
+    "Money is handled carefully: Decimal everywhere via the strict D() parser, ROUND_HALF_UP q2, fmt() that never prints -0.00, amounts stored as TEXT, and every SQL statement parameterised (the only interpolated SQL fragments are fixed table names and the subtree_sql helper).",
+    "All-or-nothing operations are handled well (import and recurring run validate every row and period before posting, reconcile checks every ID before marking any), and the 181 tests run the real CLI in-process, check exit code 2 with empty stdout and no changes left behind, and cover roles, closed periods, rounding and the HTTP status codes."
+  ],
+  "review_cost": 0.8328
+}

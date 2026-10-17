@@ -1,0 +1,30 @@
+## Done
+Files changed (only my own):
+- fin/reports.py (new): COMMANDS for report income, report balance-sheet, report networth, report trial-balance, report ledger (all perm "read"). Plain functions income(), balance_sheet(), networth(), trial_balance(), ledger() take book and return JSON-able dicts/lists.
+- tests/test_reports.py (new): 15 tests, subclass helpers.FinTest. Setup posts directly through core.Book (post_txn + ensure_account + fx insert), so it does not depend on the ledger CLI.
+
+Check results:
+- `python3 -m unittest discover -s tests -p test_reports.py` -> Ran 15 tests, OK.
+- Full `python3 -m unittest discover -s tests` -> Ran 121 tests, FAILED (failures=1, errors=2). All three are in tests/test_ledger.py (ledger teammate's in-progress file): AccountTest.test_write_needs_user_and_viewer_cannot_write (IndexError), TxnTest.test_closed_period_fails (no attribute query_write), BalanceTest.test_balance_empty_book ("database already exists"). Not caused by reports.
+- py_compile of fin/reports.py and tests/test_reports.py: OK.
+- changes.md: no shared-file edits made.
+
+Design notes (decisions the lead may want to check):
+- Helpers local to fin/reports.py: _currency, _totals, _by_type, _sheet, _sum, _fmt_map, _check_range. No shared helper was written, so consistency pass has nothing to move from here, except maybe _currency (validates a --currency value) if another module needs the same check.
+- Conversion: postings summed per (account, posting currency), converted once at the report date with book.convert, then q2 once per account (per spec section 8).
+- income: --from/--to; conversion date = --to. balance-sheet and trial-balance: conversion date = --at. networth: each month converted at its month end (uses core.month_end and add_months).
+- trial-balance has no --currency (spec 17 says book currency).
+- ledger: every row and the opening are converted to ACCOUNT's currency at the --to date (spec 17 gives no conversion date; this was my choice). Running balance kept unrounded; each shown amount and balance is q2/fmt.
+- Retained earnings = shown income total minus shown expense total (from the rounded per-account values).
+- argparse dest for --from is "from", read with getattr(args, "from").
+
+## In progress
+Nothing. Task complete.
+
+## Next step
+None for reports. Lead: once ledger's test_ledger.py failures are fixed by the ledger teammate, run `python3 -m unittest discover -s tests` from the repo root to confirm the whole suite is green.
+
+## Do not redo
+- Checked that the three failing tests are in tests/test_ledger.py (not mine) by reading the traceback paths; did not edit them.
+- Checked that the reports tests pass in isolation (15/15) and that the expected numbers were hand-computed from the setup postings (e.g. Feb-end balance sheet: assets 6100.00, liabilities 50.00, equity 1000.00, retained 5050.00; USD at 1.10 gives 6710.00 / 55.00 / 6655.00).
+- Known limitation: with --currency conversion, rounding per account can make total_assets differ from total_liabilities + total_equity by 0.01. In book currency it is exact. Not changed, to keep totals equal to the sums of the rows shown.

@@ -1,0 +1,39 @@
+## Done
+Files changed (only my own):
+- fin/ledger.py (new): COMMANDS for account add, account list, txn add, txn list, balance, fx add, convert.
+  Shared helpers exported for other modules:
+  - parse_postings(items): ['ACCOUNT=AMOUNT' | 'ACCOUNT', ...] -> [(account, Decimal|None)] (wraps core.split_posting; None -> [])
+  - add_txn(book, date, desc, postings): rejects blank description, then book.post_txn. No audit (handler audits).
+  - list_txns(book, account=None, frm=None, to=None)
+  - balances(book, at=None): {account: {cur: fmt}} including ancestors, signed, debit +.
+  - add_rate(book, date, frm, to, rate), convert_amount(book, amount, frm, to, at)
+- tests/test_ledger.py (new): 26 tests (accounts, roles on account add, txn add/list, balances, fx/convert). All pass.
+- changes.md: no edits (no shared files touched).
+
+Check results:
+- `python3 -m unittest discover -s tests -p test_ledger.py`: Ran 26 tests, OK.
+- `python3 -m unittest discover -s tests`: Ran 120 tests, OK (this run included other teammates' test files present in the shared worktree at the time).
+
+Output shapes chosen (spec silent):
+- account add -> {"name","type","currency"}
+- fx add -> {"date","from","to","rate"} (rate stored/printed as plain decimal text)
+- convert -> {"amount","currency"}
+- fx add audit target "FROM/TO"; txn.add target = txn id as string.
+
+Judgment calls the lead may want to know:
+- fx add rejects FROM == TO (rate() would ignore such a row anyway).
+- add_txn rejects a blank/whitespace description (spec silent).
+- --from is read via getattr(args, "from") since `args.from` is a syntax error.
+- convert requires --at (spec gives it as required form).
+
+## In progress
+Nothing. Task complete.
+
+## Next step
+None for ledger. Lead may run the full check: `python3 -m unittest discover -s tests` from the repo root.
+
+## Do not redo
+- Did not call EnterWorktree: cwd is already the isolated worktree (/home/jaca/claude-team-a/bench/work/finance-team); no commits made (team rule).
+- Did not reimplement parsing/rounding/date/posting: uses core.D, fmt, date_str, split_posting, Book.post_txn, Book.add_account, Book.account, Book.convert, Book.txn.
+- Balance and txn list SQL follow the Conventions (`account = ? OR account LIKE ? || ':%'`).
+- Viewer role test inserts the users row via sqlite3 directly so it does not depend on the admin module's `user add`.

@@ -1,0 +1,30 @@
+api handoff
+
+**Done**
+- Files: fin/api.py (new), tests/test_api.py (new). No shared files edited, so .claude/team/changes.md is unchanged.
+- Command: `serve --port N` (perm read, required --port, blocks until Ctrl-C, then returns None so the CLI prints nothing).
+- Plain functions: make_server(db, port) returns a ThreadingHTTPServer bound to 127.0.0.1 (port 0 = free port); tests use it. Requests run through cli.execute(argv) under one global threading.Lock.
+- Routes: GET /accounts, /transactions (account, from, to), /balances (at), /reports/income (from, to), /reports/balance-sheet (at), /reports/aging (at, payables=1|true), /invoices (status), /invoices/ID, /audit (by). POST /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200).
+- Status codes: UserError 400, AuthError 401, PermissionDenied 403, unknown path or method 404, unexpected exception 500 with {"error"}. POST without a non-empty X-User header is 401 before routing, so it also applies to unknown POST paths.
+- Check: `python3 -m unittest discover -s tests` -> 181 tests, OK (api module: 23 tests, about 3s).
+- End-to-end: `python3 -m fin --db <db> serve --port 18765` answers GET /accounts with 200 and POST /transactions with 400 JSON errors. The scratch db is at .claude/team/scratch/api/e2e.db.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: nothing needed for api. Optional manual check: `python3 -m fin --db ./fin.db serve --port 8080`, then `curl -H 'X-User: admin' ...`.
+
+**Decisions (spec 10 was silent; lead may override)**
+- Body validation runs before the auth check, so a viewer sending a malformed body gets 400, not 403. execute() does the auth and role checks.
+- Values go to argparse as `--name=value`, so a description like "-x" or a negative amount is not read as an option.
+- Invoice line fields containing ';' are a 400 (the line format cannot carry them).
+- GET ignores X-User. Only POST passes --user to execute.
+- Access logging is silenced (log_message is a no-op) so tests and the server stay quiet. Errors are returned as JSON.
+- Bills are not exposed (GET /bills and bill POSTs are not in spec 10). Add them if wanted.
+- Reports, balances and the trial balance: only the spec 10 routes are mapped. report networth, trial-balance, ledger and report tax are not exposed.
+
+**Do not redo**
+- Checked the 0.5s serve_forever poll interval, which made tests take 13s. Tests now use poll_interval=0.01 (api module about 3s; full suite 15s on the last run).
+- Checked core/cli: execute() already gives AuthError for missing or unknown --user and PermissionDenied by role, so the API does not re-implement auth.
+- Checked fin/tax_aging.py: `report aging` takes --payables as store_true and calls aging(book, at, payables), which matches the API mapping.

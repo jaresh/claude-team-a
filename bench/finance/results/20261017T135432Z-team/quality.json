@@ -1,0 +1,27 @@
+{
+  "app_files": 13,
+  "app_lines": 1496,
+  "test_files": 11,
+  "test_lines": 1509,
+  "test_functions": 181,
+  "test_to_app_ratio": 1.01,
+  "functions": 194,
+  "mean_function_lines": 6.8,
+  "max_function_lines": 37,
+  "functions_over_50_lines": 0,
+  "mean_complexity": 2.5,
+  "max_complexity": 17,
+  "functions_complexity_over_10": 2,
+  "most_complex": [
+    "fin/api.py:_plan (17)",
+    "fin/cli.py:execute (15)",
+    "fin/billing.py:create_bill (10)"
+  ],
+  "docstring_coverage": 0.38,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 5,
+  "bare_except": 0,
+  "broad_except": 3,
+  "parse_errors": []
+}

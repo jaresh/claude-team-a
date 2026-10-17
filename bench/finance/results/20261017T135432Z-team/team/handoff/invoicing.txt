@@ -1,0 +1,33 @@
+**Done**
+- fin/invoicing.py (new): COMMANDS for tax add/list, customer add/list, invoice create/issue/pay/show/list.
+  Plain functions: add_tax, list_tax, add_customer, list_customers, parse_line, create_invoice, issue_invoice,
+  pay_invoice, invoice_dict(book, id), list_invoices(book, status=None).
+  Audit: tax.add (code), customer.add (name), invoice.create / invoice.issue / invoice.pay (id).
+  Perms: write for tax add, customer add, invoice create/issue/pay; read for the list/show commands.
+- tests/test_invoicing.py (new): 18 tests, all pass.
+  `python3 -m unittest discover -s tests -p test_invoicing.py` -> OK (18 tests).
+  Full suite `python3 -m unittest discover -s tests` -> OK (141 tests) at the time of the last run.
+  An earlier full run failed only in other teammates' test files (test_schedule), not in invoicing.
+- No shared files edited (changes.md untouched). Nothing committed.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- For billing (bill pay) and tax_aging: read invoices/invoice_lines/payments directly, or call invoicing.invoice_dict.
+  Table shapes as implemented:
+  - invoices: status draft|issued|partial|paid; number NULL while draft; net/tax/total/paid as fmt() text.
+  - invoice_lines: quantity stored as given; price, net, tax as fmt() text; tax_code NULL when empty.
+  - payments: kind='invoice', doc_id=invoices.id, amount fmt() text, txn_id.
+- Lead: nothing to change in shared files.
+
+**Notes for the lead**
+- Accounts used: Assets:Receivable, Income:Sales, Liabilities:SalesTax (created by ensure_account at issue time, book currency).
+- invoice pay account must be type asset; a currency mismatch between the account and Receivable fails with the core error "transaction does not balance" (post_txn checks per currency). No FX conversion here.
+- Tests create accounts and set closed_through directly via core.Book (no dependency on ledger/admin commands). Viewer/editor role checks use direct INSERT into users.
+- Assumptions not in spec: pay amount is rounded to cents (q2) and must be > 0; quantity and price are not checked for sign (negative accepted); line description must be non-empty; invoice must have at least one line; invoice create is not blocked by closed periods (spec 12 lists issue and pay only).
+
+**Do not redo**
+- Checked core.py SCHEMA: no new tables needed; all used tables exist as declared.
+- Checked core.Book.post_txn: it does the closed-period check, so issue and pay need no extra check beyond the status checks.
+- The `number LIKE 'INV-YYYY-%'` count is the numbering rule from the plan; it is correct for the spec examples (0001, 0002, next year restarts at 0001).

@@ -1,0 +1,26 @@
+**Done**
+- Files changed (only these two, both new): fin/banking.py, tests/test_banking.py.
+- Commands (fin/banking.py COMMANDS): rule add (write), rule list (read), import FILE --account [--date-col 0] [--desc-col 1] [--amount-col 2] [--skip-header] (write), budget set ACCOUNT MONTH AMOUNT (write), report budget MONTH (read), reconcile ACCOUNT --date --balance [--clear ID, repeatable] (write).
+- Plain functions for reuse: add_rule, list_rules, import_csv, set_budget, budget_report, reconcile. Handlers are thin wrappers (cmd_*).
+- Audit entries: rule.add (pattern), import (account), budget.set ("ACCOUNT MONTH"), reconcile (account). Each once per successful run.
+- Tests: tests/test_banking.py, 21 tests, all passing. Covers rule order and validation, case-insensitive matching, import categorisation, duplicates within a file and across runs, custom columns, all-or-nothing on bad rows, missing columns and closed periods, budget set/replace/validation, report budget actual incl. descendants and month bounds, reconcile marks persisting, invalid --clear marking nothing, viewer permissions, audit.
+- Check: `python3 -m unittest discover -s tests` passes (141 tests across all modules present in the checkout at the time). `python3 -m unittest discover -s tests -p test_banking.py` passes 21/21.
+- No edits to shared files; nothing logged in changes.md. Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for banking. Lead: run `python3 -m unittest discover -s tests` after the wave merges. Banking needs no changes from other modules; it uses only core (Book, post_txn, ensure_account, has_account, check_open, account, audit, parse_month, month_end, date_str, D, q2, fmt, Cmd) and the tables imported, rules, budgets, cleared, postings, transactions, audit, users.
+
+**Do not redo**
+- Checked core.py: no helper for the amount/date/month logic was missing; nothing re-implemented beyond small local ones (_compile, _read_rows, _parse_row, _imported, _posts_to), which are specific to this module.
+- Working location: I edited in place in this checkout (it is already a git worktree on bench/work/finance-team, and fin/ and tests/ are untracked, so a fresh EnterWorktree would not contain the team files). Did not call EnterWorktree.
+- Assumptions made where the spec was silent (review if you disagree):
+  1. Import amount 0 goes to Income:Uncategorized (only negatives go to Expenses:Uncategorized).
+  2. Import validates closed periods only for rows that would be posted. A duplicate row in a closed month is skipped, not an error.
+  3. Import category currency must match the import ACCOUNT's currency; otherwise a user error (post_txn would fail the balance check anyway).
+  4. Import and reconcile audit on every successful run, even with 0 imported / no --clear.
+  5. budget set rejects negative amounts. report budget sums raw posting amounts (no conversion), as the spec's "sum of postings" says.
+  6. reconcile matches postings on the exact ACCOUNT name (not descendants), for both clearing checks and the balances.
+  7. --clear uses action="append" (as the plan says), so it is repeated: --clear 1 --clear 2.

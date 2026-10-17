@@ -1,0 +1,28 @@
+billing handoff
+
+**Done**
+- Files: fin/billing.py (new), tests/test_billing.py (new). No shared files edited, so .claude/team/changes.md is unchanged.
+- Commands: vendor add NAME [--terms] (write), vendor list (read), bill create (write), bill pay ID AMOUNT --date --account (write), bill show ID (read), bill list [--status] (read).
+- Plain functions: add_vendor(book, name, terms), create_bill(book, vendor, ref, date, line_texts), pay_bill(book, id, amount, date, account), list_bills(book, status), bill_dict(book, id) (for the API).
+- Audit: vendor.add (name), bill.create (id), bill.pay (id).
+- Check: `python3 -m unittest discover -s tests -p test_billing.py` -> 19 tests, OK.
+- Full suite (`python3 -m unittest discover -s tests`) currently fails only in other teammates' modules: test_ledger (3 errors/failures) and test_schedule (loan tests, "invalid number: 0"). None are in billing. I did not touch them.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: after the wave 1 merge, run `python3 -m unittest discover -s tests` again. Billing needs the core and tax_codes only. Tests insert tax codes and accounts directly via core.Book, so they do not depend on ledger.
+
+**Decisions (spec was silent; lead may override)**
+- Bill line ACCOUNT must be an existing expense or asset account, in book currency. Unknown account is a user error and is never created. Assets:TaxReceivable and Liabilities:Payable are created if missing.
+- Line AMOUNT is rounded to cents (q2) before use. Line tax = q2(net * rate / 100), half up. An empty TAXCODE means tax null and 0.00.
+- Line net is not sign-checked (negative allowed). Bill needs at least one --line. Empty description is an error.
+- Bill --ref is unique per vendor, checked explicitly (no IntegrityError). Duplicate is a user error.
+- bill pay: amount must be > 0 after rounding; a paid bill or an amount above balance is a user error; account must be an asset account in book currency. Status partial/paid. payments row kind='bill', txn_id set.
+- vendor add returns {"name","terms"}. bill list returns full bill dicts ordered by id. Status filter must be open/partial/paid, else user error.
+- Due = bill date + vendor terms days (timedelta on parse_date).
+
+**Do not redo**
+- Checked core.py: no core change needed. Cli rollback covers failed create/pay, so nothing is left half-written. Tests confirm that failed creates leave bills and transactions empty.
+- Consistency pass candidates (no action taken): `_tax` (line tax from a tax code) and `_account_of` (account type and currency check) may duplicate invoicing.py. `_due` uses datetime.timedelta because core has no add_days; a core add_days helper would remove that.

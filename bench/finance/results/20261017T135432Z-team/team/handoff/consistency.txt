@@ -1,0 +1,23 @@
+**Done**
+Files changed: fin/core.py, fin/cli.py, fin/schedule.py, fin/ledger.py, fin/reports.py, fin/banking.py, fin/billing.py, fin/invoicing.py. No tests edited. Each shared-file edit is logged in .claude/team/changes.md.
+
+Consolidated (no behaviour change):
+- core.py new helpers: Book.resolve_postings(postings) (the balance and posting rules, split out of post_txn; post_txn now calls it); Book.tax_on(code, net) (tax by code, replaces _tax in billing and _line_amounts in invoicing); due_date(date, days) (replaces _due in billing and an inline timedelta in invoicing); check_currency(s) (replaces four [A-Z]{3} checks in cli, ledger, reports, core.add_account); parse_postings(items) (moved from ledger); subtree_sql(column) (replaces the "account = ? OR account LIKE ? || ':%'" SQL in ledger, banking, reports); _check_account_name(name) (shared by add_account and ensure_account).
+- schedule.py: local _check_postings removed in favour of book.resolve_postings; uses parse_postings.
+- Removed imports that were already unused: core json and InvalidOperation, cli Cmd, plus imports left unused by the edits.
+- Not touched: fin/tax_aging.py and fin/api.py (their owners were still running; they use no duplicated helper).
+
+Check: `python3 -m unittest discover -s tests` -> Ran 181 tests, OK (baseline was also 181 OK before my edits). An AST scan shows no unused imports in fin/*.py.
+
+Note for lead: core.py changed on disk during my session (I saw the notice). The contents at the end are my edits, and the suite passes on them. Nothing else of mine touched core. README.md now shows as untracked in git status; I did not create it.
+
+**In progress**
+Nothing. Commit not made (per instructions).
+
+**Next step**
+Lead: review `git diff` of fin/ (untracked, so `git status` lists fin/ as a whole), then run `python3 -m unittest discover -s tests`. Re-run after tax_aging and api are merged, because their modules may still re-implement tax lookup or the subtree SQL (none found at the time I checked).
+
+**Do not redo**
+- Scanned all fin/*.py for re.fullmatch / [A-Z]{3} / ':%' / timedelta / tax-rate lookups / split_posting loops / "sum(..., Decimal(0))". The remaining Decimal(0) sum patterns are one-liners and were left as they are.
+- billing._tax and invoicing._line_amounts: both compute q2(net * rate / 100) after a tax_codes lookup; now both go through Book.tax_on. Tests pass, including the invoicing and billing tax tests.
+- reports._currency (book-aware, returns the book currency when None) kept as a local wrapper over core.check_currency; different semantics from the core helper, so not merged.
