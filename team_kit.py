@@ -10,8 +10,8 @@ tracked files, `.gitignore` and `CLAUDE.md` stay as they are.
   python3 team_kit.py install [REPO] [--force]       install or update (default REPO: cwd)
   python3 team_kit.py uninstall [REPO] [--keep-work] remove everything install added
   python3 team_kit.py status [REPO]                  what is installed
-  python3 team_kit.py lead [TASK] [-- CLAUDE_ARGS]   start a lean lead session: /team TASK
-                                                     with only the tools a lead uses
+  python3 team_kit.py lead [TASK] [--deny NAMES] [-- CLAUDE_ARGS]
+                                                     start a lean lead session on /team TASK
   python3 team_kit.py cost [--session ID] [...]      tokens and USD per agent of a session
                                                      (default: the latest one; cost --help)
 
@@ -24,10 +24,12 @@ Installed files (all git-ignored):
   .claude/team/                    working files: plan, status, change log, handoffs, scratch
 
 Restart Claude Code sessions that are already open in the repo to pick up the settings.
-`lead` is optional: it starts `claude` with `--tools` limited to what a lead uses (files,
-shell, teammates, asking you, web, skills and tool search, so MCP tools still load on demand),
-which halves the start-up prompt the lead re-reads every turn. Other flags (`--model`, ...) go
-after `--`. `lead --print-args` prints the flags, for scripts.
+`lead` is optional: it starts `claude` without the tools a team lead never uses (LEAD_DENY:
+artifacts and design, feedback and review reports, outside messages, the Gmail connector),
+which cuts the start-up prompt the lead re-reads every turn from about 38K to 24K tokens.
+Everything else stays, including tools and connectors this list doesn't know. `--deny A,B`
+removes more; other claude flags (`--model`, ...) go after `--`; `lead --print-args` prints
+the flags, for scripts.
 Cost notes: the lead re-reads its whole context every turn, so a fresh session for a big team
 task is cheaper than a long one; a Sonnet lead costs much less than Opus for a well-defined task.
 """
@@ -42,7 +44,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.3"
+KIT_VERSION = "3.4"
 
 SKILL = """\
 ---
@@ -224,9 +226,10 @@ SETTINGS_ADD = {"env": {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"},
 MANIFEST = ".claude/team/.kit.json"
 EXCLUDE = [".claude/skills/team/", ".claude/agents/team-dev.md", ".claude/team/", SETTINGS]
 BEGIN, END = "# team_kit.py begin", "# team_kit.py end"
-# A lead's tools. ToolSearch keeps MCP tools deferred; without it they load in full.
-LEAD_TOOLS = ("Agent,Bash,Read,Edit,Write,Glob,Grep,SendMessage,TaskStop,AskUserQuestion,"
-              "WebFetch,WebSearch,Skill,ToolSearch")
+# Tools a team lead never uses, removed by `lead`. A name the session doesn't have is harmless
+# (claude prints a warning), so the list works in any environment; tools it doesn't name stay.
+LEAD_DENY = ("Artifact,ArtifactComments,ArtifactData,DesignSync,SendFeedback,ReportFindings,"
+             "ReadNotifications,FetchInboxMessage,EndConversation,mcp__claude_ai_Gmail")
 
 
 def git(repo, *args):
@@ -392,14 +395,21 @@ def uninstall(repo, keep_work=False):
 
 
 def lead(argv):
-    """Replace this process with a lean lead session: claude --tools LEAD_TOOLS ... /team TASK."""
-    if "--print-args" in argv:
-        print(f"--tools {LEAD_TOOLS}")
-        return
+    """Replace this process with a lean lead session: claude without LEAD_DENY, on /team TASK."""
     extra = argv[argv.index("--") + 1:] if "--" in argv else []
-    task = " ".join(argv[:argv.index("--")] if "--" in argv else argv).strip()
-    cmd = ["claude", "--tools", LEAD_TOOLS, *extra] + ([f"/team {task}"] if task else [])
-    os.execvp("claude", cmd)
+    argv = argv[:argv.index("--")] if "--" in argv else argv
+    deny = LEAD_DENY
+    if "--deny" in argv:
+        i = argv.index("--deny")
+        deny += "," + argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+    # The '=' form: a list option followed by a bare argument would take it as one more name.
+    flags = [f"--disallowedTools={deny}"]
+    if "--print-args" in argv:
+        print(" ".join(flags))
+        return
+    task = " ".join(argv).strip()
+    os.execvp("claude", ["claude", *flags, *extra] + (["--", f"/team {task}"] if task else []))
 
 
 def status(repo):

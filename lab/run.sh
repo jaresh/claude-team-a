@@ -20,7 +20,8 @@
 # Settings (environment; defaults are the rules' run lead):
 #   LEAD_MODEL=sonnet  LEAD_EFFORT=medium  CACHE_TTL=1h  RUN_TIMEOUT=1800 (seconds, --bg only)
 #   EXTRA_SETTINGS='{...}' (JSON, merged into the session's settings)
-#   LEAD_ARGS='...' (extra claude CLI flags for the lead, split on spaces, e.g. --tools ...)
+#   LEAD_ARGS='...' (extra claude CLI flags for the lead, split on spaces; they go before
+#   --settings, so a list option such as --tools can't take the prompt as one more value)
 set -euo pipefail
 bg=0
 if [ "${1:-}" = "--bg" ]; then bg=1; shift; fi
@@ -84,7 +85,7 @@ echo "Run $run${variant:+ variant $variant}: $label, in $work"
 if [ "$bg" = 1 ]; then
   # Background sessions don't inherit this environment, so the cache TTL goes in --settings.
   out=$(claude --bg --model "$model" --effort "$effort" --permission-mode auto \
-        --settings "$settings" "${lead_args[@]}" \
+        "${lead_args[@]}" --settings "$settings" \
         "$prompt When step 4 is pushed you are done: nobody will type /exit, lab/run.sh stops the session." 2>&1)
   id=$(grep -oE 'backgrounded · [0-9a-f]+' <<<"$out" | awk '{print $3}')
   [ -n "$id" ] || { echo "Could not start the background session: $out" >&2; exit 1; }
@@ -106,7 +107,7 @@ if [ "$bg" = 1 ]; then
   claude stop "$id" >/dev/null 2>&1 || true
 else
   claude --session-id "$session" --model "$model" --effort "$effort" \
-    --settings "$settings" "${lead_args[@]}" "$prompt" || true
+    "${lead_args[@]}" --settings "$settings" "$prompt" || true
 fi
 
 # Measured after the session ends, so every message in the transcript is complete.
