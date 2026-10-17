@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 6,
+    "correctness_risks": 7,
+    "error_handling": 6,
+    "data_safety": 8,
+    "tests": 6,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "Unexpected exceptions are never caught: fin/cli.py main only catches UserError, so sqlite3 errors such as 'database is locked' end in a traceback, and fin/server.py Handler._handle lets a bad Content-Length (int() ValueError) or any non-UserError drop the connection without sending an HTTP response.",
+    "fin/core.py init_book is not atomic: it runs executescript(SCHEMA) and then separate autocommit INSERTs for meta, users and audit, so a failure part-way leaves a half-initialised database, and it repeats the audit-insert SQL that Book.execute already has.",
+    "fin/core.py do_report_ledger adds up postings of ACCOUNT and all its descendants without checking currency, so a descendant in another currency silently corrupts the opening, running and closing balances; do_report_budget also sums actuals across currencies.",
+    "fin/core.py do_report_trial_balance rounds each account's converted balance separately, so in a multi-currency book total_debit and total_credit can differ by cents, which breaks the spec's guarantee that the totals are equal.",
+    "Layer leakage and hacks: fin/cli.py calls the unbound method Book.do_loan_schedule(None, **kw), and fin/server.py _body_kwargs calls the private book._authorize_only (which opens and rolls back its own transaction) before execute authorizes the same request a second time.",
+    "Validation and JSON handling are inconsistent: fin/core.py _invoice_lines and do_bill_create call str() on API values, so JSON floats are accepted for quantity, price and amount, while _resolve and _pay reject floats; payment and posting amounts with more than two decimals are rounded silently, and invoice/bill list --status is never validated."
+  ],
+  "strengths": [
+    "One Book.execute dispatcher handles permissions, the audit entry and a BEGIN IMMEDIATE/ROLLBACK transaction for every command, so failed commands change nothing, including whole-import and recurring-run rollback for closed periods.",
+    "Money is handled carefully: amounts are stored as TEXT and handled as Decimal, rounding goes through the shared q/fs helpers (half up, no '-0.00'), and SQL values are always bound parameters (the only f-string SQL uses internal table names).",
+    "The tests drive the real CLI and a live HTTP server against a temporary database per test, check exact JSON documents and the exit-2/empty-stdout contract, and cover every section including month-end clamping, leap years, partial payments, aging buckets and 401/403/404."
+  ],
+  "review_cost": 0.5463
+}
