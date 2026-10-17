@@ -106,3 +106,23 @@ team's cost with solo's review score.
   $0.72 to $1.04) is as large as any difference between kit versions, so one run per version
   can't rank them. 3.7's result may have been a good draw. Every team run so far is 36-56%
   cheaper than the single solo run.
+
+## Second solo run (20261017T114048Z-solo)
+
+| Solo run | Hidden | Review (consistency, tests) | Cold $ | Messages | Own tests | Lines |
+|---|---|---|---|---|---|---|
+| 20261017T092229Z-solo (reference) | 42/42 | 8 (8, 7) | 1.620 | 26 | 66 | 2508 |
+| 20261017T114048Z-solo | 42/42 | 6 (7, 5) | 1.061 | 10 | 26 | 1955 |
+
+- Solo varies as much as the team: the second run wrote the app in 10 messages (59K output
+  tokens), with less code and far fewer tests. Its review found tautological test assertions
+  (`X if False else Y`, test_core.py and test_business.py) and a ~900-line `Book` class holding
+  every feature, with bill and invoice code duplicated.
+- **Across both arms the review is a tie within the spread** (solo 8 and 6; team 8, 7 and 6).
+- **Hidden tests are the one consistent gap:** solo 42/42 twice, the team 42, 41 and 40. The
+  team's misses are spec details that cross a task boundary: a repeated flag, closed periods in
+  import and recurring runs, clearing across statements, an API response shape.
+- **Cost:** the team is still cheaper (team $0.73-1.04 vs solo $1.06-1.62), but against the
+  cheaper solo run the margin ranges from 31% (kit 3.7) to 2% (kit 3.9). From 3.7 to 3.9 the
+  lead's messages grew from 14 to 23 (more waves: a separate API wave and the consistency
+  pass), and the lead's cost from $0.56 to $0.76.
