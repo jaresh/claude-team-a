@@ -1,0 +1,7 @@
+./home/jaca/claude-team-a/bench/work/finance-team/fin/util.py:92: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+...........................................................................
+----------------------------------------------------------------------
+Ran 76 tests in 62.317s
+
+OK

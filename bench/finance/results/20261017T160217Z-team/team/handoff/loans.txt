@@ -1,0 +1,20 @@
+**Done**
+- fin/loans.py (new): loan_schedule(book, principal, rate, months, start). Spec section 9. Read-only, nothing stored. Validates principal > 0, rate >= 0, months >= 1 (int), start date. Payment rounded to cents; interest per month is round(balance * r); last row repays the remaining balance. Row dates are add_months(start, n).
+- fin/recon.py (new): SCHEMA creates table recon_cleared(account, txn_id, PK account+txn_id). reconcile(book, account, date, balance, clear=None). Spec section 16. Requires the account to exist. Each --clear id must have a posting to exactly that account dated on or before the date, otherwise UserError and nothing is marked. cleared_balance uses the exact account name only. Output keys: account, statement_balance, cleared_balance, difference, uncleared. I did not add a "date" key because the spec does not list one.
+- tests/test_loans.py (new): 4 tests. Covers the 1000 / 12% / 12-month example (payment 88.85, total interest 66.19, last row 88.84 with balance 0.00, month-end clamping), zero rate, user errors, and no audit rows written.
+- tests/test_recon.py (new): 5 tests. Covers statement difference, marks kept across runs, a failed run marking nothing, exact-account matching (sub-account postings excluded), user errors, and viewer denied.
+- Check: `python3 -m unittest tests.test_loans tests.test_recon tests.test_core` gives Ran 13 tests, OK.
+- Verified by hand: payment 88.85 matches the exact 88.8488; total interest 66.19 equals the sum of the row interests; total payments 1066.19 = 1000 + 66.19. Error exits for "-1" rate, "abc" rate, months 0, principal 0 come from my handlers, not argparse.
+- No shared files were edited, so changes.md is unchanged. Nothing committed.
+- Scratch: .claude/team/scratch/loans/ (s.db, out.json, err.txt). Safe to delete.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- None for this task. For the lead: the recon_cleared table is created by Book's SCHEMA_MODULES scan, which already includes "recon", so no core change was needed.
+
+**Do not redo**
+- Loan command needs an existing db even though it reads nothing (execute() always opens Book). That is core behaviour; the tests use FinCase so they are unaffected.
+- Negative rate arg "-1" parses fine as a positional in argparse, so no parser change is needed.
+- Core tests pass unchanged with the new modules present.

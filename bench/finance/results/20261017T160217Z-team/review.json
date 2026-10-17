@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 8,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 9,
+    "tests": 6,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/api.py _authorize repeats the role checks in commands.execute and only maps viewers to 403, so a future admin-only POST that is denied would come back as 400 instead of 403.",
+    "fin/core.py period_close sets an ad-hoc book.no_audit attribute that commands.execute reads to skip the audit entry, a hidden side channel between the handler and the executor; bank.py's globals()['import'] = import_ is a similar hack used to fit the registry's naming.",
+    "fin/commands.py execute only catches UserError, so non-user failures such as an existing non-SQLite file passed as --db (sqlite3.DatabaseError) or a locked database crash the CLI with a traceback instead of exiting with code 2; fin/api.py _handle also parses Content-Length outside its try block.",
+    "fin/bank.py rule_add quietly creates the rule's target account through ensure_account, and recurring_add's dry-run book.post rejects any start date in a closed month even when later occurrences would be valid.",
+    "Validation is uneven: billing.report_tax does not check that from <= to while the reports in fin/reports.py do, invoice and bill lines accept negative quantities and amounts, and _pay's draft error message hard-codes 'invoice'.",
+    "tests/test_core.py covers sections 1-4 and 11-12 in only 3 large flow tests, does not check that nothing changes after an error, and contains the leftover expression `3 - 1 + 0 if False else 2 + 0` at line 40."
+  ],
+  "strengths": [
+    "One command registry (commands.C) plus execute() serves both the CLI and the HTTP API, with consistent BEGIN/COMMIT/ROLLBACK around each command, so writes are atomic and the audit entry is written in the same transaction.",
+    "Money is handled carefully: Decimal everywhere, one D/q/fmt helper set in util.py, amounts stored as strings, no '-0.00', and every SQL statement uses parameters.",
+    "billing.py shares one documents model between invoices and bills (_insert_doc, _view, _pay, _list), avoiding duplicated logic, and the billing/bank/API test suites check full JSON documents and error paths."
+  ],
+  "review_cost": 0.6054
+}

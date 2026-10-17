@@ -1,0 +1,19 @@
+**Done**
+- Files changed (both owned by reports): fin/reports.py (new), tests/test_reports.py (new). No shared or core files edited; changes.md not touched.
+- fin/reports.py handlers: report_income(book, frm, to, currency=None), report_balance_sheet(book, at, currency=None), report_networth(book, frm, to) (book currency only, the CLI has no --currency for it), report_trial_balance(book, at) (book currency only, CLI has no --currency), report_ledger(book, account, frm, to).
+- Helpers in reports.py: _currency, _period (validates dates, from > to is a UserError), _grouped (exact account names, no ancestors), _side (per-account value via book.total, sign flip by type), _total, _money.
+- Money rule: each account's per-currency sums are converted with book.total at the report date (rounded per account), then totals are sums of the displayed values. Ledger converts each posting with book.convert at --to so the running balance foots exactly.
+- tests/test_reports.py: 6 tests covering income (spec example numbers, empty period, zero-sum account shown as 0.00, user errors), balance sheet (numbers at two dates, identity), networth (monthly entries, bad month and reversed range), trial balance (rows, totals, bad date), ledger (opening, rows, running balance, descendant prefix Income, unknown account, reversed range), foreign currency (missing rate is a user error, USD->EUR and EUR->USD conversions with exact numbers, identity holds, ledger in USD, bad currency).
+- Check: `python3 -m unittest tests.test_reports tests.test_core` -> Ran 11 tests, OK.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: review fin/reports.py and commit if wanted. Command to re-verify: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_reports tests.test_core`.
+- Known limitation to decide on: in multi-currency books, per-account rounding can make the displayed totals differ from each other by one cent (total_assets vs total_liabilities + total_equity in balance-sheet; total_debit vs total_credit in trial-balance). Single-currency books are exact (tests cover the identity there and in the USD case with exact numbers). If the lead wants an exact guarantee, the fix is to round only at the total level, or plug the difference; I did not do either, because the spec says per account-currency total.
+
+**Do not redo**
+- The CLI has no --currency for trial-balance or networth, so those handlers take no currency argument (a test with --currency on trial-balance failed with "unrecognized arguments", which is a parser error, not a handler bug).
+- Balance sheet sign convention checked: assets raw, liabilities/equity/income negated, expenses raw; retained_earnings = income shown minus expenses shown, and identity holds in the test ledger at 2026-01-31 (3600 = 500 + 3100).
+- Ran only the two test modules named in the plan; did not run the full discover suite (other teammates' modules may be incomplete).

@@ -1,0 +1,27 @@
+Done
+- fin/billing.py (new): SCHEMA (tax_codes, parties, docs, doc_lines, doc_payments); handlers tax_add, tax_list, customer_add, customer_list, vendor_add, vendor_list, invoice_create, invoice_show, invoice_list, invoice_issue, invoice_pay, bill_create, bill_show, bill_list, bill_pay, report_aging(book, at, payables=False), report_tax(book, frm, to).
+- tests/test_billing.py (new): 21 tests across Parties (4), Invoices (9), Bills (5), Reports (3). Covers every command, the spec numeric examples (10 x 95.00 at VAT20 -> net 950.00, tax 190.00, total 1140.00, due 2026-02-09; bill 100 VAT20 + 50 no tax -> 150/20/170), user errors (exit 2), closed periods, viewer permission denial, aging buckets (incl. payments dated after the aging date), payables aging, tax report by code.
+- Check: `python3 -m unittest tests.test_billing tests.test_core` -> Ran 24 tests, OK.
+- No shared files edited (changes.md untouched). No core files touched. Nothing committed.
+
+Assumptions for README (billing)
+- Foreign currency: billing works in the book currency only. Accounts used by billing must be in the book currency, else UserError.
+- Invoice unit price is stored and shown exactly as entered (not rounded). Line net = round(quantity x price) to cents; line tax = round(net x rate / 100).
+- Line format is strictly DESCRIPTION;QUANTITY;PRICE;TAXCODE. The TAXCODE field may be empty but its semicolon is required ("A;1;10;" not "A;1;10").
+- Invoice numbers INV-YYYY-NNNN count issued invoices per year of the invoice date; drafts get no number. Invoice and bill ids start at 1 each.
+- Bill ref must be unique per vendor (not globally).
+- Payments must be positive. Bill pay accepts an asset or liability account (spec does not restrict it); invoice pay requires an asset account.
+- report tax does not reject from > to (it returns zeros/empty for an empty range).
+- Aging and tax reports ignore drafts. Invoices with zero balance are omitted from aging.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review the README assumptions above and add them to README.md. Then run `python3 -m unittest discover -s tests` once all teammates are finished.
+
+Do not redo
+- Read spec.md sections 13-15 (lines 88-111) and checked every field name, status rule, aging bucket and tax-report key against them. The shapes match the spec example.
+- Confirmed util.D raises UserError on bad input, check_date/parse_date return ISO strings, and cli.py billing dests (id, customer, date, line, status, at, payables, frm, to, terms, ref, vendor, account, amount) match the handler signatures.
+- Confirmed tests/test_core.py has no billing expectations (grep for invoice/bill/tax/customer/vendor/aging found nothing).
+- Two test bugs were caught and fixed (missing Assets:Bank in invoice setUp; wrong expected aging bucket). Remaining failures: none.

@@ -1,0 +1,29 @@
+**Done**
+- Files changed: fin/bank.py (new), tests/test_bank.py (new). No shared files edited, so no changes.md rows.
+- Handlers: rule_add, rule_list, import_ (plus globals()["import"] = import_), budget_set, report_budget, recurring_add, recurring_run.
+- SCHEMA tables (all prefixed bank_): bank_rules, bank_imports, bank_budgets, bank_recurring, bank_recurring_runs.
+- Check: `python3 -m unittest tests.test_bank tests.test_core` -> Ran 22 tests, OK (about 17 s).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for bank. Lead can run `python3 -m unittest discover -s tests` once the other modules land.
+- For README assumptions (bank section):
+  - rule patterns are regular expressions, case-insensitive, matched with re.search; an invalid pattern is a user error at `rule add`.
+  - `rule add` creates the category account if missing (book currency), via ensure_account.
+  - Import dedupe uses its own table bank_imports keyed by (account, date, description, amount). Manually entered transactions do not count as "already imported".
+  - Import rows with a zero amount, a missing column, a bad date or a bad number fail the whole file with "line N: ..." (exit 2, nothing written).
+  - Import description is stripped of surrounding whitespace. Amounts are plain decimals (no thousands separators). CSV blank lines are ignored.
+  - A rule category in a different currency from the bank account fails with "transaction does not balance" (book.post's existing behaviour).
+  - `budget set` requires an existing expense account and an amount of zero or more. It replaces any existing budget for that account and month.
+  - `report budget` sums actuals per currency and converts them to the book currency at month end (missing rate -> user error).
+  - Recurring names are unique (duplicate -> user error). `recurring add` dry-runs the first posting through book.post in a SAVEPOINT, so accounts, balance and closed periods are checked and nothing is written.
+  - Occurrences are computed from the start date (monthly/yearly via add_months, weekly +7 days). Each created occurrence is recorded in bank_recurring_runs, so reruns create nothing new.
+  - `recurring run` is all-or-nothing: if any occurrence falls in a closed period, the whole run fails and nothing is created.
+
+**Do not redo**
+- Checked the executor (core/commands.py): it BEGINs before calling the handler, so SAVEPOINT inside the handler is valid. `C` maps "import" to bank.import; getattr needs the globals() alias, which is in place.
+- Confirmed CLI dests against cli.py build(): pattern/account, file/account/date_col/desc_col/amount_col/skip_header, account/month/amount, name/every/start/posting, until. All handler kw names match.
+- Confirmed the core test suite still passes with the bank module loaded.
+- Did not touch fin/db.py, fin/commands.py or any other teammate's file.

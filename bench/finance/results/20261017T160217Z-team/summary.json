@@ -1,0 +1,104 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.10",
+  "started": "2026-10-17T16:02:17Z",
+  "ended": "2026-10-17T16:17:50Z",
+  "accept_passed": 40,
+  "accept_total": 42,
+  "own_passed": 76,
+  "own_total": 76,
+  "python_lines": 2604,
+  "cost": 0.7968,
+  "cost_cold": 0.8391,
+  "lead_cost": 0.6547,
+  "team_cost": 0.1421,
+  "teammates": [
+    "bank",
+    "loans",
+    "reports",
+    "billing",
+    "api"
+  ],
+  "lead_messages": 20,
+  "lead_peak_ctx": 64314,
+  "lead_compactions": 0,
+  "team_peak_ctx": 66395,
+  "coverage": 0.944,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/api.py (91%)"
+  ],
+  "quality": {
+    "app_files": 13,
+    "app_lines": 1264,
+    "test_files": 8,
+    "test_lines": 895,
+    "test_functions": 76,
+    "test_to_app_ratio": 0.71,
+    "functions": 137,
+    "mean_function_lines": 8.1,
+    "max_function_lines": 75,
+    "functions_over_50_lines": 1,
+    "mean_complexity": 3.0,
+    "max_complexity": 18,
+    "functions_complexity_over_10": 4,
+    "most_complex": [
+      "fin/commands.py:execute (18)",
+      "fin/bank.py:import_ (17)",
+      "fin/db.py:post (12)"
+    ],
+    "docstring_coverage": 0.2,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 1,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 8,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 6,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/api.py _authorize repeats the role checks in commands.execute and only maps viewers to 403, so a future admin-only POST that is denied would come back as 400 instead of 403.",
+      "fin/core.py period_close sets an ad-hoc book.no_audit attribute that commands.execute reads to skip the audit entry, a hidden side channel between the handler and the executor; bank.py's globals()['import'] = import_ is a similar hack used to fit the registry's naming.",
+      "fin/commands.py execute only catches UserError, so non-user failures such as an existing non-SQLite file passed as --db (sqlite3.DatabaseError) or a locked database crash the CLI with a traceback instead of exiting with code 2; fin/api.py _handle also parses Content-Length outside its try block.",
+      "fin/bank.py rule_add quietly creates the rule's target account through ensure_account, and recurring_add's dry-run book.post rejects any start date in a closed month even when later occurrences would be valid.",
+      "Validation is uneven: billing.report_tax does not check that from <= to while the reports in fin/reports.py do, invoice and bill lines accept negative quantities and amounts, and _pay's draft error message hard-codes 'invoice'.",
+      "tests/test_core.py covers sections 1-4 and 11-12 in only 3 large flow tests, does not check that nothing changes after an error, and contains the leftover expression `3 - 1 + 0 if False else 2 + 0` at line 40."
+    ],
+    "strengths": [
+      "One command registry (commands.C) plus execute() serves both the CLI and the HTTP API, with consistent BEGIN/COMMIT/ROLLBACK around each command, so writes are atomic and the audit entry is written in the same transaction.",
+      "Money is handled carefully: Decimal everywhere, one D/q/fmt helper set in util.py, amounts stored as strings, no '-0.00', and every SQL statement uses parameters.",
+      "billing.py shares one documents model between invoices and bills (_insert_doc, _view, _pay, _list), avoiding duplicated logic, and the billing/bank/API test suites check full JSON documents and error paths."
+    ],
+    "review_cost": 0.6054
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 8,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 9,
+        "tests": 6,
+        "consistency": 7
+      },
+      "review_cost": 0.6054
+    }
+  ]
+}

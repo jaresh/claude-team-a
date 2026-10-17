@@ -1,0 +1,27 @@
+Done
+- fin/api.py (new): ApiError, dispatch(db, method, target, user, raw) -> (status, data), make_server(db, port) (127.0.0.1, port 0 allowed, fails early if db missing), serve(db, port) (cli.py already calls it).
+  Routes (ROUTES table): GET /accounts, /transactions (optional account, from, to), /balances?at, /reports/income?from&to (+currency), /reports/balance-sheet?at (+currency), /reports/aging?at (&payables=1), /invoices (?status), /invoices/ID, /audit (?by). POST /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200).
+  Status codes: UserError -> 400 {"error"}; POST without X-User or unknown user -> 401; viewer on POST -> 403; unknown path (any method) -> 404; unexpected exception -> 500 {"error": "internal error"} with traceback on stderr.
+  Access log suppressed (log_message no-op); serve writes one "serving on http://127.0.0.1:PORT" line to stderr.
+- tests/test_api.py (new): 18 tests in 3 classes (Reads, Writes, Billing). Server runs in a thread on port 0. Covers the 201/200 codes, the 400/401/403/404 cases, identity checked before body parsing, audit entry on POST, API output equal to CLI --json output for the GET routes, and the invoice flow.
+- No shared files edited (changes.md untouched). No core files touched. Nothing committed.
+- Checks: `python3 -m unittest tests.test_api tests.test_core` -> Ran 18 tests, OK. `python3 -m unittest discover -s tests` -> Ran 76 tests, OK (all teammates' current files).
+
+Assumptions (for README)
+- The server binds 127.0.0.1 only. Auth is the X-User header with no password, same trust model as --user on the CLI.
+- POST body keys: transactions take date, description, postings[{account, amount?}]. Invoices take customer, date, lines[{description, quantity, price, tax_code?}] (dict lines are accepted by billing's _fields). Payments take amount, date, account (all required, as the CLI requires --date and --account).
+- Extra query parameters beyond the spec (account/from/to on /transactions, currency on the reports, status on /invoices, by on /audit) mirror the CLI options.
+- Bad or missing query or body fields are 400 with "missing field: NAME".
+- Invoice 404-style lookups (unknown id) are 400 because billing raises UserError for them.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review fin/api.py and decide whether to add a bills API (the spec lists only invoices). Then run `python3 -m fin --db ./fin.db serve --port 8080` yourself to try it. This is not run here.
+
+Do not redo
+- Checked the spec sections 10 and 11 (spec.md lines 66-82) and the CLI dests in cli.py build(); the names passed to execute() match the handler signatures in core, reports, billing and bank.
+- execute() already raises the right messages for missing or unknown users ("--user is required", "unknown user") and for viewers ("permission denied"). I did not rely on message text; _authorize() in api.py checks the same things before the body is parsed, so the 401/403 precedence is correct.
+- The ResourceWarnings in the test run came from unclosed HTTPError responses in the test helper; fixed with `with e:`. No other warnings from fin/api.py.
+- The utcnow DeprecationWarning is in fin/util.py (core), not touched.
