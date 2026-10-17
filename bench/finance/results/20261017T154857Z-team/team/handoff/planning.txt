@@ -1,0 +1,24 @@
+Done
+- Files changed (new, owned by planning): fin/planning.py, tests/test_planning.py. No shared files edited; changes.md untouched.
+- Commands: budget set (write), report budget (read), recurring add (write), recurring run (write), loan schedule (read). setup(sub) registers via cli.group/cli.command; "planning" is already in cli.MODULES.
+- Check: `python3 -m unittest tests.test_planning` -> Ran 25 tests, OK. (The `python` binary does not exist in this sandbox; python3 3.14 was used.)
+- Loan payment cross-checked with an exact Fraction calculation (1000 at 6% for 12 months -> 86.07).
+- Assumptions (for README):
+  - Budget amounts are in the book's base currency; `actual` converts the account's postings (account plus descendants, that month) to base at the month-end rate, rounded once. Missing rate -> user error.
+  - Budget must be a non-negative amount on an existing account of type expense. `budget set` returns {account, month, budget}.
+  - `recurring add` validates postings by running post_txn inside a SAVEPOINT and rolling it back, so the rules are exactly those of txn add. It also rejects an empty name, a duplicate name, and a start date in a closed period. It returns {id, name, every, start}.
+  - Postings are stored as JSON in recurring.postings, as [account, amount-or-null].
+  - Occurrence k=0 is the start date. Monthly and yearly use add_months(start, n, start day). Weekly uses add_days(start, 7k).
+  - `recurring run` processes recurrings in id order. Occurrences already in recurring_done are skipped. A closed-period occurrence raises a user error, which rolls back the whole run. It audits recurring.run with the until date on every successful run, even when created is 0.
+  - `loan schedule` rounds the principal to cents first. Interest is q2(balance * r). The last row repays the remaining balance, and total_interest is the sum of the interest column. It is a read command, but it still needs an existing book (the CLI framework opens one for every command).
+- Tests cover: each command, its error cases (bad month/date/amount, unknown or non-expense account, unbalanced or one-posting recurring, duplicate name, closed period), role checks (viewer forbidden, editor allowed, missing user), the audit entries, month-end clamping, leap-year Feb 29, and zero-rate loans.
+
+In progress
+- Nothing. Work is complete.
+
+Next step
+- Lead: `cd /home/jaca/claude-team-a/bench/work/finance-team-2 && python3 -m unittest discover -s tests` once the other wave-1 modules exist. The planning tests need no other module (they use only core and cli).
+
+Do not redo
+- Checked fin/core.py (Book.post_txn validation and check_open, sums with prefix, to_currency/rate, add_months, add_days, month_end, fmt/q2, TYPES, SCHEMA tables budgets/recurring/recurring_done) and fin/cli.py (group/command/_Parser errors become UserError, perm checks in _run_ns). They match the plan; no change needed.
+- The savepoint approach for validation was chosen over duplicating post_txn rules. Do not re-derive it.

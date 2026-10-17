@@ -1,0 +1,107 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "kit": "3.10",
+  "started": "2026-10-17T15:48:57Z",
+  "ended": "2026-10-17T16:00:03Z",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 223,
+  "own_total": 223,
+  "python_lines": 3847,
+  "cost": 0.75,
+  "cost_cold": 0.7922,
+  "lead_cost": 0.5864,
+  "team_cost": 0.1635,
+  "teammates": [
+    "books",
+    "planning",
+    "ratesimport",
+    "invoices",
+    "reports",
+    "bills",
+    "arreports",
+    "api"
+  ],
+  "lead_messages": 19,
+  "lead_peak_ctx": 61058,
+  "lead_compactions": 0,
+  "team_peak_ctx": 65375,
+  "coverage": 0.972,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (0%)",
+    "fin/cli.py (91%)"
+  ],
+  "quality": {
+    "app_files": 12,
+    "app_lines": 1391,
+    "test_files": 11,
+    "test_lines": 1765,
+    "test_functions": 223,
+    "test_to_app_ratio": 1.27,
+    "functions": 145,
+    "mean_function_lines": 8.9,
+    "max_function_lines": 48,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 3.1,
+    "max_complexity": 16,
+    "functions_complexity_over_10": 3,
+    "most_complex": [
+      "fin/ratesimport.py:import_csv (16)",
+      "fin/core.py:post_txn (15)",
+      "fin/api.py:_get_argv (12)"
+    ],
+    "docstring_coverage": 0.35,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 5,
+    "bare_except": 0,
+    "broad_except": 1,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 8,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "cli.main and _run_ns catch only UserError, so sqlite3 errors crash with a traceback instead of exiting with code 2: a --db pointing at a non-SQLite file, a missing directory, or a locked database. In api._Handler._serve the same errors drop the connection without sending any response.",
+      "planning.recurring_add checks its postings by actually posting through post_txn, which also runs check_open, so a recurring template whose start date is in a closed month is rejected; the spec only asks for the posting rules to be checked at add time.",
+      "Prefix filters in core.Book.sums, books.list_txns and reports.report_ledger use `LIKE prefix || ':%'`. SQLite LIKE ignores ASCII case and treats '_' and '%' as wildcards, so `--account Assets:Bank` can also match `Assets:bank:X` or names containing '_'.",
+      "Validation helpers are duplicated across modules: bills._text/_terms/_line versus invoices._name/_days/_tax_rate/_parse_line_arg, and reports._range versus arreports._range. They also behave differently: bill lines use split(';') while invoice lines use rsplit(';', 3), and vendor --terms is a string default validated by regex while customer --terms is argparse int.",
+      "Handler conventions differ between modules. planning.budget_set, recurring_add and loan_schedule, and bills.vendor_add, take the argparse namespace directly, so the domain logic is tied to the CLI. books, invoices and arreports instead expose plain functions with thin wrappers.",
+      "There is dead and unused code: core.Book.rate builds a query string `q` it never uses and selects unused columns, cli imports io/redirect_stdout without using them, core imports json without using it, and the global --json flag is parsed but never read (JSON is always printed)."
+    ],
+    "strengths": [
+      "One posting engine (core.Book.post_txn) handles balancing, the single blank posting, currencies and closed-period checks for every feature, and each command runs in one SQLite transaction that is committed or rolled back as a whole, so failed commands change nothing.",
+      "Money is handled safely: amounts are stored as TEXT and parsed as Decimal with NaN and Infinity rejected; q2 and fmt are the only rounding and formatting paths and never produce -0.00; every SQL value is passed as a parameter.",
+      "The HTTP API turns requests into CLI command arguments and runs them through cli.execute, so the API and CLI return the same JSON documents. The tests are thorough, black-box and independent, with a fresh temporary database per test, and they check exact JSON documents along with errors, roles and rollback behaviour."
+    ],
+    "review_cost": 0.6116
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 8,
+        "consistency": 6
+      },
+      "review_cost": 0.6116
+    }
+  ]
+}

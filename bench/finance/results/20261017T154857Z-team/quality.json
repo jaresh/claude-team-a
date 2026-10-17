@@ -1,0 +1,27 @@
+{
+  "app_files": 12,
+  "app_lines": 1391,
+  "test_files": 11,
+  "test_lines": 1765,
+  "test_functions": 223,
+  "test_to_app_ratio": 1.27,
+  "functions": 145,
+  "mean_function_lines": 8.9,
+  "max_function_lines": 48,
+  "functions_over_50_lines": 0,
+  "mean_complexity": 3.1,
+  "max_complexity": 16,
+  "functions_complexity_over_10": 3,
+  "most_complex": [
+    "fin/ratesimport.py:import_csv (16)",
+    "fin/core.py:post_txn (15)",
+    "fin/api.py:_get_argv (12)"
+  ],
+  "docstring_coverage": 0.35,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 5,
+  "bare_except": 0,
+  "broad_except": 1,
+  "parse_errors": []
+}

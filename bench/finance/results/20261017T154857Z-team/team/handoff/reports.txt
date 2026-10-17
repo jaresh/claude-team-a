@@ -1,0 +1,35 @@
+**Done**
+- fin/reports.py: five commands registered in setup(sub) under the shared `report` group, perm "read":
+  - report income --from DATE --to DATE [--currency CUR]
+  - report balance-sheet --at DATE [--currency CUR]
+  - report networth --from MONTH --to MONTH [--currency CUR]
+  - report trial-balance --at DATE [--currency CUR]
+  - report ledger ACCOUNT --from DATE --to DATE
+- tests/test_reports.py: 14 tests, all pass. They seed data directly through fin.core.Book (ensure_account, post_txn, direct INSERT into fx), so they don't depend on the books or ratesimport commands landing first.
+- Checks: `python3 -m py_compile fin/reports.py tests/test_reports.py` clean; `python3 -m unittest tests.test_reports` -> Ran 14 tests, OK. (`python` is not on PATH in this sandbox; python3 is 3.14.4.)
+- No shared files edited, so no changes.md rows. Nothing committed.
+
+**In progress**
+- Nothing in code. Remaining work is for the lead: add the assumptions below to README.md (I did not edit README.md; it is not mine).
+
+**Next step**
+- Lead: copy the assumptions in this handoff into README.md, then run `python3 -m unittest tests.test_reports` (or `python -m unittest discover -s tests` once every module is in).
+
+Assumptions to record in README.md:
+- Amounts are in the book currency unless --currency CUR is given. Conversion uses Book.to_currency at the report date (--to for income, --at for balance-sheet and trial-balance, each month's last day for networth). Each account is rounded once with fmt, and totals are sums of the rounded account figures.
+- Income, liabilities and equity are shown positive. Expenses are shown positive. Assets are shown as they are.
+- retained_earnings = all income minus all expenses up to the report date; total_equity includes retained_earnings; total_assets = total_liabilities + total_equity is an identity in book currency.
+- --from later than --to is a user error (income, ledger, networth).
+- Ledger converts every posting at the --to date. Opening balance covers the account and its descendants before --from. Closing equals the last row balance, or the opening balance when there are no rows.
+- Ledger rows are ordered by date, then txn id, then posting position.
+- Trial balance lists every account that has postings up to the date, sorted by name. Each row shows the balance on its natural side and "0.00" on the other side.
+- Missing FX rates surface as user errors (exit 2) from Book.to_currency.
+- Caveat: with --currency, per-account rounding can make balance-sheet or trial-balance totals differ from the cent-exact sum of raw figures. This follows the plan's per-account rounding rule.
+- Reports need no --user; they are perm "read".
+
+**Do not redo**
+- Syntax and tests are green (see Done). Do not re-run py_compile or the full test file unless fin/reports.py or tests/test_reports.py changes.
+- The earlier failures were test-data mistakes, not code bugs, and are fixed: (a) the Jan Expenses ledger has three rows (balances 900.00, 920.00, 900.00), not four; (b) the USD-only seed txn was unbalanced because it paired a USD asset with an EUR equity account, so the test now uses a USD equity account (Equity:Foreign).
+- The currency-conversion test covers both directions: USD->EUR uses the stored rate 0.5, and EUR->USD uses the reverse rate. Both pass; no need to re-derive.
+- A missing rate raises a user error for both balance-sheet and income. This is covered and passes.
+- fin/core.py and fin/cli.py were read and not changed. Do not edit them.

@@ -1,0 +1,25 @@
+{
+  "coverage": 0.972,
+  "covered_lines": 1268,
+  "executable_lines": 1304,
+  "tests_passed_under_coverage": true,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (0%)",
+    "fin/cli.py (91%)"
+  ],
+  "per_file": {
+    "fin/__init__.py": 0.0,
+    "fin/__main__.py": 0.0,
+    "fin/api.py": 0.935,
+    "fin/arreports.py": 0.991,
+    "fin/bills.py": 0.985,
+    "fin/books.py": 0.99,
+    "fin/cli.py": 0.908,
+    "fin/core.py": 0.995,
+    "fin/invoices.py": 0.973,
+    "fin/planning.py": 0.992,
+    "fin/ratesimport.py": 0.981,
+    "fin/reports.py": 0.991
+  }
+}

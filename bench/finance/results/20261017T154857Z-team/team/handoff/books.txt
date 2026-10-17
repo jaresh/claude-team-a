@@ -1,0 +1,17 @@
+Done
+- Wrote fin/books.py (section books: spec 1, 2, 3, 11, 12) and tests/test_books.py. No shared files edited; changes.md untouched.
+- Check: `python3 -m unittest tests.test_books` -> Ran 27 tests, OK. `python` is not on PATH in this environment, only python3; the plan's `python -m unittest` command needs `python` available. tests.test_core also passes (3 tests, OK).
+- Commands registered in fin/books.py setup(): account add [--currency] (write), account list (read), txn add --date --desc --posting... (write), txn list [--account] [--from] [--to] (read), balance [--at] (read), user add NAME --role (admin), user list (read), audit list [--by] (read), period close MONTH (admin), period status (read).
+- Plain functions for the API layer (no permission checks inside; cli does those): add_account(book, name, currency=None), list_accounts(book), postings_from_args(items) (list of 'ACCOUNT=AMOUNT' strings -> [(acct, Decimal|None)], reusable by planning/recurring), add_txn(book, date, desc, postings), list_txns(book, account=None, date_from=None, date_to=None), balances(book, at=None), add_user(book, name, role), list_users(book), list_audit(book, by=None), close_period(book, month), period_status(book).
+- Assumptions decided (list in README): output of account add = the account dict {name,type,currency}; txn add = txn dict; user add = {name,role}; period close = {closed_through} (after the change); an earlier close is a success, changes nothing and is audited; description must be non-blank (user error); user names match [\w.@+-]+; balance includes every ancestor and descendant sums (Assets includes Assets:Bank:Savings), currency keys sorted, zero shows "0.00".
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: run `python3 -m unittest tests.test_books tests.test_core` (or set up a `python` alias) to confirm, then `python3 -m unittest discover -s tests` once the other modules land.
+
+Do not redo
+- Checked fin/core.py and fin/cli.py: group/command helpers and Book methods (sums, account, ensure_account, post_txn, check_open, closed_through, role_of, check_perm, audit) are used as-is; no helper was rewritten.
+- Balance expectations: an account's own entry includes its descendants' postings per spec 3 (checked by test_all: Assets:Bank = 2100.00 with a 100 savings sub-account). This is intended, not a bug.
+- `python` binary missing from PATH (`command -v python` empty); python3 at /usr/bin/python3 works.

@@ -1,0 +1,31 @@
+Done
+- fin/api.py (new): `serve --port N` command (perm 'read', default port 8000, 127.0.0.1), make_server(db, port),
+  route(db, method, target, user, raw) -> (status, data), _Handler (BaseHTTPRequestHandler, JSON replies).
+  - GET routes: /accounts, /transactions (?account&from&to), /balances?at, /reports/income?from&to,
+    /reports/balance-sheet?at, /reports/aging?at[&payables=1], /invoices, /invoices/ID, /audit (?by).
+    Each maps to cli.execute(db, None, argv); query params become --name=value options.
+  - POST routes: /transactions (201), /invoices (201, lines mapped to --line DESC;QTY;PRICE;TAX),
+    /invoices/ID/issue (200), /invoices/ID/payments (200, invoice pay).
+  - X-User is checked first on every POST (missing -> 401, unknown -> 401, viewer -> 403) before path/body.
+  - UserError kind auth -> 401, forbidden -> 403, otherwise 400, body {"error": msg}. Unknown path -> 404.
+- tests/test_api.py (new): 35 tests, real HTTP against make_server(db, 0) in a thread.
+  Includes the aging test (runs now that fin/arreports.py exists; skipped otherwise).
+- No shared files edited, no changes.md rows needed. Nothing committed.
+
+Check results
+- `python3 -m unittest tests.test_api`: Ran 35 tests, OK (no warnings, about 20 s, mostly server poll interval).
+- `python3 -m py_compile fin/api.py`: OK.
+
+In progress
+- Nothing.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` for the whole suite.
+- Optional manual smoke (lead only, it blocks): `python3 -m fin --db PATH serve --port 8000`, then curl.
+
+Do not redo
+- Did not edit fin/cli.py, fin/core.py, or other teammates' modules.
+- Did not run `serve` for real: the command blocks, so only its parsing is tested
+  (test_serve_command_is_registered). make_server is covered end to end.
+- EnterWorktree is not in my tool list; I worked in the given worktree
+  /home/jaca/claude-team-a/bench/work/finance-team-2, which the environment describes as already isolated.

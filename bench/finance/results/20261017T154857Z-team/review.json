@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "cli.main and _run_ns catch only UserError, so sqlite3 errors crash with a traceback instead of exiting with code 2: a --db pointing at a non-SQLite file, a missing directory, or a locked database. In api._Handler._serve the same errors drop the connection without sending any response.",
+    "planning.recurring_add checks its postings by actually posting through post_txn, which also runs check_open, so a recurring template whose start date is in a closed month is rejected; the spec only asks for the posting rules to be checked at add time.",
+    "Prefix filters in core.Book.sums, books.list_txns and reports.report_ledger use `LIKE prefix || ':%'`. SQLite LIKE ignores ASCII case and treats '_' and '%' as wildcards, so `--account Assets:Bank` can also match `Assets:bank:X` or names containing '_'.",
+    "Validation helpers are duplicated across modules: bills._text/_terms/_line versus invoices._name/_days/_tax_rate/_parse_line_arg, and reports._range versus arreports._range. They also behave differently: bill lines use split(';') while invoice lines use rsplit(';', 3), and vendor --terms is a string default validated by regex while customer --terms is argparse int.",
+    "Handler conventions differ between modules. planning.budget_set, recurring_add and loan_schedule, and bills.vendor_add, take the argparse namespace directly, so the domain logic is tied to the CLI. books, invoices and arreports instead expose plain functions with thin wrappers.",
+    "There is dead and unused code: core.Book.rate builds a query string `q` it never uses and selects unused columns, cli imports io/redirect_stdout without using them, core imports json without using it, and the global --json flag is parsed but never read (JSON is always printed)."
+  ],
+  "strengths": [
+    "One posting engine (core.Book.post_txn) handles balancing, the single blank posting, currencies and closed-period checks for every feature, and each command runs in one SQLite transaction that is committed or rolled back as a whole, so failed commands change nothing.",
+    "Money is handled safely: amounts are stored as TEXT and parsed as Decimal with NaN and Infinity rejected; q2 and fmt are the only rounding and formatting paths and never produce -0.00; every SQL value is passed as a parameter.",
+    "The HTTP API turns requests into CLI command arguments and runs them through cli.execute, so the API and CLI return the same JSON documents. The tests are thorough, black-box and independent, with a fresh temporary database per test, and they check exact JSON documents along with errors, roles and rollback behaviour."
+  ],
+  "review_cost": 0.6116
+}

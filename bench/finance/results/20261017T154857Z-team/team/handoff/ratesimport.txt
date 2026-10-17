@@ -1,0 +1,40 @@
+**Done**
+- Created fin/ratesimport.py: commands `fx add DATE FROM TO RATE` (write, audit fx.add "FROM/TO"),
+  `convert AMOUNT FROM TO --at DATE` (read), `rule add PATTERN ACCOUNT` (write, audit rule.add PATTERN),
+  `rule list` (read), `import FILE --account ACCOUNT [--date-col N] [--desc-col N] [--amount-col N] [--skip-header]`
+  (write, audit import ACCOUNT). Plain functions for the API layer: add_rate, convert_amount, add_rule,
+  list_rules, import_csv(book, path, account, date_col, desc_col, amount_col, skip_header).
+- Created tests/test_ratesimport.py: 29 tests (FxTests, RuleTests, ImportTests) covering every command,
+  error case, permission, audit entry, closed-period rollback, duplicates, first-rule-wins, BOM.
+- Shared files: none edited. changes.md untouched. No commits.
+- Check: `python3 -m unittest tests.test_ratesimport` -> Ran 29 tests, OK.
+  NOTE: `python` is not on PATH in this environment; only `python3` (/usr/bin/python3) works. The plan's
+  command `python -m unittest tests.test_ratesimport` needs `python` to exist for the lead's run.
+
+**In progress**
+- Nothing open.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_ratesimport` (or `python -m ...` where available) to confirm.
+- README assumptions to add (ratesimport):
+  - fx: rate must be > 0; FROM and TO must differ; several rates on one date: the later entry wins.
+  - convert: `--at` required; result is rounded half up to cents once.
+  - rule: pattern must be non-empty and a valid regex; matched with re.search, case-insensitive; the
+    account must exist at `rule add`; first matching rule in add order wins.
+  - import: CSV read as UTF-8 (BOM tolerated); blank lines skipped; description and each field are
+    stripped; amounts rounded half up to cents; a zero amount is a user error (row number reported);
+    a row that is an exact duplicate (date, description, amount) of an earlier import into the same
+    ACCOUNT is skipped; the whole import is one unit (any error rolls back, incl. created
+    Uncategorized accounts); a row in a closed month fails the whole import; a duplicate already
+    imported is skipped even if its month is closed. Uncategorized accounts are created in the book
+    currency if missing. Column numbers are 0-based and must be >= 0; the audit entry is written for
+    every successful import, even one that imports 0 rows. Errors name the row number.
+  - If ACCOUNT's currency differs from the category account's currency, the import fails as
+    "does not balance" (no cross-currency conversion on import).
+
+**Do not redo**
+- Read fin/core.py, fin/cli.py, tests/helpers.py, tests/test_core.py, plan.md and spec.md sections 4, 5,
+  8-12 and 17 relevant to this task. Core API used: Book(db, user), book.account, book.ensure_account,
+  book.post_txn, book.convert, book.db, book.audit; cli.group / cli.command. Nothing needed changing in core.
+- Checked: the tests use only core and cli (plus raw SQL for setup/inspection), not books/planning
+  commands, so they do not depend on their being finished.

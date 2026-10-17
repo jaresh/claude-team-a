@@ -1,0 +1,22 @@
+Done
+- fin/bills.py (new): vendor add/list, bill create/pay/show/list via cli.group/cli.command; plain functions bill_dict(book, id), create_bill(book, vendor, ref, date, lines) (lines are "DESC;AMOUNT;ACCOUNT;TAXCODE" strings), pay_bill(book, id, amount, date, account), bill_list(book, status). Private helpers _text, _terms, _line (written locally, no shared helper existed).
+- tests/test_bills.py (new): 16 tests covering every command and error case (vendor dup/bad terms, unknown vendor/account/tax code, wrong account type, bad line, negative amount, duplicate ref per vendor, closed period on create and pay, overpay, pay on paid bill, zero/negative/invalid payment, viewer forbidden on writes, read for viewer, audit entries, rounding of tax per line, posting balance).
+- Check: `python3 -m unittest tests.test_bills` -> Ran 16 tests, OK. (No `python` binary on this machine; use python3.)
+- Shared files: none edited. changes.md not touched. No commits.
+
+Decisions to review
+- Bill line TAXCODE may be empty (no tax), same as invoices. The spec does not say; stored as tax_code null.
+- Line AMOUNT must be >= 0 (negative rejected as user error). Amounts are rounded to cents before storing.
+- bill pay ACCOUNT must be an asset account (spec says only "ACCOUNT").
+- Vendor terms: digits only, default 30.
+- Known limitation: a bill whose line accounts are in a currency other than the book currency will fail post_txn's balance check (per-currency sums). Not covered by the spec.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for bills. For arreports (`report aging --payables`), read bills and bill_payments tables as written here: bills(id, vendor, ref, date, due, status, lines JSON, net, tax, total, paid), bill_payments(bill_id, date, amount, txn_id). Lead can run: python3 -m unittest tests.test_bills
+
+Do not redo
+- Did not add a `vendor` or `bill` table change; schema in fin/core.py was used as is.
+- Did not use invoices module helpers (tax add not needed; tests insert taxes/accounts/users with sqlite3 directly to stay independent of other modules).

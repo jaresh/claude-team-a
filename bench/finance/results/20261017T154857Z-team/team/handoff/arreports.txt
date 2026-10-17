@@ -1,0 +1,26 @@
+Done
+- fin/arreports.py (new): report tax (spec 15), reconcile (spec 16), report aging [--payables] (spec 13/14).
+  Plain functions: tax_report(book, frm, to), reconcile(book, account, date, balance, clear_ids), aging(book, at, payables=False).
+  Registered via setup(sub): `report tax --from --to` (read), `report aging --at [--payables]` (read), `reconcile ACCOUNT --date --balance [--clear ID ...]` (write).
+- tests/test_arreports.py (new): 31 tests (TaxReportTests, AgingTests, ReconcileTests).
+- Check: `python3 -m unittest tests.test_arreports` -> Ran 31 tests, OK.
+- No shared files edited (changes.md not touched). No commits.
+
+Assumptions (in code and tests)
+- Tax report: invoices with status <> 'draft' and bills, by document date, both ends inclusive. Only lines with a tax_code count; collected = invoices, paid = bills. Payments do not change tax. by_code lists every code that appears on a line, including zero-rate ones (shown as "0.00").
+- Aging: balance = total minus payments dated on or before --at. Invoices dated after --at and drafts are excluded. Fully paid balances (<= 0) are left out. Buckets by days past the due date: current (<=0), 1-30, 31-60, 61-90, 90+. Bills are only in --payables; invoices only in the default receivables mode.
+- Reconcile: cleared marks live in the cleared table (account, txn_id) and persist across runs. Only postings to exactly ACCOUNT (not child accounts) dated on or before --date count. Each --clear id must have such a posting, else UserError and nothing is marked (the Book rollback also covers this). Repeated ids are de-duplicated. The audit entry (action 'reconcile', target = account) is written only when --clear marks something. Output: account, date, statement_balance, cleared_balance, difference (statement minus cleared), uncleared (ascending txn ids, not cleared, on or before date).
+
+Worktree note
+- The session cwd was already a git worktree under the team directory, so I did not call EnterWorktree and worked in place. Only the two files above were created.
+
+In progress
+- Nothing. Task finished.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` once all teammates are done, then review that the arreports tests pass in the full run.
+
+Do not redo
+- Import check: `python3 -c "import fin.arreports"` is clean.
+- Full run of tests.test_arreports passed on the first attempt (31 tests, 5.2 s). No code changes were needed after writing the tests.
+- Test helper usage follows tests/helpers.py Base (ok/bad with user=); fixtures use the existing `tax add`, `customer add`, `vendor add`, `account add`, `txn add`, `invoice`/`bill` commands, plus one direct sqlite3 insert into `users` for the viewer role.

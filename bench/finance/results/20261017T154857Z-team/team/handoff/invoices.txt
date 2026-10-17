@@ -1,0 +1,33 @@
+Done
+- fin/invoices.py (new): tax add/list, customer add/list, invoice create/issue/pay/show/list, setup(sub).
+  Plain functions for the API layer: invoice_dict(book, id), create_invoice(book, customer, date, lines),
+  issue_invoice(book, id), pay_invoice(book, id, amount, date, account). Each takes a Book.
+- tests/test_invoices.py (new): 43 tests covering every command, error case, role check and audit entry.
+- Check: `python3 -m unittest tests.test_invoices` -> 43 tests, OK.
+- No edits to shared files, so changes.md is unchanged. Nothing committed.
+- Note: `python` is not on PATH in this environment; `python3` is /usr/bin/python3.
+
+In progress
+- Nothing. `report aging` (section 13) is out of scope and belongs to arreports.
+
+Next step
+- None for this module. Lead: run `python3 -m unittest discover -s tests` for the full suite.
+- The API layer (fin/api.py) should call invoice_dict/create_invoice/issue_invoice/pay_invoice with a
+  Book(db, user), since cli.execute only takes argv.
+
+Do not redo
+- Assumptions implemented (list these in README.md):
+  - Tax rates are stored as given text (e.g. "20", "5.5"); tax codes match [A-Za-z0-9_.-]+; rates must not be negative.
+  - Customer terms default to 30 days; due = date + terms.
+  - Invoice lines are stored as JSON in invoices.lines: description, quantity (text as given), price (2dp), tax_code (or null),
+    net and tax (rounded to cents per line). Line net = quantity * unrounded price, rounded once.
+  - A line description may contain ';' (the --line arg is split from the right: DESCRIPTION;QUANTITY;PRICE;TAXCODE, empty TAXCODE = no tax).
+  - Draft invoices have number NULL and post nothing. Issue assigns INV-YYYY-NNNN (counter per year of the invoice date, from existing numbers) and posts
+    Assets:Receivable (total), Income:Sales (-net), and Liabilities:SalesTax (-tax, only when tax != 0). Missing accounts are created in the book currency.
+  - A zero-total invoice can be issued but has zero balance, so it cannot be paid.
+  - Payment: amount must be positive and at most the balance; account must be an existing asset account and not Assets:Receivable.
+    Posts Payment INV-... as a txn; invoice_payments gets (invoice_id, date, amount, txn_id). invoices.paid and status
+    (partial/paid) are kept in sync.
+  - Closed periods: issue and pay raise UserError via Book.post_txn and change nothing.
+  - Roles: write commands need a non-viewer user; reads need no user. Audit actions: tax.add, customer.add, invoice.create, invoice.issue, invoice.pay.
+- Checked and ruled out: the one failing test was a test bug (Assets:Bank was never created), now fixed. No other failures.
