@@ -1,0 +1,124 @@
+{
+  "bench": "finance",
+  "mode": "solo",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.10",
+  "started": "2026-10-17T19:27:01Z",
+  "ended": "2026-10-17T19:34:33Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 53,
+  "own_total": 53,
+  "python_lines": 2145,
+  "cost": 1.1973,
+  "cost_cold": 1.1973,
+  "lead_cost": 1.1973,
+  "team_cost": 0,
+  "teammates": [],
+  "lead_messages": 16,
+  "lead_peak_ctx": 95382,
+  "lead_compactions": 0,
+  "team_peak_ctx": 0,
+  "coverage": 0.942,
+  "least_covered": [
+    "fin/__main__.py (0%)",
+    "fin/__init__.py (50%)",
+    "fin/server.py (86%)"
+  ],
+  "quality": {
+    "app_files": 5,
+    "app_lines": 1217,
+    "test_files": 9,
+    "test_lines": 638,
+    "test_functions": 53,
+    "test_to_app_ratio": 0.52,
+    "functions": 111,
+    "mean_function_lines": 10.8,
+    "max_function_lines": 122,
+    "functions_over_50_lines": 3,
+    "mean_complexity": 3.7,
+    "max_complexity": 16,
+    "functions_complexity_over_10": 6,
+    "most_complex": [
+      "fin/server.py:make_server (16)",
+      "fin/server.py:handle_any (16)",
+      "fin/book.py:import_csv (15)"
+    ],
+    "docstring_coverage": 0.02,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 1,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 5,
+      "readability": 6,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 6,
+    "issues": [
+      "fin/book.py: all the domain logic, the SQL schema, permission checks and the JSON shaping live in one class of about 1060 lines (Book), so storage, rules and output formats are mixed together and invoices, bills, reports and ledger can't be tested or changed on their own.",
+      "fin/book.py Book.convert: the input is rounded to cents (amount(amt)) before it is multiplied by the rate, so 10.125 is rounded to 10.13 and then rounded again after conversion, which gives a different result from rounding once at the end.",
+      "fin/book.py report_trial_balance: each account is converted and rounded on its own and nothing reconciles the rounding differences, so with several currencies total_debit and total_credit can differ even though the specification requires them to be equal.",
+      "fin/cli.py main and fin/server.py handle_any: every command and every GET request runs inside BEGIN IMMEDIATE, so pure reads take the write lock; on the server the response is even sent while the lock is still held, and catching sqlite3.Error and ValueError broadly turns real bugs or a locked database into 'user errors' with exit code 2 or HTTP 400.",
+      "fin/book.py: the same per-account summing is written out by hand in balance, _by_account and report_trial_balance (the sum_by helper is barely used), and invoice_get and bill_get repeat the same total, paid and balance logic; _postings also has an unused account parameter.",
+      "fin/book.py invoice_create and tax_add: invoice quantity and price are not checked for sign, so negative invoices can be issued, and tax_add checks code.strip() but stores the code unstripped, while other inputs are normalised differently."
+    ],
+    "strengths": [
+      "Each user-facing operation runs in a single transaction with rollback, period checks run before any posting (so import and recurring run fail as a whole), and init removes a half-created database file.",
+      "Money is consistently Decimal, stored as strings and formatted through one rnd/fmt helper that enforces half-up rounding and never prints -0.00; all SQL uses parameters, and the only f-string table names are fixed internal constants.",
+      "The tests drive the real CLI and HTTP server against a fresh temporary database each time, check whole JSON documents and that failed commands change nothing, and cover tricky cases such as month-end and leap-year recurrences, rounding, period closing, permissions and aging buckets."
+    ],
+    "review_cost": 0.749
+  },
+  "reviews": [
+    {
+      "overall": 6,
+      "scores": {
+        "structure": 5,
+        "readability": 6,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 7
+      },
+      "review_cost": 0.749
+    },
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 8,
+        "data_safety": 9,
+        "tests": 7,
+        "consistency": 8
+      },
+      "review_cost": 0.7071
+    },
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 9,
+        "tests": 8,
+        "consistency": 7
+      },
+      "review_cost": 0.7137
+    }
+  ]
+}

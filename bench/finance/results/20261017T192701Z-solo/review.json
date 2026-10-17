@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 5,
+    "readability": 6,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 6,
+  "issues": [
+    "fin/book.py: all the domain logic, the SQL schema, permission checks and the JSON shaping live in one class of about 1060 lines (Book), so storage, rules and output formats are mixed together and invoices, bills, reports and ledger can't be tested or changed on their own.",
+    "fin/book.py Book.convert: the input is rounded to cents (amount(amt)) before it is multiplied by the rate, so 10.125 is rounded to 10.13 and then rounded again after conversion, which gives a different result from rounding once at the end.",
+    "fin/book.py report_trial_balance: each account is converted and rounded on its own and nothing reconciles the rounding differences, so with several currencies total_debit and total_credit can differ even though the specification requires them to be equal.",
+    "fin/cli.py main and fin/server.py handle_any: every command and every GET request runs inside BEGIN IMMEDIATE, so pure reads take the write lock; on the server the response is even sent while the lock is still held, and catching sqlite3.Error and ValueError broadly turns real bugs or a locked database into 'user errors' with exit code 2 or HTTP 400.",
+    "fin/book.py: the same per-account summing is written out by hand in balance, _by_account and report_trial_balance (the sum_by helper is barely used), and invoice_get and bill_get repeat the same total, paid and balance logic; _postings also has an unused account parameter.",
+    "fin/book.py invoice_create and tax_add: invoice quantity and price are not checked for sign, so negative invoices can be issued, and tax_add checks code.strip() but stores the code unstripped, while other inputs are normalised differently."
+  ],
+  "strengths": [
+    "Each user-facing operation runs in a single transaction with rollback, period checks run before any posting (so import and recurring run fail as a whole), and init removes a half-created database file.",
+    "Money is consistently Decimal, stored as strings and formatted through one rnd/fmt helper that enforces half-up rounding and never prints -0.00; all SQL uses parameters, and the only f-string table names are fixed internal constants.",
+    "The tests drive the real CLI and HTTP server against a fresh temporary database each time, check whole JSON documents and that failed commands change nothing, and cover tricky cases such as month-end and leap-year recurrences, rounding, period closing, permissions and aging buckets."
+  ],
+  "review_cost": 0.749
+}

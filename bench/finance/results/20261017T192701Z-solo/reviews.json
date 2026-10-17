@@ -1,0 +1,80 @@
+[
+  {
+    "scores": {
+      "structure": 5,
+      "readability": 6,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 6,
+    "issues": [
+      "fin/book.py: all the domain logic, the SQL schema, permission checks and the JSON shaping live in one class of about 1060 lines (Book), so storage, rules and output formats are mixed together and invoices, bills, reports and ledger can't be tested or changed on their own.",
+      "fin/book.py Book.convert: the input is rounded to cents (amount(amt)) before it is multiplied by the rate, so 10.125 is rounded to 10.13 and then rounded again after conversion, which gives a different result from rounding once at the end.",
+      "fin/book.py report_trial_balance: each account is converted and rounded on its own and nothing reconciles the rounding differences, so with several currencies total_debit and total_credit can differ even though the specification requires them to be equal.",
+      "fin/cli.py main and fin/server.py handle_any: every command and every GET request runs inside BEGIN IMMEDIATE, so pure reads take the write lock; on the server the response is even sent while the lock is still held, and catching sqlite3.Error and ValueError broadly turns real bugs or a locked database into 'user errors' with exit code 2 or HTTP 400.",
+      "fin/book.py: the same per-account summing is written out by hand in balance, _by_account and report_trial_balance (the sum_by helper is barely used), and invoice_get and bill_get repeat the same total, paid and balance logic; _postings also has an unused account parameter.",
+      "fin/book.py invoice_create and tax_add: invoice quantity and price are not checked for sign, so negative invoices can be issued, and tax_add checks code.strip() but stores the code unstripped, while other inputs are normalised differently."
+    ],
+    "strengths": [
+      "Each user-facing operation runs in a single transaction with rollback, period checks run before any posting (so import and recurring run fail as a whole), and init removes a half-created database file.",
+      "Money is consistently Decimal, stored as strings and formatted through one rnd/fmt helper that enforces half-up rounding and never prints -0.00; all SQL uses parameters, and the only f-string table names are fixed internal constants.",
+      "The tests drive the real CLI and HTTP server against a fresh temporary database each time, check whole JSON documents and that failed commands change nothing, and cover tricky cases such as month-end and leap-year recurrences, rounding, period closing, permissions and aging buckets."
+    ],
+    "review_cost": 0.749
+  },
+  {
+    "scores": {
+      "structure": 6,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 8,
+      "data_safety": 9,
+      "tests": 7,
+      "consistency": 8
+    },
+    "overall": 7,
+    "issues": [
+      "fin/book.py Book is a single class of about 900 lines that holds storage, validation, permission checks (need()), posting, invoicing, reports and loans, and the CLI calls private helpers such as b._iid, so the domain, auth and storage layers are not separated.",
+      "fin/book.py amount()/_resolve silently round inputs like '12.345' to cents instead of rejecting them, and invoice_create's price display rule (str(price) if exponent < -2 else fmt) is ad hoc and hard to predict.",
+      "fin/book.py import_csv always creates Expenses/Income:Uncategorized in the book currency and posts the negated row amount, so importing into a foreign-currency account (or with a rule pointing to an account in another currency) fails as unbalanced instead of giving a clear error.",
+      "fin/server.py handle_any opens a BEGIN IMMEDIATE write transaction for every GET, returns 500 when the database is missing, and catches TypeError/AttributeError broadly as 400, so programming bugs get hidden as user errors.",
+      "fin/book.py period_close writes an audit entry even when the requested month is earlier than the one already closed and nothing changes, and report_ledger converts each posting at its own date while the reports convert at the report date, so the conversion rules are inconsistent.",
+      "tests: the API tests cover only 3 scenarios (no /bills, tax or trial-balance routes and no malformed-JSON body), and many tests pack several behaviours into one long method, which makes failures harder to locate."
+    ],
+    "strengths": [
+      "Every CLI command runs inside one BEGIN IMMEDIATE transaction with rollback on any exception, so user errors exit 2 with nothing written, and init removes a half-created database file.",
+      "Money is handled as Decimal and stored as strings throughout, with one rnd/fmt helper giving half-up rounding and no -0.00, and all SQL values are parameterised.",
+      "The CLI is a compact table-driven dispatch, the tests run in-process through main() with a fresh temp DB per test and check exit code, empty stdout and exact JSON documents."
+    ],
+    "review_cost": 0.7071
+  },
+  {
+    "scores": {
+      "structure": 6,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 8,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/book.py puts every domain in one 1000-line `Book` class: validation, SQL, permissions, audit, invoicing, bills, reports and loans. Nothing separates storage from domain logic, and the CLI and server reach into private helpers such as `b._iid` in cli.py `dispatch`.",
+      "fin/cli.py `main` and fin/server.py `handle_any` catch broad built-in exceptions (`ValueError`, `sqlite3.Error`, and in the server also `TypeError`/`AttributeError`) and report them as user errors, so programming bugs come back as exit 2 / HTTP 400 instead of being exposed.",
+      "fin/server.py `handle_any` parses `Content-Length` with `int()` outside the try block, so a malformed header crashes the handler. It also returns 500 rather than a consistent error when `Book.open` fails, and it writes the GET response inside the open transaction.",
+      "fin/book.py `report_trial_balance` and `_by_account` round each (account, currency) conversion separately before summing. With multi-currency books, total_debit/total_credit and total_assets vs liabilities+equity can drift by cents, and the code never checks or reconciles this.",
+      "fin/book.py `period_close` writes a `period.close` audit entry even when closing an earlier month changes nothing, and `_resolve` silently rounds posting amounts with more than two decimals (e.g. `1.005` \u2192 `1.01`) instead of rejecting them.",
+      "fin/book.py `report_aging` and `invoice_list`/`bill_list` rebuild every document in full through `invoice_get`/`bill_get` (an N+1 query pattern), and `_postings` has an unused `account` parameter, so callers re-filter in Python with `under()`."
+    ],
+    "strengths": [
+      "All SQL is parameterized, money is handled as `Decimal` throughout (stored as strings and formatted by a single `fmt`/`rnd` that normalizes -0.00), and every CLI/API command runs inside one `BEGIN IMMEDIATE` transaction, so a failure rolls everything back.",
+      "Command dispatch is compact and table-driven on both the CLI and HTTP sides, and shared logic (`_post`, `_pay`, `_party_add`, `_check_open`) is reused rather than duplicated across invoices and bills.",
+      "Tests go through the real CLI entry point and check full JSON documents, exit codes and that failures leave stdout empty and change nothing. They cover rounding edge cases, closed periods, aging buckets, numbering by year and the API's auth codes, each test uses its own temporary database, and the API tests start a real server."
+    ],
+    "review_cost": 0.7137
+  }
+]

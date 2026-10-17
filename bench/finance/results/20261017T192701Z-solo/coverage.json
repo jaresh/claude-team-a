@@ -1,0 +1,18 @@
+{
+  "coverage": 0.942,
+  "covered_lines": 1107,
+  "executable_lines": 1175,
+  "tests_passed_under_coverage": true,
+  "least_covered": [
+    "fin/__main__.py (0%)",
+    "fin/__init__.py (50%)",
+    "fin/server.py (86%)"
+  ],
+  "per_file": {
+    "fin/__init__.py": 0.5,
+    "fin/__main__.py": 0.0,
+    "fin/book.py": 0.951,
+    "fin/cli.py": 0.968,
+    "fin/server.py": 0.857
+  }
+}
