@@ -67,7 +67,8 @@ per arm (review flipped at 3). Plan on 4 runs per arm. See `finance/results/REFE
 Each arm builds in `bench/work/<bench>-<mode>` (git-ignored), a worktree of this repo on an
 empty orphan branch, so it is trusted without setup; it is removed after the run.
 
-Reference results: `finance/results/REFERENCE.md` (v2); v1's in `finance/v1/results/`.
+Reference results: `finance/results/REFERENCE.md` (v2.1 at the end, v2 before it); v1's in
+`finance/v1/results/`. Both arms run without the worktree tools and without `git push`.
 
 ## Refresh
 

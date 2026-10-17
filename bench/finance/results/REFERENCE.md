@@ -168,3 +168,31 @@ stopping rule), run on the current kit. `bench/spread.py bench/finance/results` 
 - Run 20261017T160444Z-team has no review (the review session failed, probably the usage
   limit); its code is deleted, so the review median uses 3 runs.
 - Adopted: kit 3.10 is the current kit.
+
+# Finance v2.1 (prompt 87a9b86a9023): the reference
+
+v2.1 = v2 with a fully blind review (the reviewer reads a copy in a new temporary folder, without
+`.git`, `.claude/` or Markdown files) and `--clear` written like `--posting` (one flag per id).
+Since 2ec0a25 both arms also lose the worktree tools and `git push` (see below).
+
+| Decision metric | Team, kit 3.10 (n=4) | Solo (n=4) | Better | Leave-one-out |
+|---|---|---|---|---|
+| Hidden tests passed | 42 (41-42) | 42 (42-42) | tie | stable |
+| Review overall | 6.5 (5-7) | 7 (6-7) | tie (floor 1) | stable |
+| Cost $, cold start | **0.676** (0.604-0.774) | 1.154 (1.098-1.319) | team, -41% | stable |
+
+- The method held: all three decision metrics stable at 4 runs per arm. The blind review's
+  noise floor is 1 for every score (one solo build got 6, 7 and 7).
+- The `--clear` test now passes in every team run: the v2 gap was the spec's wording.
+- Own tests: the team's cover more (96% vs 94%), but the review scores them lower (5.5 vs 6.5,
+  not stable). In run 20261017T194134Z-team (review 5) the test helper `Book.fail` overrides
+  `unittest.TestCase.fail`, so failing assertions pass silently: the same bug as in kit 3.9's
+  20261017T101624Z-team. A recurring lead mistake, and the next thing to fix in the kit.
+- Wall time: the team takes longer (13 vs 7 minutes).
+
+**Validity.** Solo sessions called `EnterWorktree` as their first action, which makes a worktree
+of this whole repo. In 20261017T092229Z, 133556Z, 192701Z and 193756Z (all solo) the session
+ran `pwd`, `ls` and `git log` there, removed it within seconds and built in the bench workspace:
+no hidden-test or result file was read, so those runs stand. A solo run at 19:47 built in the
+worktree and pushed its branch to origin: discarded (no result recorded; the branch is deleted,
+as is `bench/finance-solo`, pushed by the 09:22 run). Team leads never used either.
