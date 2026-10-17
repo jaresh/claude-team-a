@@ -20,6 +20,7 @@ Installed files (all git-ignored):
   .claude/skills/team/SKILL.md     the lead's playbook, loaded when the team is asked for
   .claude/skills/team/team_kit.py  a copy of this file (cost, status, uninstall)
   .claude/agents/team-dev.md       the teammate: Haiku, effort medium, its rules in its body
+  .claude/rules/team.md            three lines, always loaded: a team request loads the skill
   .claude/settings.local.json      + agent teams on, Haiku auto-compact at 100K (merged)
   .claude/team/                    working files: plan, status, change log, handoffs, scratch
 
@@ -44,12 +45,12 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.5"
+KIT_VERSION = "3.6"
 
 SKILL = """\
 ---
 name: team
-description: Lead an agent team of Haiku teammates on a coding task - plan it, split it into bounded parallel tasks, run them, merge and check. Use when the user asks for the team, team work, teammates, or /team.
+description: Lead an agent team of Haiku teammates on a coding task - clarify it, plan it, split it into bounded parallel tasks, run them, merge, test, deploy to staging when asked, and report. Use whenever the user asks to work with the team, teammates or an agent team, in any words ("work with team on it", "use the team", /team).
 ---
 
 # Lead the team
@@ -75,9 +76,16 @@ Working files, all in `.claude/team/` (git-ignored):
 If the user names a spec or plan file, follow it instead: it replaces this step, and its
 teammate prompts are used word for word.
 
-Otherwise read only what planning needs (the repo's CLAUDE.md or README for build and test
-commands, the files the task touches, and the parts of any contract or spec that the checks
-depend on, such as targets and allowed changes) and overwrite `.claude/team/plan.md` with:
+Otherwise read only what planning needs: the repo's CLAUDE.md or README for build, test and
+deploy commands, the files the task touches, and the parts of any contract or spec that the
+checks depend on (targets, allowed changes). Read with `grep`, `head` and line ranges, not
+whole large files.
+
+If the request leaves a choice that is the user's (what the feature does, where it goes, what
+"done" means), ask once, all questions together, before planning. If no one can answer, decide,
+and list your assumptions in the plan and in your report.
+
+Then overwrite `.claude/team/plan.md` with:
 
 - **Goal** in two or three lines, and the **Check**: one command that decides "done" (the
   repo's tests, a build, a lint, or tests you write first).
@@ -92,8 +100,11 @@ depend on, such as targets and allowed changes) and overwrite `.claude/team/plan
   Work that needs another task's result goes in a later wave. Use names not already in
   `handoff/`.
 
-Tell the user the plan in a few lines. If a design choice is theirs, or the task is unclear,
-ask before starting the team.
+Tests first: unless the user gave a check, write acceptance tests for the contract, in the
+repo's test layout, before starting the team, and run them once to see them fail. They are
+yours: teammates don't edit them, and they add unit tests for their own code.
+
+Tell the user the plan in a few lines.
 
 ## 2. Run a wave
 
@@ -121,16 +132,26 @@ say so in your report.
 - If a handoff is missing, write it from the teammate's report before starting a successor.
 - Then the next wave, or finish.
 
-## 4. Finish
+## 4. Deploy (only when the user asked)
 
-Update `status.md` and report to the user in under 150 words: what changed (paths), the check
-result, what is still open. Don't commit unless the user asked for it.
+Use the repo's documented staging deploy (README, CLAUDE.md, docs, package scripts, Makefile),
+never production. It is a heavy job: you run it, after the check passes, then verify the
+deployed copy with its smoke or health check. If no staging deploy is documented, ask the user
+how; if no one can answer, skip it and say so.
+
+## 5. Finish
+
+Update `status.md` and report to the user, in under 200 words, so they can assess the work:
+what changed (paths), how to try it (staging URL and steps), the tests added and the check
+result, your assumptions, what is still open, and how to undo it. Don't commit unless the user
+asked for it.
 
 ## Rules
 
-- **Model.** Teammates always run as `team-dev` on Haiku at effort medium. Never start one on
-  another model; raise the effort only when the user asks. Without `team-dev`, use
-  `general-purpose` with `model: "haiku"`.
+- **Model.** Every helper you start is a teammate: `team-dev` on Haiku at effort medium,
+  for research and exploring too. Don't start Explore, Plan or other agent types, which run on
+  bigger models, and never start a teammate on another model; raise the effort only when the
+  user asks. Without `team-dev`, use `general-purpose` with `model: "haiku"`.
 - **Budget.** A teammate's budget is its context, about 100K tokens; above that Haiku costs 5x
   per token. Size tasks to fit. Completion notices show the tokens used; a teammate that ran
   out hands off, and you start a successor.
@@ -218,14 +239,22 @@ One line per edit to a shared file: date, teammate, file, function or row, what 
 
 """
 
-FILES = {".claude/skills/team/SKILL.md": SKILL, ".claude/agents/team-dev.md": AGENT}
+RULE = """\
+When the user asks to work with the team, teammates or an agent team, in any words ("work with
+team on it", "use the team", /team), load the `team` skill with the Skill tool before doing
+anything else, and follow it.
+"""
+
+FILES = {".claude/skills/team/SKILL.md": SKILL, ".claude/agents/team-dev.md": AGENT,
+         ".claude/rules/team.md": RULE}
 WORK_FILES = {".claude/team/status.md": STATUS, ".claude/team/changes.md": CHANGES}
 SELF = ".claude/skills/team/team_kit.py"
 SETTINGS = ".claude/settings.local.json"
 SETTINGS_ADD = {"env": {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"},
                 "modelSettings": {"claude-haiku-5-5": {"autoCompactWindow": 100000}}}
 MANIFEST = ".claude/team/.kit.json"
-EXCLUDE = [".claude/skills/team/", ".claude/agents/team-dev.md", ".claude/team/", SETTINGS]
+EXCLUDE = [".claude/skills/team/", ".claude/agents/team-dev.md", ".claude/rules/team.md",
+           ".claude/team/", SETTINGS]
 BEGIN, END = "# team_kit.py begin", "# team_kit.py end"
 # Tools a team lead never uses, removed by `lead`. A name the session doesn't have is harmless
 # (claude prints a warning), so the list works in any environment; tools it doesn't name stay.
@@ -386,7 +415,8 @@ def uninstall(repo, keep_work=False):
         os.remove(os.path.join(repo, MANIFEST))
     else:
         shutil.rmtree(work, ignore_errors=True)
-    for d in (".claude/skills/team", ".claude/skills", ".claude/agents", ".claude"):
+    for d in (".claude/skills/team", ".claude/skills", ".claude/agents", ".claude/rules",
+              ".claude"):
         try:
             os.rmdir(os.path.join(repo, d))   # only if empty
         except OSError:

@@ -1,9 +1,10 @@
 // Browser smoke test (lead-only): serves the repo, opens the game at phone width in headless
 // Chromium, presses keys and taps buttons, and checks the page. Exits 1 when a check fails.
 //
-//   node game/tools/smoke.mjs [screenshot.png] [--ids inventory,hpbar,end]
+//   node game/tools/smoke.mjs [screenshot.png] [--ids inventory,hpbar,end] [--url URL]
 //
-// --ids lists elements that must exist (default: inventory).
+// --ids lists elements that must exist (default: inventory). --url tests a deployed copy (for
+// example staging) instead of serving this repo.
 //
 // Needs playwright-core and its Chromium. Set PLAYWRIGHT_CORE to playwright-core's index.mjs if
 // the default path below does not exist on this machine.
@@ -30,9 +31,15 @@ const server = createServer(async (req, res) => {
     res.end();
   }
 });
-await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
-const url = `http://127.0.0.1:${server.address().port}/game/?seed=42`;
 const args = process.argv.slice(2);
+const urlAt = args.indexOf('--url');
+let url = urlAt >= 0 ? args.splice(urlAt, 2)[1] : null;
+if (url) {
+  url += (url.includes('?') ? '&' : '?') + 'seed=42';
+} else {
+  await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
+  url = `http://127.0.0.1:${server.address().port}/game/?seed=42`;
+}
 const idsAt = args.indexOf('--ids');
 const ids = idsAt >= 0 ? args.splice(idsAt, 2)[1].split(',') : ['inventory'];
 const shot = args[0] || 'smoke.png';
@@ -68,7 +75,7 @@ const layout = await page.evaluate((ids) => {
 const turnAfter = await turn();
 await page.screenshot({ path: shot, fullPage: true });
 await browser.close();
-server.close();
+if (server.listening) server.close();
 
 const checks = {
   noErrors: errors.length === 0,

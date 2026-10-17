@@ -4,7 +4,9 @@
 #   lab/run.sh [--bg] results/runs/<run>/<spec>.md [variant]
 #
 # The session starts with `/team Run <spec> ...`: the lead is the team kit's skill (team_kit.py,
-# installed into the run's checkout first, since the kit is git-ignored) following the spec.
+# installed into the run's checkout first, since the kit is git-ignored) following the spec. A
+# spec whose first line is `<!-- prompt -->` is a prompt file instead: its text is sent word for
+# word, as a user would type it in a new session.
 #
 # Interactive (default): the session opens in this terminal on branch run/<run>/<variant>;
 # type /exit when the lead says the run is done.
@@ -79,7 +81,12 @@ print(json.dumps(s))')
 session=$(python3 -c 'import uuid; print(uuid.uuid4())')
 end_file="results/runs/$run/$name.end"
 metrics="results/metrics/$run-$name.json"
-prompt="/team Run $spec as the lead${variant:+, variant $variant on branch $branch}. Your end-time file is $end_file."
+if head -n1 "$spec" | grep -q '^<!-- prompt -->'; then
+  # A prompt file: its text, word for word, is what the user types in a new session.
+  prompt="$(tail -n +2 "$spec")"$'\n\n'"(Testbed: you are on branch ${branch:-$(git branch --show-current)}; your end-time file is $end_file.)"
+else
+  prompt="/team Run $spec as the lead${variant:+, variant $variant on branch $branch}. Your end-time file is $end_file."
+fi
 echo "Run $run${variant:+ variant $variant}: $label, in $work"
 
 if [ "$bg" = 1 ]; then

@@ -14,6 +14,7 @@ A turn-based roguelike in plain JavaScript: ES modules, no build step, no depend
 | All tests | `npm test` |
 | One test file | `node --test game/test/<module>.test.js` |
 | Play locally | `npm run serve`, then open http://localhost:8000/game/ |
+| Deploy to staging | `npm run stage -- <name>`: copies `game/` to the staging server, smoke-tests it there, and prints the URL (http://localhost:8100/<name>/game/). Lead-only (a heavy job). Undo: the command prints it. |
 
 ## Conventions
 
