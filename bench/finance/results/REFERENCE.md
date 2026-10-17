@@ -79,6 +79,7 @@ team's cost with solo's review score.
 | 20261017T092204Z-team (reference) | 3.6 | 41/42 | 7 (6) | 0.715 | 12 | 5 | - |
 | 20261017T094531Z-team | 3.7 | 42/42 | 8 (7) | 0.732 | 14 | 5 | skipped |
 | 20261017T095916Z-team | 3.8 | 41/42 | 7 (6) | 0.957 | 19 | 7 | skipped, said so in README |
+| 20261017T101624Z-team | 3.9 | 40/42 | 6 (6), tests 4 | 1.039 | 23 | 8 | ran |
 
 - **3.7** (shared Conventions, `.txt` handoffs, team size left to the lead): solo's hidden-test
   and review scores at the team's cost. Every handoff was written. The lead skipped the
@@ -93,3 +94,15 @@ team's cost with solo's review score.
   a `waiting` row for it; Finish waits for every row; the spec is saved before the first wave;
   a layer over other tasks' code (an API, a UI) goes in a later wave; acceptance tests cover
   interfaces between tasks; no commit, even at the end.
+- **3.9 result:** the lead followed every new rule: spec saved first, the API in its own later
+  wave, the consistency teammate run, Finish after it, nothing committed. Quality still fell:
+  40/42 (closed periods for import and recurring; clearing across statements) and review 6. The
+  review's worst finding is in the lead's own test helper: `BookTest.fail` overrides
+  `unittest.TestCase.fail`, so most list and dict assertions can never fail (tests 4). The
+  consistency teammate moved small helpers into core (dates, totals, tax rates) but, held to
+  "change no behaviour", left the bill and invoice copies apart, so consistency stayed 6. Cost
+  rose to $1.039: eight teammates, 23 lead messages, the lead writing the core itself.
+- **Reading the four team runs together:** the run-to-run spread (review 6 to 8, cold cost
+  $0.72 to $1.04) is as large as any difference between kit versions, so one run per version
+  can't rank them. 3.7's result may have been a good draw. Every team run so far is 36-56%
+  cheaper than the single solo run.
