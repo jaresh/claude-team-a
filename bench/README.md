@@ -7,6 +7,8 @@ scored three ways, then recorded in `results/`, and the built app is deleted:
 1. **Hidden acceptance tests** (`<bench>/accept/`): never shown to the model.
 2. **Code-quality metrics** (`quality.py`): size, function length, complexity, duplication,
    docstrings, test/code ratio, and risky patterns (float, SQL from strings, bare except).
+   Plus **line coverage** of the app by its own tests (`coverage.py`, counting the CLI and API
+   subprocesses the tests start).
 3. **A blind review** (`<bench>/review.md`): Opus with read-only tools scores structure,
    readability, correctness risks, error handling, data safety, tests and consistency (1-10)
    and lists the top issues. `.claude/` is removed first, so it can't tell which arm built the
@@ -26,9 +28,9 @@ python3 team_kit.py cost --compare <run>/cost.json <run>/cost.json   # cost deta
 
 Rules for comparable results:
 
-- Don't edit `prompt.md`, `accept/`, `review.md` or `quality.py` for a benchmark that has
-  results: the version (a hash of all four) is in every result, and `compare.py` warns when
-  versions differ. A changed
+- Don't edit `prompt.md`, `accept/` or `review.md` for a benchmark that has results: the
+  version (a hash of the three) is in every result, and `compare.py` warns when versions
+  differ. The measuring tools (`quality.py`, `coverage.py`) only add fields. A changed
   benchmark is a new version, with a new reference pair.
 - Both arms use the same model, effort and cache. `team` differs only in the kit and the mode
   sentence ("Work with team on it."); `solo` removes the Agent tool, so it really is one model.

@@ -41,7 +41,9 @@ stamp=$(date -u +%Y%m%dT%H%M%SZ)
 ws=$repo/bench/work/$bench-$mode
 branch=bench/$bench-$mode
 out=$here/results/$stamp-$mode
-version=$(cat "$here/prompt.md" "$here"/accept/*.py "$here/review.md" "$repo/bench/quality.py" | sha256sum | cut -c1-12)
+# The benchmark's version: what the model and the graders see. Measuring tools (quality.py,
+# coverage.py) only add fields, so they aren't part of it.
+version=$(cat "$here/prompt.md" "$here"/accept/*.py "$here/review.md" | sha256sum | cut -c1-12)
 
 git -C "$repo" worktree remove --force "$ws" 2>/dev/null || true
 git -C "$repo" branch -D "$branch" >/dev/null 2>&1 || true
@@ -73,11 +75,13 @@ until [ -s "$ws/.bench-end" ]; do
 done
 sleep 30   # let the session finish its last message
 claude stop "$id" >/dev/null 2>&1 || true
+ended=$(cat "$ws/.bench-end")
 
 # Score: the app's own tests, then the hidden acceptance tests (never in the workspace).
 (cd "$ws" && timeout 900 python3 -m unittest discover -s tests > "$out/own-tests.txt" 2>&1) || true
+python3 "$repo/bench/coverage.py" "$ws" --json "$out/coverage.json" > /dev/null || echo '{}' > "$out/coverage.json"
 FIN_DIR="$ws" timeout 900 python3 -m unittest discover -s "$here/accept" -v > "$out/accept.txt" 2>&1 || true
-python3 "$repo/team_kit.py" cost --project "$ws" --session "$id" --until "$(cat "$ws/.bench-end")" \
+python3 "$repo/team_kit.py" cost --project "$ws" --session "$id" --until "$ended" \
   --label "bench $bench $mode model=$model effort=$effort prompt=$version" --json "$out/cost.json" \
   > "$out/cost.txt"
 [ -d "$ws/.claude/team" ] && cp -r "$ws/.claude/team" "$out/team" && rm -f "$out/team/.kit.json"
@@ -105,7 +109,7 @@ PY
 rm -f "$out/review-raw.json"
 lines=$(cd "$ws" && git ls-files --others --exclude-standard --cached -- '*.py' | xargs cat 2>/dev/null | wc -l)
 
-python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$(cat "$ws/.bench-end")" "$lines" <<'EOF'
+python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$ended" "$lines" <<'EOF'
 import json, re, sys
 out, bench, mode, model, effort, version, started, ended, lines = sys.argv[1:]
 def tally(path):
@@ -119,6 +123,7 @@ cost = json.load(open(f"{out}/cost.json"))
 lead = [a for a in cost["agents"] if a["role"] == "lead"]
 team = [a for a in cost["agents"] if a["role"] == "teammate"]
 quality = json.load(open(f"{out}/quality.json"))
+coverage = json.load(open(f"{out}/coverage.json"))
 review = json.load(open(f"{out}/review.json"))
 s = {"bench": bench, "mode": mode, "model": model, "effort": effort, "prompt": version,
      "started": started, "ended": ended, "accept_passed": acc[1], "accept_total": acc[0],
@@ -131,6 +136,7 @@ s = {"bench": bench, "mode": mode, "model": model, "effort": effort, "prompt": v
      "lead_peak_ctx": max((a["peak_ctx"] for a in lead), default=0),
      "lead_compactions": sum(a["compactions"] for a in lead),
      "team_peak_ctx": max((a["peak_ctx"] for a in team), default=0),
+     "coverage": coverage.get("coverage"), "least_covered": coverage.get("least_covered", []),
      "quality": quality, "review": review}
 json.dump(s, open(f"{out}/summary.json", "w"), indent=2)
 print(json.dumps(s, indent=2))
