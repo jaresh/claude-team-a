@@ -113,6 +113,8 @@ test('keyToAction maps the contract keys', () => {
   assert.deepEqual(keyToAction('3'), { type: 'use', index: 2 });
   assert.equal(keyToAction('x'), null);
   assert.equal(keyToAction('0'), null);
+  assert.deepEqual(keyToAction('?'), { type: 'help' });
+  assert.deepEqual(keyToAction('Escape'), { type: 'close' });
 });
 
 test('buttonToAction maps the on-screen buttons', () => {
@@ -120,6 +122,8 @@ test('buttonToAction maps the on-screen buttons', () => {
   assert.deepEqual(buttonToAction({ action: 'wait' }), { type: 'wait' });
   assert.deepEqual(buttonToAction({ action: 'use', index: '0' }), { type: 'use', index: 0 });
   assert.deepEqual(buttonToAction({ action: 'new' }), { type: 'new' });
+  assert.deepEqual(buttonToAction({ action: 'help' }), { type: 'help' });
+  assert.deepEqual(buttonToAction({ action: 'close' }), { type: 'close' });
   assert.equal(buttonToAction({}), null);
 });
 

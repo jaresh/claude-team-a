@@ -2,7 +2,7 @@
 import { createRng } from './rng.js';
 import { generateMap, isWalkable, WALL, FLOOR, STAIRS } from './map.js';
 import { computeFov } from './fov.js';
-import { spawnMonsters, spawnItems, attack, applyItem, monsterStep } from './rules.js';
+import { spawnMonsters, spawnItems, spawnTraps, attack, applyItem, monsterStep } from './rules.js';
 
 export const MAX_DEPTH = 5, FOV_RADIUS = 8;
 
@@ -43,6 +43,10 @@ function itemAt(state, x, y) {
   return state.items.find((it) => it.x === x && it.y === y) || null;
 }
 
+function trapAt(state, x, y) {
+  return state.traps.find((t) => t.x === x && t.y === y) || null;
+}
+
 function updateFov(state) {
   const p = state.player;
   state.visible = computeFov(state.map, p.x, p.y, FOV_RADIUS);
@@ -58,6 +62,7 @@ function buildLevel(state, rng) {
   const occupied = new Set();
   state.monsters = spawnMonsters(rng, map, state.depth, occupied);
   state.items = spawnItems(rng, map, state.depth, occupied);
+  state.traps = spawnTraps(rng, map, state.depth, occupied);
   state.explored = new Array(map.w * map.h).fill(false);
   updateFov(state);
 }
@@ -114,6 +119,37 @@ function monsterPhase(state, rng) {
   }
 }
 
+// Moves the player to a random free floor tile with no monster and no trap.
+function teleportPlayer(state, rng) {
+  const map = state.map;
+  const taken = new Set([...state.monsters, ...state.traps].map((e) => tileIndex(map, e.x, e.y)));
+  const free = [];
+  for (let i = 0; i < map.tiles.length; i++) {
+    if (map.tiles[i] === FLOOR && !taken.has(i)) free.push(i);
+  }
+  if (free.length === 0) return;
+  const i = rng.pick(free);
+  state.player.x = i % map.w;
+  state.player.y = Math.floor(i / map.w);
+}
+
+// The player stepped onto a trap: it is revealed and fires, every time it is stepped on.
+function triggerTrap(state, trap, rng) {
+  const p = state.player;
+  trap.hidden = false;
+  if (trap.effect === 'damage') {
+    const before = p.hp;
+    p.hp = Math.max(1, p.hp - trap.amount);
+    say(state, `A ${trap.kind} trap wounds you for ${before - p.hp}.`);
+  } else if (trap.effect === 'poison') {
+    p.poison = POISON_TURNS;
+    say(state, 'A poison needle pricks you.');
+  } else if (trap.effect === 'teleport') {
+    teleportPlayer(state, rng);
+    say(state, 'A teleport trap moves you.');
+  }
+}
+
 // Every living regen monster below maxHp heals 1 hp.
 function regenerate(state) {
   for (const m of state.monsters) {
@@ -160,6 +196,7 @@ export function newGame(seed) {
     },
     monsters: [],
     items: [],
+    traps: [],
     visible: new Set(),
     explored: [],
     log: ['Welcome to the dungeon.'],
@@ -193,6 +230,8 @@ export function act(state, action) {
       } else if (isWalkable(map, nx, ny)) {
         p.x = nx;
         p.y = ny;
+        const trap = trapAt(state, nx, ny);
+        if (trap) triggerTrap(state, trap, rng);
         takesTurn = true;
       } else {
         say(state, 'A wall blocks the way.');
@@ -255,6 +294,8 @@ export function getView(state) {
   const { map, player: p, monsters, items, visible, explored } = state;
   const monsterBy = new Map(monsters.map((m) => [tileIndex(map, m.x, m.y), m]));
   const itemBy = new Map(items.map((it) => [tileIndex(map, it.x, it.y), it]));
+  const revealed = state.traps.filter((t) => !t.hidden);
+  const trapBy = new Map(revealed.map((t) => [tileIndex(map, t.x, t.y), t]));
   const cells = [];
   for (let i = 0; i < map.w * map.h; i++) {
     const x = i % map.w, y = Math.floor(i / map.w);
@@ -266,6 +307,9 @@ export function getView(state) {
     } else if (visible.has(i) && itemBy.has(i)) {
       const it = itemBy.get(i);
       cells.push({ ch: it.glyph, fg: it.color, bg: null });
+    } else if (visible.has(i) && trapBy.has(i)) {
+      const t = trapBy.get(i);
+      cells.push({ ch: t.glyph, fg: t.color, bg: null });
     } else if (visible.has(i)) {
       const t = map.tiles[i];
       cells.push({ ch: t, fg: TILE_FG[t] || DIM, bg: null });
@@ -294,5 +338,8 @@ export function getView(state) {
       .map((m) => ({
         kind: m.kind, glyph: m.glyph, color: m.color, hp: m.hp, maxHp: m.maxHp, ability: m.ability,
       })),
+    traps: revealed
+      .filter((t) => visible.has(tileIndex(map, t.x, t.y)))
+      .map((t) => ({ kind: t.kind, glyph: t.glyph, color: t.color, x: t.x, y: t.y })),
   };
 }

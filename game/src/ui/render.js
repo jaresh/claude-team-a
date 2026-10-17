@@ -4,6 +4,7 @@
 import { MIN_CELL, cameraWindow } from './camera.js';
 import { endMessage, hpColor } from './hud.js';
 import { legendRows, poisonLabel } from './legend.js';
+import { HELP_KEYS, glyphRows } from './help.js';
 
 const BG = '#0b0d12';
 const MAX_ROWS = 15; // map rows on screen; the camera follows the player past this
@@ -65,6 +66,7 @@ export function render(canvas, view, hudEl, logEl) {
   renderHpBar(document.getElementById('hpbar'), h.hp, h.maxHp);
   renderEnd(document.getElementById('end'), view);
   renderLegend(document.getElementById('legend'), view);
+  renderHelp(document.getElementById('help'), view);
 
   logEl.textContent = '';
   for (const line of view.log) {
@@ -102,6 +104,25 @@ function renderLegend(legendEl, view) {
     li.style.color = row.color;
     li.textContent = row.text;
     legendEl.appendChild(li);
+  }
+}
+
+// The help panel lists the key bindings, then the glyphs on screen in their own colours.
+// main.js shows and hides the panel itself.
+function renderHelp(helpEl, view) {
+  if (!helpEl) return;
+  const list = helpEl.querySelector('ul');
+  list.textContent = '';
+  for (const row of HELP_KEYS) {
+    const li = document.createElement('li');
+    li.textContent = `${row.keys}  ${row.action}`;
+    list.appendChild(li);
+  }
+  for (const row of glyphRows(view)) {
+    const li = document.createElement('li');
+    li.style.color = row.color;
+    li.textContent = `${row.glyph}  ${row.name}`;
+    list.appendChild(li);
   }
 }
 

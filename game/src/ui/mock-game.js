@@ -46,6 +46,10 @@ function enterLevel(state) {
   const hp = 3 + state.depth - 1;
   state.monsters = [{ id: 1, kind: 'rat', glyph: 'r', color: '#b9a37e', x: 16, y: 4, hp, maxHp: hp, atk: 1, def: 0, xp: 1, ability: null }];
   state.items = [{ id: 2, kind: 'potion', glyph: '!', color: '#ff5fa2', effect: 'heal', amount: 8, x: 5, y: 8 }];
+  state.traps = [
+    { kind: 'spike', glyph: '^', color: '#c9d1d9', x: 14, y: 3 },
+    { kind: 'teleport', glyph: '^', color: '#a371f7', x: 6, y: 11 },
+  ];
   state.explored = new Array(W * H).fill(false);
 }
 
@@ -64,6 +68,7 @@ function updateFov(state) {
 
 const monsterAt = (state, x, y) => state.monsters.find((m) => m.x === x && m.y === y);
 const itemAt = (state, x, y) => state.items.find((it) => it.x === x && it.y === y);
+const trapAt = (state, x, y) => state.traps.find((t) => t.x === x && t.y === y);
 
 function attackMonster(state, m) {
   const p = state.player;
@@ -211,6 +216,7 @@ export function act(state, action) {
 
 export function getView(state) {
   const { map, player: p, monsters, items, visible, explored } = state;
+  const traps = state.traps.filter((t) => visible.has(idx(t.x, t.y)));
   const cells = [];
   for (let i = 0; i < map.w * map.h; i++) {
     const x = i % map.w;
@@ -224,6 +230,8 @@ export function getView(state) {
     if (m) { cells.push({ ch: m.glyph, fg: m.color, bg: null }); continue; }
     const it = seen ? itemAt(state, x, y) : undefined;
     if (it) { cells.push({ ch: it.glyph, fg: it.color, bg: null }); continue; }
+    const tr = seen ? trapAt(state, x, y) : undefined;
+    if (tr) { cells.push({ ch: tr.glyph, fg: tr.color, bg: null }); continue; }
     const tile = map.tiles[i];
     if (seen) cells.push({ ch: tile, fg: TILE_FG[tile], bg: null });
     else if (explored[i]) cells.push({ ch: tile, fg: DIM, bg: null });
@@ -239,6 +247,7 @@ export function getView(state) {
       hp: p.hp, maxHp: p.maxHp, atk: p.atk, def: p.def, depth: state.depth,
       level: p.level, xp: p.xp, turn: state.turn, poison: 0,
     },
+    traps: traps.map(({ kind, glyph, color, x, y }) => ({ kind, glyph, color, x, y })),
     visibleMonsters: monsters
       .filter((m) => visible.has(idx(m.x, m.y)))
       .map(({ kind, glyph, color, hp, maxHp, ability }) => ({ kind, glyph, color, hp, maxHp, ability })),

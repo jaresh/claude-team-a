@@ -20,6 +20,8 @@ export function keyToAction(key) {
   if (k === 'g') return { type: 'pickup' };
   if (k === '>') return { type: 'descend' };
   if (/^[1-9]$/.test(k)) return { type: 'use', index: Number(k) - 1 };
+  if (k === '?') return { type: 'help' };
+  if (k === 'Escape') return { type: 'close' };
   return null;
 }
 
@@ -36,6 +38,8 @@ export function buttonToAction(ds) {
       return ds.index && Number.isInteger(index) ? { type: 'use', index } : null;
     }
     case 'new': return { type: 'new' };
+    case 'help': return { type: 'help' };
+    case 'close': return { type: 'close' };
     default: return null;
   }
 }

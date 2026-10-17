@@ -16,14 +16,25 @@ function randomSeed() {
   return Math.floor(Math.random() * 1e9);
 }
 
+const helpEl = document.getElementById('help');
+
 let state = newGame(seedFromUrl());
 
 function draw() {
   render(canvas, getView(state), hudEl, logEl);
 }
 
+// Help is UI only: it never reaches act(), so the game state does not change.
+function setHelp(open) {
+  helpEl.hidden = !open;
+}
+
 bindInput(document, (action) => {
-  if (action.type === 'new') {
+  if (action.type === 'help') {
+    setHelp(helpEl.hidden);
+  } else if (action.type === 'close') {
+    setHelp(false);
+  } else if (action.type === 'new') {
     state = newGame(randomSeed());
   } else {
     state = act(state, action);
