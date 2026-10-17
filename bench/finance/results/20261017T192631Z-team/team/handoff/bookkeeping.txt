@@ -1,0 +1,27 @@
+**Done**
+- fin/bookkeeping.py (new): SCHEMA (rules, imported_rows, budgets, recurring, recurring_runs) and COMMANDS for rule add/list, import, budget set, report budget, recurring add/run, loan schedule.
+- tests/test_bookkeeping.py (new): 25 tests.
+- Check: `python3 -m unittest tests.test_bookkeeping` -> Ran 25 tests, OK (run against the current fin/books.py).
+- No shared files edited (core.py, cli.py untouched), so no changes.md rows.
+- Helper note: `_parse_posting` (ACCOUNT=AMOUNT or bare ACCOUNT) is local to bookkeeping.py because core has no posting parser. It duplicates books' txn add parsing if books has one. Lead may move it into core if wanted.
+
+**In progress**
+- Nothing open.
+
+**Next step**
+- None for this task. Lead can run: `python3 -m unittest tests.test_bookkeeping`.
+
+**Do not redo**
+- Imports use core.post_transaction (closed periods and balance enforced there); the rollback in cli.execute makes a failed import or recurring run change nothing. Verified by test_import_into_closed_period_fails_whole_file and test_recurring_run_into_closed_period_fails_whole_run.
+- Recurring occurrences are computed from the start (add_months(start, n) or 7*n days), not iteratively, so Jan 31 -> Feb 28 -> Mar 31 and Feb 29 yearly stay correct. Verified by tests.
+- Loan: payment 86.07 for 1000 at 6% over 12 months checked against the formula by hand (python Decimal). Test covers the last-row absorb and zero rate.
+
+Assumptions (for README):
+- Rule ACCOUNT is shape-checked at `rule add` (first segment a valid type) but not created; import creates a missing rule or Uncategorized account in the book currency.
+- Import: amount zero is treated as non-negative, so it goes to Income:Uncategorized. Dedup key is (account, date, description stripped, amount normalized). Descriptions are stripped.
+- Import and rule accounts must share the currency of the import ACCOUNT, otherwise UserError "row N: ...".
+- Rule patterns use re.search, case-insensitive.
+- Budget amounts must be non-negative. Budget target must be an expense account. Actual is converted to the budget account's currency at month end (same currency = no change).
+- Recurring names are unique; a duplicate is a user error.
+- Audit: import, recurring.run write an audit entry only when something was imported or created. rule.add, budget.set, recurring.add always write one.
+- `loan schedule` is read-level and needs no --user, but the database file must exist (core.connect behaviour).

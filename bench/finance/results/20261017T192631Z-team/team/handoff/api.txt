@@ -1,0 +1,34 @@
+**Done**
+- fin/api.py (new): serve(db, port), make_server(db, port) (returns a bound ThreadingHTTPServer; port 0 picks a free one), COMMANDS = [(("serve",), setup adding --port int default 8000, None, "read")]. Each request becomes an argv for cli.execute(db, user, argv); no changes to core.py or cli.py.
+- tests/test_api.py (new): 23 tests, all pass.
+- Check: `python3 -m unittest tests.test_api` -> Ran 23 tests, OK.
+- Smoke test: `python -m fin --db X serve --port 18765` served GET /accounts (200) and POST /transactions with X-User (400 with the JSON error from the CLI). Scratch db removed.
+- Shared files: none changed, so changes.md has no line from me.
+
+Routes (spec section 10):
+- GET: /accounts, /transactions (?account&from&to), /balances?at, /reports/income?from&to, /reports/balance-sheet?at, /reports/aging?at[&payables=1], /audit (?by), /invoices (?status), /invoices/ID.
+- POST (needs X-User): /transactions -> 201 (txn add), /invoices -> 201 (invoice create), /invoices/ID/issue -> 200, /invoices/ID/payments -> 200 (invoice pay).
+- Errors: unknown path or non-numeric ID -> 404 {"error"}; missing or unknown X-User -> 401; ForbiddenError -> 403; any other UserError (including argparse errors, bad JSON, missing body fields) -> 400; unexpected exception -> 500 {"error": "internal error"} with traceback on stderr.
+- Requests run through cli.execute with user=None for GET, so GET never checks X-User.
+
+Assumptions (for the README):
+- Server binds 127.0.0.1 only.
+- --port defaults to 8000 when omitted.
+- Body numbers are read with parse_float=str, so 12.50 stays "12.50" exactly.
+- Posting without amount -> bare ACCOUNT, as the CLI expects.
+- Invoice lines are sent as "desc;qty;price;tax_code" to docs; a description containing ";" is rejected with 400 (the CLI's line format cannot express it).
+- A non-numeric invoice ID in the path is 404 (no such route), not 400.
+- Body validation runs before the X-User check, so a POST with a bad body and no user returns 400, not 401.
+- Log lines go to stderr through the default BaseHTTPRequestHandler logger; tests silence them.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_api` again after any change to cli.py or the docs/books modules. To serve: `python3 -m fin --db PATH serve --port 8000`.
+- Optional, not my file: cli.execute raises AuthError/ForbiddenError before its try/finally, so the connection is left open on those paths. The tests show ResourceWarnings from this, and they are harmless.
+
+**Do not redo**
+- Accounts must exist before txn posts (the CLI says "unknown account"). The tests create Assets:Bank and Income:Sales in setUp. This is not an API bug.
+- Invoice issue creates its own Assets:Receivable / Income:Sales accounts, but payments need the --account to exist (Assets:Bank in the tests).
+- The default BaseHTTPRequestHandler logging was checked and works; the test silences it by setting RequestHandlerClass.log_message.

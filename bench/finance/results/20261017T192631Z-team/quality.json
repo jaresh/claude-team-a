@@ -1,0 +1,27 @@
+{
+  "app_files": 9,
+  "app_lines": 1352,
+  "test_files": 5,
+  "test_lines": 1242,
+  "test_functions": 160,
+  "test_to_app_ratio": 0.92,
+  "functions": 153,
+  "mean_function_lines": 7.8,
+  "max_function_lines": 42,
+  "functions_over_50_lines": 0,
+  "mean_complexity": 2.9,
+  "max_complexity": 14,
+  "functions_complexity_over_10": 6,
+  "most_complex": [
+    "fin/bookkeeping.py:import_csv (14)",
+    "fin/api.py:_post_argv (13)",
+    "fin/api.py:_get_argv (12)"
+  ],
+  "docstring_coverage": 0.2,
+  "duplicate_share": 0.002,
+  "float_calls": 0,
+  "sql_built_from_strings": 4,
+  "bare_except": 0,
+  "broad_except": 3,
+  "parse_errors": []
+}

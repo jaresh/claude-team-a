@@ -1,0 +1,30 @@
+**Done**
+- fin/books.py (new): COMMANDS for init, account add/list, txn add/list, balance, fx add, convert, user add/list, audit list, period close/status. No SCHEMA (uses core tables only). Imports only from fin.core.
+- tests/test_books.py (new): 52 tests, all pass.
+- Check: `python3 -m unittest tests.test_books` -> Ran 52 tests, OK. (Run from the worktree root.)
+- Shared files: none changed (no core.py/cli.py edits), so changes.md has no new line from me.
+
+Choices made where the spec was silent (for README assumptions):
+- init: fails if meta 'currency' already set; admin name is stripped and must be non-empty; returns {"currency","admin"}; audit entry target = currency.
+- account add: duplicate name is an error before ensure_account; audit logs only the named account, not auto-created parents; returns {"name","type","currency"}.
+- txn add: posting spec split on first "=" ("ACCOUNT" alone = blank amount). Output is txn_dict.
+- txn list: --account matches the account or descendants via EXISTS + substr (so "Assets:Ban" does not match "Assets:Bank"); --from/--to inclusive; ordered by date, id.
+- balance: every account with postings (even net zero) and all ancestors; per-currency fmt; keys sorted.
+- fx add: rate must be a positive decimal; same FROM and TO is an error; stored rate is str(Decimal); returns {"date","from","to","rate"}; audit target "FROM/TO".
+- convert: --at is required (not defaulted); returns {"amount","currency"}.
+- user add: --role choices admin|editor|viewer; level 'admin'. user list sorted by name.
+- audit list: --by filters on the user column; keys seq, at, user, action, target.
+- period close: level 'admin'; writes meta and audit only when the month moves closed_through forward (earlier month changes nothing, no audit). Returns {"closed_through": ...}. period status returns {"closed_through": None or "YYYY-MM"}.
+- Levels: account add, txn add, fx add = 'write'; user add, period close, init = 'admin'; all reads = 'read'.
+
+**In progress**
+- Nothing. Books task is complete.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_books` again after any core.py change. Optional cleanup for lead (cli.py, not my file): in cli.execute, the AuthError/ForbiddenError raises happen before the try/finally that closes conn, so those paths leave the sqlite connection unclosed. Tests pass, but unittest prints ResourceWarning: unclosed database. Fix would be to move the permission checks inside the try, or close conn in those branches.
+
+**Do not redo**
+- Checked the ResourceWarning: it comes from cli.execute error paths (permission checks before the try block), not from books.py handlers. The tests themselves pass with these warnings.
+- Confirmed sum_postings(conn, "t.date<=?", (at,)) covers the `balance --at` filter; the no-date path calls sum_postings(conn) with no where clause.
+- Confirmed dict(sqlite3.Row) works for audit rows (tests cover keys and values).
+- Did not create tests/__init__.py; `python3 -m unittest tests.test_books` works without it.

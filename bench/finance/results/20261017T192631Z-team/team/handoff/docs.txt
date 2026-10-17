@@ -1,0 +1,27 @@
+**Done**
+- Created fin/docs.py (spec sections 13, 14, 15). Contents:
+  - SCHEMA: doc_taxes, doc_parties (kind, name, terms), doc_invoices, doc_bills (UNIQUE vendor+ref), doc_payments. Lines are JSON text.
+  - COMMANDS: tax add/list; customer add/list; vendor add/list; invoice create/issue/pay/show/list; bill create/pay/show/list; report aging (--at, --payables); report tax (--from, --to).
+  - Exposed functions invoice_dict(conn, id) and bill_dict(conn, id).
+  - All posting goes through core.post_transaction. Audit actions match spec 11 (tax.add, customer.add, vendor.add, invoice.create/issue/pay, bill.create/pay with the id as target).
+  - Invoice numbers: INV-YYYY-NNNN, counted per year of the invoice date from existing numbers.
+- Created tests/test_docs.py: 34 tests, all passing. They cover the spec example invoice, line rounding and zero-never-negative, due dates from terms, number sequencing across years, sales-tax posting and the no-tax case, payments (partial/paid, over-balance, draft, paid, non-asset account), closed-period errors leaving no changes, viewer/editor roles, aging buckets with boundaries (0, 1, 30, 31, 60, 61, 90, 91 days), later payments and invoices excluded from aging, bill ref uniqueness per vendor, bill line account type checks, bill pay, tax report collected/paid/by_code and period bounds, and invoice_dict/bill_dict matching the show commands.
+- Check: `python3 -m unittest tests.test_docs` gives Ran 34 tests, OK (about 6.5 s).
+- No shared files edited, so changes.md is unchanged.
+- Worktree: the environment reports cwd /home/jaca/claude-team-a/bench/work/finance-team as a git worktree. I did not call EnterWorktree; I edited in place there.
+- Not committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_docs` again after any change to fin/core.py or fin/cli.py, then run the full suite with `python3 -m unittest discover -s tests -t .` once all teammates are done.
+- Open question for the lead: an invoice with a negative quantity or price is accepted (only parsed as Decimal). The spec does not say whether that should be an error. I left it alone.
+- Open question for the lead: a line description cannot contain ';' (the spec's line format has no escape). Also left alone.
+
+**Do not redo**
+- Checked against spec 13–15 line by line: field names and key order of invoice and bill dicts, quantity shown as given, tax rate shown as given, due = date + terms, aging buckets and "invoices with nothing left to pay are left out", tax report uses issued invoices (status != draft) and all bills in the period.
+- Checked spec 11 audit action names and spec 12 closed-period list. Invoice create and bill create are not closed-period checked (they post nothing for invoice create; bill create does post, and is checked via post_transaction).
+- Found and fixed one bug while reviewing: the "is a draft" check in `_pay` also applied to bills. It now applies only to invoices.
+- fin/books.py exists and provides init, user add, account add, period close, audit list; tests use those through cli.execute, with no own init.
+- Rollback on error: cli.execute rolls back on any exception, so a failed bill create after its INSERT leaves no bill row. test_closed_period_blocks_bill_create_and_pay confirms this.

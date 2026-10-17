@@ -1,0 +1,29 @@
+**Done**
+Files changed (only these two):
+- fin/reports.py: report income, report balance-sheet, report networth, report trial-balance, report ledger, reconcile; SCHEMA creates table `cleared(account, txn_id)`; COMMANDS registers ("report","income"/"balance-sheet"/"networth"/"trial-balance"/"ledger") as read and ("reconcile",) as write.
+- tests/test_reports.py: 26 unittest cases using tempfile db and fin.cli.execute (plus one subprocess CLI test for exit code 2 on UserError).
+Check: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_reports` -> Ran 26 tests, OK.
+No shared files edited (no changes.md rows). Nothing committed.
+
+Assumptions for README.md (lead to add):
+- Report amounts are converted per currency at the report date (core.convert, unrounded), rounded once per account; totals are rounded once from unrounded sums. In multi-currency books a total can differ by a cent from the sum of its rounded rows.
+- Income report: income shown as negated raw balance; expenses as raw balance; net = total_income - total_expenses. Date range is inclusive on both ends.
+- Balance sheet: retained_earnings = -(sum of income and expense raw balances) up to --at; total_equity = total_assets - total_liabilities (so the identity holds exactly).
+- Net worth: one row per month from --from to --to, evaluated as of the month's last day; networth = assets - liabilities.
+- Trial balance: book currency; each account with a non-zero rounded balance is a debit or credit row; accounts with zero balance appear with "0.00" in both columns only if they have postings (as sum_postings returns them).
+- Ledger: the account and its descendants (subtree). Each posting is converted to the ACCOUNT's currency at its own transaction date and rounded per posting, so rows add up exactly. Postings before --from fold into "opening". Rows sorted by date, id, posting id.
+- Reconcile: --clear ids must each have a posting to the account dated on or before --date, otherwise UserError and nothing is marked (whole command atomic via execute's rollback). Cleared marks persist across runs; uncleared = ascending distinct txn ids dated on or before --date that are not cleared. difference = statement balance - cleared balance. An audit entry "reconcile" (target = account) is written only when --clear is given.
+- Reconcile requires editor/admin (write level); viewers can run reports.
+
+**In progress**
+Nothing. Task complete.
+
+**Next step**
+Lead: add the cleared table to the schema loader if it does not already load SCHEMA from every module (check that fin/cli.py or fin/core.py runs each module's SCHEMA in init), then add the assumptions above to README.md, then run `python3 -m unittest tests.test_reports` and the full suite `python3 -m unittest` once.
+
+**Do not redo**
+- py_compile of fin/reports.py passed before tests were written.
+- First test run: 25 of 26 passed; the one failure was a wrong expected value in my test (ledger opening for Assets:Bank before 2026-01-06 is 4000.00, capital 1000 + salary 3000, not 1000). Fixed in the test; the report code was correct.
+- Cleaned up three sloppy assertions in tests/test_reports.py (ledger balance check, balance-sheet total_assets, unknown-currency test). Final run: OK, 26 tests.
+- The CLI subprocess test (`python -m fin --db ... report income` with reversed dates) returns exit 2, stdout empty, stderr starting "error:". Passed.
+- Command signatures in fin/books.py (init, account add --currency, txn add --date/--desc/--posting, fx add, user add --role, audit list) work as used by the tests; no change needed.

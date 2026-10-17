@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 6,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "cli.main and cli.execute only catch UserError, so sqlite3 errors (for example `--db` in a missing directory, or a file that is not a database) end in a traceback; also, cmd_init validates its arguments only after core.connect(create=True) has created a schema-only file, so a failed `init` leaves a database behind and later commands then hit the NOT NULL rule on accounts.currency.",
+    "reports.report_balance_sheet sets total_equity to total_assets \u2212 total_liabilities instead of summing equity and retained earnings, which hides any foreign-exchange or rounding imbalance, and report_trial_balance makes no check that its debit and credit totals stay equal after conversion.",
+    "reports.report_ledger converts each posting at its own date instead of at the report date like the other reports, and it loads every posting up to the end date and filters by is_under in Python instead of in SQL.",
+    "api._post_argv turns the HTTP body into CLI argv strings and runs them through argparse, so the API layer depends on CLI parsing: a negative positional amount in POST /invoices/ID/payments is read as an option, and an account name containing '=' breaks the posting split.",
+    "Conventions differ between modules: handlers are cmd_* in books.py but have bare names in bookkeeping.py and docs.py, posting parsing is written twice (books.cmd_txn_add does not strip, bookkeeping._parse_posting does), cli.execute has an unused json_flag parameter, and the cli docstring describes an 'editor-no' level that does not exist.",
+    "Every call to core.connect runs all the schema DDL, even for read-only commands, and both main and execute reload the modules and rebuild the parser; docs.invoice_create also accepts negative quantities or prices, and _pay accepts a payment dated before the invoice."
+  ],
+  "strengths": [
+    "One command table per module, a single cli.execute that wraps each command in BEGIN IMMEDIATE/ROLLBACK, and central role checks make writes atomic and permissions consistent between the CLI and the API.",
+    "Money is handled carefully: amounts are Decimal throughout and stored as text, there is one q2/fmt pair for half-up rounding with no -0.00, JSON numbers are parsed with parse_float=str, and all values go into SQL as parameters (table names in f-strings come only from constants).",
+    "The tests check behaviour across every section: they compare exact JSON documents, check that errors change nothing, cover 401/403/404 in the API, test exit code 2 through a subprocess, and give each test its own temporary database."
+  ],
+  "review_cost": 0.5418
+}

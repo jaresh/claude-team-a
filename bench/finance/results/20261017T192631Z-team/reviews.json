@@ -1,0 +1,80 @@
+[
+  {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 8,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "cli.main and cli.execute only catch UserError, so sqlite3 errors (for example `--db` in a missing directory, or a file that is not a database) end in a traceback; also, cmd_init validates its arguments only after core.connect(create=True) has created a schema-only file, so a failed `init` leaves a database behind and later commands then hit the NOT NULL rule on accounts.currency.",
+      "reports.report_balance_sheet sets total_equity to total_assets \u2212 total_liabilities instead of summing equity and retained earnings, which hides any foreign-exchange or rounding imbalance, and report_trial_balance makes no check that its debit and credit totals stay equal after conversion.",
+      "reports.report_ledger converts each posting at its own date instead of at the report date like the other reports, and it loads every posting up to the end date and filters by is_under in Python instead of in SQL.",
+      "api._post_argv turns the HTTP body into CLI argv strings and runs them through argparse, so the API layer depends on CLI parsing: a negative positional amount in POST /invoices/ID/payments is read as an option, and an account name containing '=' breaks the posting split.",
+      "Conventions differ between modules: handlers are cmd_* in books.py but have bare names in bookkeeping.py and docs.py, posting parsing is written twice (books.cmd_txn_add does not strip, bookkeeping._parse_posting does), cli.execute has an unused json_flag parameter, and the cli docstring describes an 'editor-no' level that does not exist.",
+      "Every call to core.connect runs all the schema DDL, even for read-only commands, and both main and execute reload the modules and rebuild the parser; docs.invoice_create also accepts negative quantities or prices, and _pay accepts a payment dated before the invoice."
+    ],
+    "strengths": [
+      "One command table per module, a single cli.execute that wraps each command in BEGIN IMMEDIATE/ROLLBACK, and central role checks make writes atomic and permissions consistent between the CLI and the API.",
+      "Money is handled carefully: amounts are Decimal throughout and stored as text, there is one q2/fmt pair for half-up rounding with no -0.00, JSON numbers are parsed with parse_float=str, and all values go into SQL as parameters (table names in f-strings come only from constants).",
+      "The tests check behaviour across every section: they compare exact JSON documents, check that errors change nothing, cover 401/403/404 in the API, test exit code 2 through a subprocess, and give each test its own temporary database."
+    ],
+    "review_cost": 0.5418
+  },
+  {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 8,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "fin/core.py connect: when `init` is given a fresh path, the file and all schemas are created before cmd_init validates its input, so a failed `init` (for example, a bad currency) leaves behind a database with no `currency` meta; later commands then hit a sqlite NOT NULL IntegrityError instead of a user error.",
+      "fin/cli.py main/execute: only UserError is caught, so a corrupt or non-SQLite `--db` file, a missing parent directory, or a locked database surfaces as a Python traceback rather than exit code 2 with a message.",
+      "fin/reports.py report_balance_sheet: `total_equity` is computed as total_assets \u2212 total_liabilities instead of equity + retained_earnings, so the identity can never fail and any imbalance or rounding difference in equity is hidden.",
+      "fin/api.py _post_argv/_get_argv: the HTTP layer turns JSON bodies into CLI argv strings (for example `--posting={account}={amount}`) and rebuilds the argparse parser on every request, so the API depends on CLI syntax; an account name containing `=` would be split in the wrong place.",
+      "Naming and parsing conventions are inconsistent across modules: books.py uses `cmd_*`/`_*_args`, docs.py and reports.py use bare names with `_setup_*`, posting specs are parsed inline without stripping in books.cmd_txn_add but with stripping in bookkeeping._parse_posting, and account-name validation is duplicated in core.ensure_account and bookkeeping._account_name.",
+      "fin/core.py resolve_postings and bookkeeping.import_csv silently round amounts with more than two decimals (12.345 \u2192 12.35) before the balance check instead of rejecting them, and import accepts negative column indices; core.sum_postings also keeps the unused parameters `at` and `target`."
+    ],
+    "strengths": [
+      "Every command runs inside one BEGIN IMMEDIATE/COMMIT-or-ROLLBACK in cli.execute, so failed commands (including whole imports and recurring runs that hit a closed period) leave nothing behind and write no audit entry.",
+      "Money handling is careful: Decimal throughout, amounts stored as text, one q2/fmt helper that rounds half up and never prints -0.00, the API parses JSON numbers with parse_float=str, and all SQL values are passed as parameters.",
+      "The tests check behaviour through the real command entry point, are isolated with a temp database per test, cover every section including edge cases (Feb 29, last-day-of-month, duplicate import rows, closed periods, roles and 401/403), and include subprocess checks of exit code 2 with empty stdout."
+    ],
+    "review_cost": 0.6878
+  },
+  {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 8,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "reports.report_balance_sheet sets total_equity to total_assets \u2212 total_liabilities instead of summing equity and retained_earnings, so the A = L + E identity always holds by construction and can no longer reveal an imbalance or FX-rounding drift between the displayed rows and the totals.",
+      "api._post_argv turns HTTP bodies back into CLI argv strings, so the HTTP layer depends on CLI parsing: an invoice line description containing ';' breaks the `--line` field split, and a payment amount such as \"-5\" passed as a positional argument is read by argparse as an option.",
+      "cli.execute calls core.connect(db, create=True) before init validates its arguments, so a failed `init` (for example a bad currency) still leaves a database file with the schema on disk, which breaks the rule that a user error changes nothing.",
+      "cli.main catches only UserError, so sqlite3 errors (a corrupt or non-SQLite --db file, or a locked database) and other unexpected exceptions reach the user as tracebacks instead of a clean message.",
+      "reports.report_ledger converts each posting at that posting's own date and rounds per row, while every other report converts at the report date and rounds per account; the per-row rounding also exists in report_trial_balance, so totals can drift by cents when foreign currencies are involved.",
+      "docs.bill_create and docs._pay do not check that the line or payment account uses the book's currency, so a foreign-currency account fails later with a misleading 'transaction does not balance' error; core.sum_postings also keeps unused `at`/`target` parameters and the cli docstring describes an 'editor-no' level that does not exist."
+    ],
+    "strengths": [
+      "The command-table design (COMMANDS tuples with a permission level) gives one dispatch path for CLI and API, with permission checks and a single BEGIN IMMEDIATE/COMMIT/ROLLBACK around every handler, so commands are atomic, including whole-file import and recurring runs into a closed period.",
+      "Money is handled as Decimal throughout: amounts are stored as TEXT, API JSON is parsed with parse_float=str, and q2/fmt give consistent half-up rounding with no '-0.00'; all SQL uses parameters (the only f-string table names come from a constant dict).",
+      "The tests are behavioural and independent (a fresh temporary database per test), cover every section including edge cases (Jan 31/Feb 29 recurrence, per-year invoice numbering, aging cut-offs, closed periods rejecting a whole import, 401/403/404 statuses), and include subprocess checks of exit code 2 and empty stdout."
+    ],
+    "review_cost": 0.8497
+  }
+]

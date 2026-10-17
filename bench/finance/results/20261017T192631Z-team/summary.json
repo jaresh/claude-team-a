@@ -1,0 +1,130 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.10",
+  "started": "2026-10-17T19:26:31Z",
+  "ended": "2026-10-17T19:37:16Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 160,
+  "own_total": 160,
+  "python_lines": 3219,
+  "cost": 0.6041,
+  "cost_cold": 0.6041,
+  "lead_cost": 0.4858,
+  "team_cost": 0.1182,
+  "teammates": [
+    "statements",
+    "books",
+    "docs",
+    "bookkeeping",
+    "api"
+  ],
+  "lead_messages": 14,
+  "lead_peak_ctx": 52611,
+  "lead_compactions": 0,
+  "team_peak_ctx": 64497,
+  "coverage": 0.953,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/cli.py (88%)"
+  ],
+  "quality": {
+    "app_files": 9,
+    "app_lines": 1352,
+    "test_files": 5,
+    "test_lines": 1242,
+    "test_functions": 160,
+    "test_to_app_ratio": 0.92,
+    "functions": 153,
+    "mean_function_lines": 7.8,
+    "max_function_lines": 42,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.9,
+    "max_complexity": 14,
+    "functions_complexity_over_10": 6,
+    "most_complex": [
+      "fin/bookkeeping.py:import_csv (14)",
+      "fin/api.py:_post_argv (13)",
+      "fin/api.py:_get_argv (12)"
+    ],
+    "docstring_coverage": 0.2,
+    "duplicate_share": 0.002,
+    "float_calls": 0,
+    "sql_built_from_strings": 4,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 8,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "cli.main and cli.execute only catch UserError, so sqlite3 errors (for example `--db` in a missing directory, or a file that is not a database) end in a traceback; also, cmd_init validates its arguments only after core.connect(create=True) has created a schema-only file, so a failed `init` leaves a database behind and later commands then hit the NOT NULL rule on accounts.currency.",
+      "reports.report_balance_sheet sets total_equity to total_assets \u2212 total_liabilities instead of summing equity and retained earnings, which hides any foreign-exchange or rounding imbalance, and report_trial_balance makes no check that its debit and credit totals stay equal after conversion.",
+      "reports.report_ledger converts each posting at its own date instead of at the report date like the other reports, and it loads every posting up to the end date and filters by is_under in Python instead of in SQL.",
+      "api._post_argv turns the HTTP body into CLI argv strings and runs them through argparse, so the API layer depends on CLI parsing: a negative positional amount in POST /invoices/ID/payments is read as an option, and an account name containing '=' breaks the posting split.",
+      "Conventions differ between modules: handlers are cmd_* in books.py but have bare names in bookkeeping.py and docs.py, posting parsing is written twice (books.cmd_txn_add does not strip, bookkeeping._parse_posting does), cli.execute has an unused json_flag parameter, and the cli docstring describes an 'editor-no' level that does not exist.",
+      "Every call to core.connect runs all the schema DDL, even for read-only commands, and both main and execute reload the modules and rebuild the parser; docs.invoice_create also accepts negative quantities or prices, and _pay accepts a payment dated before the invoice."
+    ],
+    "strengths": [
+      "One command table per module, a single cli.execute that wraps each command in BEGIN IMMEDIATE/ROLLBACK, and central role checks make writes atomic and permissions consistent between the CLI and the API.",
+      "Money is handled carefully: amounts are Decimal throughout and stored as text, there is one q2/fmt pair for half-up rounding with no -0.00, JSON numbers are parsed with parse_float=str, and all values go into SQL as parameters (table names in f-strings come only from constants).",
+      "The tests check behaviour across every section: they compare exact JSON documents, check that errors change nothing, cover 401/403/404 in the API, test exit code 2 through a subprocess, and give each test its own temporary database."
+    ],
+    "review_cost": 0.5418
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 6,
+        "data_safety": 8,
+        "tests": 8,
+        "consistency": 6
+      },
+      "review_cost": 0.5418
+    },
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 6,
+        "data_safety": 8,
+        "tests": 8,
+        "consistency": 6
+      },
+      "review_cost": 0.6878
+    },
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 8,
+        "consistency": 7
+      },
+      "review_cost": 0.8497
+    }
+  ]
+}
