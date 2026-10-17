@@ -11,8 +11,8 @@ own spread on identical code is listed apart: that is the noise floor of the rev
 Then the stability check, team on --kit (default: the newest kit with team runs) against solo:
 for each metric, which arm is better on the medians, and whether that still holds after
 leaving out any one run of either arm. "stable" means no single run decides the conclusion. A
-review difference no larger than the noise floor (the widest spread of one run's reviews) is a
-tie."""
+review difference no larger than its noise floor (the widest spread of that score between one
+run's reviews) is a tie."""
 import datetime as dt
 import json
 import os
@@ -46,16 +46,21 @@ def minutes(r):
     return round((t(r["ended"]) - t(r["started"])).total_seconds() / 60, 1)
 
 
-# (label, value, better): better is "high" or "low"; review scores are compared within the noise floor
-METRICS = [("Hidden tests passed", lambda r: r["accept_passed"], "high"),
-           ("Review overall", overall, "high"),
-           ("Review consistency", score("consistency"), "high"),
-           ("Review tests", score("tests"), "high"),
-           ("Review structure", score("structure"), "high"),
-           ("Own tests' coverage", lambda r: r.get("coverage"), "high"),
-           ("Cost $, cold start", lambda r: r["cost_cold"], "low"),
-           ("Lead / solo messages", lambda r: r["lead_messages"], "low"),
-           ("Wall minutes", minutes, "low")]
+# (label, value, better, review key): better is "high" or "low"; a review score is compared
+# within its noise floor
+METRICS = [("Hidden tests passed", lambda r: r["accept_passed"], "high", None),
+           ("Review overall", overall, "high", "overall"),
+           ("Review consistency", score("consistency"), "high", "consistency"),
+           ("Review tests", score("tests"), "high", "tests"),
+           ("Review structure", score("structure"), "high", "structure"),
+           ("Own tests' coverage", lambda r: r.get("coverage"), "high", None),
+           ("Cost $, cold start", lambda r: r["cost_cold"], "low", None),
+           ("Lead / solo messages", lambda r: r["lead_messages"], "low", None),
+           ("Wall minutes", minutes, "low", None)]
+
+
+def review_value(x, key):
+    return x.get("overall") if key == "overall" else (x.get("scores") or {}).get(key)
 
 
 def stats(runs, f):
@@ -87,18 +92,20 @@ def main():
     print(f"Prompt version {prompt}: median (min-max) per group\n")
     print("| Metric | " + " | ".join(f"{k} (n={len(groups[k])})" for k in names) + " |")
     print("|" + "---|" * (len(names) + 1))
-    for label, f, _ in METRICS:
+    for label, f, _, _ in METRICS:
         print(f"| {label} | " + " | ".join(stats(groups[k], f)[1] for k in names) + " |")
 
     noisy = [r for r in runs if len(r.get("reviews") or []) > 1]
-    floor = max((max(x["overall"] for x in r["reviews"]) - min(x["overall"] for x in r["reviews"])
-                 for r in noisy), default=0)
+    floor = {key: max((max(review_value(x, key) for x in r["reviews"]) -
+                       min(review_value(x, key) for x in r["reviews"]) for r in noisy), default=0)
+             for *_, key in METRICS if key}
     if noisy:
         print("\nReviewer noise (the same code reviewed several times):\n")
         for r in noisy:
-            vals = [x["overall"] for x in r["reviews"]]
-            print(f"- {r['dir']}: overall {vals}, range {max(vals) - min(vals)}")
-        print(f"\nNoise floor: review differences of {floor} or less are ties.")
+            print(f"- {r['dir']}: " + "; ".join(
+                f"{key} {[review_value(x, key) for x in r['reviews']]}" for key in floor))
+        print("\nNoise floor (a difference this size or smaller is a tie): " +
+              ", ".join(f"{key} {v}" for key, v in floor.items()))
 
     kits = sorted({r.get("kit") for r in runs if r["mode"] == "team"}, key=lambda v: [int(x) for x in v.split(".")])
     kit = sys.argv[sys.argv.index("--kit") + 1] if "--kit" in sys.argv else kits[-1]
@@ -110,8 +117,8 @@ def main():
           "and whether leaving out any one run changes it\n")
     print("| Metric | Better | Leave-one-out |")
     print("|---|---|---|")
-    for label, f, better in METRICS:
-        tol = floor if label.startswith("Review") else 0
+    for label, f, better, key in METRICS:
+        tol = floor.get(key, 0) if key else 0
         base = verdict(team, solo, f, better, tol)
         alts = {verdict(team[:i] + team[i + 1:], solo, f, better, tol) for i in range(len(team))}
         alts |= {verdict(team, solo[:i] + solo[i + 1:], f, better, tol) for i in range(len(solo))}
