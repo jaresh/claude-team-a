@@ -3,6 +3,8 @@
 // pillar, one rat, one potion. Visibility is a square radius, not real FOV.
 // main.js imports this file until core/game.js lands (wave 2).
 
+import { score } from '../core/score.js';
+
 export const MAX_DEPTH = 5, FOV_RADIUS = 8;
 
 const W = 24, H = 14;
@@ -75,6 +77,7 @@ function attackMonster(state, m) {
     return;
   }
   state.monsters = state.monsters.filter((x) => x !== m);
+  state.stats.kills[m.kind] = (state.stats.kills[m.kind] || 0) + 1;
   say(state, `You kill the ${m.kind}.`);
   p.xp += m.xp;
   const level = 1 + Math.floor(p.xp / 10);
@@ -94,6 +97,7 @@ function endTurn(state) {
     if (cheb(m.x, m.y, p.x, p.y) <= 1) {
       const dmg = Math.max(1, m.atk - p.def);
       p.hp -= dmg;
+      state.stats.damageTaken += dmg;
       say(state, `The ${m.kind} hits you for ${dmg}.`);
       if (p.hp <= 0) {
         p.hp = 0;
@@ -130,6 +134,7 @@ export function newGame(seed) {
     monsters: [], items: [], traps: [], visible: new Set(), explored: [],
     log: ['Mock dungeon. Find the > stairs.'],
     turn: 0, status: 'playing',
+    stats: { kills: {}, itemsUsed: 0, trapsTriggered: 0, deepest: 1, damageTaken: 0 },
   };
   enterLevel(state);
   updateFov(state);
@@ -182,6 +187,7 @@ export function act(state, action) {
       } else {
         p.inventory.splice(action.index, 1);
         p.hp = Math.min(p.maxHp, p.hp + item.amount);
+        state.stats.itemsUsed += 1;
         say(state, `You drink the ${item.kind}. +${item.amount} hp.`);
         takesTurn = true;
       }
@@ -198,6 +204,7 @@ export function act(state, action) {
         break;
       }
       state.depth += 1;
+      state.stats.deepest = Math.max(state.stats.deepest, state.depth);
       enterLevel(state);
       say(state, `You go down to depth ${state.depth}.`);
       takesTurn = true;
@@ -248,5 +255,7 @@ export function getView(state) {
       .map(({ kind, glyph, color, x, y }) => ({ kind, glyph, color, x, y })),
     log: state.log.slice(-5),
     status: state.status,
+    stats: { ...state.stats, kills: { ...state.stats.kills } },
+    score: score(state.stats, state.status),
   };
 }
