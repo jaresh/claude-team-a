@@ -1,0 +1,23 @@
+{
+  "bench": "finance",
+  "mode": "solo",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "71e981f2a7dc",
+  "started": "2026-10-17T09:04:29Z",
+  "ended": "2026-10-17T09:08:26Z",
+  "accept_passed": 25,
+  "accept_total": 25,
+  "own_passed": 18,
+  "own_total": 18,
+  "python_lines": 1218,
+  "cost": 0.6263,
+  "cost_cold": 0.6263,
+  "lead_cost": 0.6263,
+  "team_cost": 0,
+  "teammates": [],
+  "lead_messages": 9,
+  "lead_peak_ctx": 57219,
+  "lead_compactions": 0,
+  "team_peak_ctx": 0
+}
