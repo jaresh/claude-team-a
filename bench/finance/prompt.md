@@ -109,7 +109,7 @@ Report amounts are in the book's currency, or in `--currency CUR`, converted at 
 
 ## 16. Bank reconciliation
 
-- `reconcile ACCOUNT --date DATE --balance AMOUNT [--clear ID ...]` marks the given transactions as cleared for ACCOUNT (each must have a posting to ACCOUNT dated on or before DATE, else it is a user error and nothing is marked) and reports `{"account": "...", "date": "...", "statement_balance": "...", "cleared_balance": "...", "difference": "...", "uncleared": [ids]}`. `cleared_balance` is the sum of ACCOUNT's cleared postings dated on or before DATE; `difference` = statement − cleared; `uncleared` lists, ascending, the transactions with a posting to ACCOUNT dated on or before DATE that aren't cleared. Cleared marks are kept for later runs.
+- `reconcile ACCOUNT --date DATE --balance AMOUNT [--clear ID] [--clear ...]` marks the given transactions as cleared for ACCOUNT (one `--clear` per transaction, repeated like `--posting`; each must have a posting to ACCOUNT dated on or before DATE, else it is a user error and nothing is marked) and reports `{"account": "...", "date": "...", "statement_balance": "...", "cleared_balance": "...", "difference": "...", "uncleared": [ids]}`. `cleared_balance` is the sum of ACCOUNT's cleared postings dated on or before DATE; `difference` = statement − cleared; `uncleared` lists, ascending, the transactions with a posting to ACCOUNT dated on or before DATE that aren't cleared. Cleared marks are kept for later runs.
 
 ## 17. Ledger reports
 

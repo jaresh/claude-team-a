@@ -12,8 +12,10 @@
 #
 # Every run is scored three ways: the hidden acceptance tests, code-quality metrics
 # (bench/quality.py), and a blind review by a fixed reviewer (REVIEW_MODEL=opus, REVIEW_EFFORT=
-# medium, read-only tools, rubric in bench/<bench>/review.md) after .claude/ is removed, so it
-# can't tell the arm. The review's cost is recorded apart from the run's. REVIEWS=N runs N
+# medium, read-only tools, rubric in bench/<bench>/review.md). The reviewer reads a copy in a
+# new temporary folder (review-XXXXXX/app), without .git (its branch is named after the arm),
+# .claude/ or Markdown files (the app's README may say how it was built), so neither the path,
+# the git status nor the files show the arm. The review's cost is recorded apart from the run's. REVIEWS=N runs N
 # independent reviews of the same code in parallel (default 1), to measure the reviewer's noise.
 #
 # Results go to bench/<bench>/results/<UTC stamp>-<mode>/ (cost, scores, quality, review, the
@@ -91,13 +93,16 @@ python3 "$repo/team_kit.py" cost --project "$ws" --session "$id" --until "$ended
 [ -d "$ws/.claude/team" ] && cp -r "$ws/.claude/team" "$out/team" && rm -f "$out/team/.kit.json"
 [ -f "$ws/README.md" ] && cp "$ws/README.md" "$out/app-README.md"
 
-# Quality: metrics, then the blind review (nothing in the workspace may show which arm built it).
+# Quality: metrics, then the blind review of a neutral copy (nothing it sees may show the arm).
 python3 "$repo/bench/quality.py" "$ws" --json "$out/quality.json" > /dev/null
-rm -rf "$ws/.claude" "$ws/.bench-end" "$ws/fin.db"
+rev=$(mktemp -d "${TMPDIR:-/tmp}/review-XXXXXX")/app
+mkdir -p "$rev"
+(cd "$ws" && tar -cf - --exclude=./.git --exclude=./.claude --exclude=./.bench-end --exclude='*.db' \
+   --exclude='__pycache__' --exclude='*.md' .) | tar -xf - -C "$rev"
 review_prompt="$(cat "$here/review.md")
 $(sed 's/ {{MODE}}//' "$here/prompt.md")"
 for i in $(seq 1 "$reviews"); do
-  (cd "$ws" && timeout 1800 claude -p --model "${REVIEW_MODEL:-opus}" --effort "${REVIEW_EFFORT:-medium}" \
+  (cd "$rev" && timeout 1800 claude -p --model "${REVIEW_MODEL:-opus}" --effort "${REVIEW_EFFORT:-medium}" \
      --tools=Read,Glob,Grep --output-format json "$review_prompt" < /dev/null > "$out/review-raw-$i.json" 2>/dev/null) &
 done
 wait || true
@@ -119,6 +124,7 @@ if n > 1:
     json.dump(reviews, open(f"{out}/reviews.json", "w"), indent=2)
 PY
 rm -f "$out"/review-raw-*.json
+rm -rf "$(dirname "$rev")"
 lines=$(cd "$ws" && git ls-files --others --exclude-standard --cached -- '*.py' | xargs cat 2>/dev/null | wc -l)
 
 python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$ended" "$lines" "$kit" <<'EOF'

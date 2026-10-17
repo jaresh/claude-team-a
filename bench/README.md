@@ -11,12 +11,13 @@ scored three ways, then recorded in `results/`, and the built app is deleted:
    subprocesses the tests start).
 3. **A blind review** (`<bench>/review.md`): Opus with read-only tools scores structure,
    readability, correctness risks, error handling, data safety, tests and consistency (1-10)
-   and lists the top issues. `.claude/` is removed first, so it can't tell which arm built the
-   code. Its cost is recorded apart from the run's.
+   and lists the top issues. It reads a copy in a new temporary folder (`review-XXXXXX/app`)
+   without `.git`, `.claude/` or Markdown files, so neither the path, the branch nor the app's
+   README shows which arm built the code. Its cost is recorded apart from the run's.
 
 | Benchmark | What | Hidden tests |
 |---|---|---|
-| `finance` (v2) | a small-business finance system: ledger, FX, import, budgets, recurring, reports, loans, users and audit, closed periods, invoices, bills, tax, reconciliation, ledger reports, an authenticated HTTP API (Python, stdlib) | 42 |
+| `finance` (v2.1) | a small-business finance system: ledger, FX, import, budgets, recurring, reports, loans, users and audit, closed periods, invoices, bills, tax, reconciliation, ledger reports, an authenticated HTTP API (Python, stdlib) | 42 |
 | `finance/v1` (archived) | the first ten sections only; too small: Sonnet alone built it in 9 turns | 25 |
 
 ```
