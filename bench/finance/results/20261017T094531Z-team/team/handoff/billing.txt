@@ -1,0 +1,34 @@
+Done
+- fin/billing.py (new): SCHEMA for billing_tax, billing_customers, billing_vendors, billing_invoices,
+  billing_invoice_lines, billing_bills, billing_bill_lines, billing_payments. register(sub) adds
+  tax add/list, customer add/list, vendor add/list (--terms default 30), invoice create/issue/pay/
+  show/list, bill create/pay/show/list, report aging (--at, --payables), report tax (--from, --to).
+  Audit actions: tax.add, customer.add, vendor.add, invoice.create, invoice.issue, invoice.pay,
+  bill.create, bill.pay.
+- tests/test_billing.py (new): 39 tests across tax, parties, invoices, bills, reports, closed periods.
+- Done check: `python3 -m unittest tests.test_billing` -> Ran 39 tests, OK (about 16 s).
+- Shared files: none edited, so changes.md is untouched. Nothing committed.
+
+In progress
+- Nothing open. Billing section is complete against the plan spec.
+
+Next step
+- Lead: run `python3 -m unittest tests.test_billing` once more after the other modules merge, since
+  billing depends on core.post_transaction, core.ensure_account and the shared `report` group.
+- billing now uses `command_group(sub, "report")` from fin/banking.py (requested by banking). No
+  local copy of the helper remains in fin/billing.py. Tests still pass: 39 OK.
+- Lead: fin/reports.py still has its own `report_group` duplicate, which is outside my files.
+  Consistency pass can switch it to command_group too.
+
+Do not redo
+- Do not add `sub.add_parser("report")` in billing; use banking's command_group (done).
+- Confirmed core.TYPES values (asset, liability, equity, income, expense) match the type strings
+  billing uses in _account_of_type.
+- Confirmed post_transaction returns the txn dict (I use txn["id"]) and raises UserError on unknown
+  accounts, so billing ensures its system accounts (Assets:Receivable, Income:Sales,
+  Liabilities:SalesTax, Assets:TaxReceivable, Liabilities:Payable) before posting.
+- Judgment calls to keep: empty names and descriptions are rejected; negative prices and bill line
+  amounts are rejected; zero or negative payments are rejected; quantity must be positive; bill
+  lines may post to expense or asset accounts; invoice payments must go to asset accounts;
+  `report tax` requires both --from and --to; invoice numbers are INV-YYYY-NNNN counted per
+  issue year; drafts are excluded from aging and the tax report.

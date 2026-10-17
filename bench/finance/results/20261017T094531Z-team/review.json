@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 9,
+    "tests": 8,
+    "consistency": 7
+  },
+  "overall": 8,
+  "issues": [
+    "banking.py parse_postings/check_postings/valid_account repeat the posting parsing in ledger.parse_posting, the balancing rules in core.post_transaction and the name check in ledger.account_add, so the same rules live in three places and can drift apart.",
+    "reports.report_balance_sheet quietly overwrites retained_earnings with whatever makes the sheet balance when rounding is off, and report_trial_balance rounds each row on its own after currency conversion, so with several currencies total_debit and total_credit can differ even though the spec says they are equal.",
+    "Layers leak into each other: ledger, banking, reports and billing import cli.Parser and register their own argparse commands, reports and billing import command_group from banking, and command_group relies on argparse's private _actions and _SubParsersAction.",
+    "cli.run and cli.main only catch UserError, so sqlite3 errors (an unwritable --db path in init, a corrupt or locked database) crash with a traceback, and api.Handler._reply turns every other exception into a 500 without logging it anywhere.",
+    "banking.report_budget adds up actual amounts across currencies without converting them, and reports.report_ledger filters on p.currency, silently leaving out descendant postings in other currencies, so multi-currency books get wrong numbers with no error.",
+    "The CLI conventions vary: report tax uses dest='start' where every other command uses 'frm'; reconcile --clear takes one id per flag, not the spec's '--clear ID ...'; and billing builds SQL with f-string table names in _terms_of, _totals and _party_add (safe for now, since the names are internal constants, but a fragile pattern)."
+  ],
+  "strengths": [
+    "core.py gives one shared base for money (q/fmt with half-up rounding and no -0.00), validation, posting and conversion, and every command runs inside one BEGIN/COMMIT/ROLLBACK in cli.run, so a failure, including a whole failed import or recurring run, changes nothing.",
+    "The HTTP API turns each request into a CLI argv and runs it through cli.execute, so its JSON matches the --json output. It checks the X-User header before reading the body, and it rejects JSON floats for amounts.",
+    "The tests run the real CLI in a separate process against a fresh database for each test, check exact JSON and exit code 2 with empty stdout, and cover edge cases: month-end and leap-day schedules, closed periods rolling back a whole import or run, duplicate rows, reconciliation that carries over between runs, and the 401/403/400 API codes."
+  ],
+  "review_cost": 0.6141
+}

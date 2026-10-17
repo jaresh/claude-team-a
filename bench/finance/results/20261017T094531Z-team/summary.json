@@ -1,0 +1,88 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "141f43ad9356",
+  "started": "2026-10-17T09:45:31Z",
+  "ended": "2026-10-17T09:54:25Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 112,
+  "own_total": 112,
+  "python_lines": 2957,
+  "cost": 0.6892,
+  "cost_cold": 0.7315,
+  "lead_cost": 0.5577,
+  "team_cost": 0.1316,
+  "teammates": [
+    "api",
+    "billing",
+    "banking",
+    "ledger",
+    "reports"
+  ],
+  "lead_messages": 14,
+  "lead_peak_ctx": 59231,
+  "lead_compactions": 0,
+  "team_peak_ctx": 62648,
+  "coverage": 0.961,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/api.py (89%)"
+  ],
+  "quality": {
+    "app_files": 9,
+    "app_lines": 1459,
+    "test_files": 8,
+    "test_lines": 969,
+    "test_functions": 112,
+    "test_to_app_ratio": 0.66,
+    "functions": 139,
+    "mean_function_lines": 9.7,
+    "max_function_lines": 70,
+    "functions_over_50_lines": 1,
+    "mean_complexity": 2.9,
+    "max_complexity": 14,
+    "functions_complexity_over_10": 2,
+    "most_complex": [
+      "fin/cli.py:run (14)",
+      "fin/banking.py:import_csv (13)",
+      "fin/core.py:post_transaction (10)"
+    ],
+    "docstring_coverage": 0.23,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 9,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 8,
+      "consistency": 7
+    },
+    "overall": 8,
+    "issues": [
+      "banking.py parse_postings/check_postings/valid_account repeat the posting parsing in ledger.parse_posting, the balancing rules in core.post_transaction and the name check in ledger.account_add, so the same rules live in three places and can drift apart.",
+      "reports.report_balance_sheet quietly overwrites retained_earnings with whatever makes the sheet balance when rounding is off, and report_trial_balance rounds each row on its own after currency conversion, so with several currencies total_debit and total_credit can differ even though the spec says they are equal.",
+      "Layers leak into each other: ledger, banking, reports and billing import cli.Parser and register their own argparse commands, reports and billing import command_group from banking, and command_group relies on argparse's private _actions and _SubParsersAction.",
+      "cli.run and cli.main only catch UserError, so sqlite3 errors (an unwritable --db path in init, a corrupt or locked database) crash with a traceback, and api.Handler._reply turns every other exception into a 500 without logging it anywhere.",
+      "banking.report_budget adds up actual amounts across currencies without converting them, and reports.report_ledger filters on p.currency, silently leaving out descendant postings in other currencies, so multi-currency books get wrong numbers with no error.",
+      "The CLI conventions vary: report tax uses dest='start' where every other command uses 'frm'; reconcile --clear takes one id per flag, not the spec's '--clear ID ...'; and billing builds SQL with f-string table names in _terms_of, _totals and _party_add (safe for now, since the names are internal constants, but a fragile pattern)."
+    ],
+    "strengths": [
+      "core.py gives one shared base for money (q/fmt with half-up rounding and no -0.00), validation, posting and conversion, and every command runs inside one BEGIN/COMMIT/ROLLBACK in cli.run, so a failure, including a whole failed import or recurring run, changes nothing.",
+      "The HTTP API turns each request into a CLI argv and runs it through cli.execute, so its JSON matches the --json output. It checks the X-User header before reading the body, and it rejects JSON floats for amounts.",
+      "The tests run the real CLI in a separate process against a fresh database for each test, check exact JSON and exit code 2 with empty stdout, and cover edge cases: month-end and leap-day schedules, closed periods rolling back a whole import or run, duplicate rows, reconciliation that carries over between runs, and the 401/403/400 API codes."
+    ],
+    "review_cost": 0.6141
+  }
+}

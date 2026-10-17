@@ -1,0 +1,36 @@
+Done
+- Created fin/reports.py: register(sub) with report income, report balance-sheet, report networth,
+  report trial-balance, report ledger (all write=False, admin=False) and loan schedule.
+- Created tests/test_reports.py: 16 tests (income incl. inclusive range and multi-currency with
+  fx and inverse rate, balance-sheet, networth, trial-balance, ledger, loan schedule incl.
+  0% rate, 1% two-month hand-checked payment 507.51, month-end clamp, invalid input, errors).
+- Checks: `python3 -m unittest tests.test_reports` -> 16 tests OK.
+  `python3 -m unittest discover -s tests` (with ledger, banking, billing, api present) -> 41 tests OK.
+- No shared files edited (changes.md not touched). Nothing committed.
+
+Notes for the lead
+- `report` is shared with banking (command_group in banking.py) and billing (same
+  `sub.choices.get("report") or sub.add_parser("report")` pattern as mine). My helper
+  `report_group(sub)` in fin/reports.py finds the existing argparse._SubParsersAction and reuses
+  it, otherwise creates it. This is a helper I wrote in my own file; billing has its own copy.
+  Consider moving one shared version into fin/cli.py during the consistency pass.
+- Ledger report filters postings by the account's currency (p.currency = account currency) so a
+  descendant in another currency is not mixed in. Spec said "no conversion"; this is my reading.
+- Trial balance converts to the book currency only (no --currency option), as the spec says.
+- Balance sheet: if rounding breaks assets = liabilities + equity, retained_earnings is derived
+  as total_assets - total_liabilities - sum(equity), as the plan allows.
+
+In progress
+- Nothing.
+
+Next step
+- None for reports. Lead: run `python3 -m unittest tests.test_reports` after any change to fin/ledger.py
+  (the tests call `account add`, `txn add` and `fx add`).
+
+Do not redo
+- Ran the module tests against the current ledger.py, which exists now: all 16 pass.
+- Full discover suite: 41 tests pass, including banking and billing registration coexisting with
+  the report group.
+- Full discover run after the switch: 112 tests OK (count changes as other modules add tests).
+- EnterWorktree is not in my tool set; I worked in the checkout the lead assigned and edited only
+  fin/reports.py and tests/test_reports.py.

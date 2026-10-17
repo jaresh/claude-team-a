@@ -1,0 +1,27 @@
+Done
+- fin/banking.py (new): SCHEMA (banking_rules, banking_imported, banking_budget, banking_recurring, banking_recurring_done, banking_cleared); commands rule add/list, import, budget set, report budget MONTH, recurring add/run, reconcile; command_group(sub, name) helper.
+- tests/test_banking.py (new): 27 tests, all passing.
+- Check: python3 -m unittest tests.test_banking -> OK (27 tests, about 9 s). py_compile clean on both files.
+- Shared files: none edited. changes.md not touched.
+- Working location: the cwd is the git worktree /home/jaca/claude-team-a/bench/work/finance-team (branch bench/finance-team). It is not under .claude/worktrees/, but the environment set it as the worktree, so I did not call EnterWorktree. My first write to fin/banking.py happened before this check.
+- Not committed.
+
+Design points for the lead and the consistency pass
+- command_group(sub, "report") in fin/banking.py: reuses the existing "report" group or creates it (dest="subcmd", required, parser_class=cli.Parser). Reports and billing must use it. Calling sub.add_parser("report") twice fails. I messaged main, reports and billing about this.
+- Import: categories are created with the bank account's currency, not the book currency, so postings balance for non-book-currency accounts. Dedupe key: (account, date, description, amount as fmt string). Categories: Expenses:Uncategorized for negative amounts, Income:Uncategorized for positive ones; rule matches go to the rule's account.
+- Recurring run: occurrences are dated by core.add_months(start, k, day=start.day) for monthly and yearly, and start + 7k days for weekly. Each (recurring_id, date) is recorded in banking_recurring_done so reruns create nothing new. A closed period raises and rolls back the whole run.
+- Reconcile: cleared_balance is the sum of account postings in txns dated on or before --date, with cleared IDs recorded in banking_cleared (INSERT OR IGNORE). Each --clear ID must be a posting to ACC on or before --date, or the command fails and nothing is marked.
+- report budget: actual is the sum of direct postings per month in each currency, added as-is. Remaining = budget - actual.
+
+In progress
+- Nothing. Work is complete for the banking section.
+
+Next step
+- Lead: review fin/banking.py for shared-helper use against the consistency pass, then run: python3 -m unittest tests.test_banking
+- Lead: once ledger, reports and billing land, run the full suite: python3 -m unittest discover -s tests -t . (not yet run by me; only the banking tests have run).
+
+Do not redo
+- Tests do not use the ledger commands (account add and txn add do not exist yet). They create accounts and postings in-process with cli._connect(db), core.Ctx(db, "admin"), core.ensure_account and core.post_transaction, then close. Do not switch them to CLI-based setup until ledger lands.
+- Fixed a test-only bug: the column-options fixture used ';' separators, but the importer uses csv.reader with the default comma delimiter. The fixture now uses commas. This is a test fix, not a module change, and the spec has no delimiter option.
+- Fixed a garbled return comprehension in recurring_add (my own typo) before running anything.
+- Nothing else failed on the first run; the only failure was the test-fixture delimiter above.

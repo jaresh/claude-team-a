@@ -1,0 +1,21 @@
+**Done**
+- fin/api.py (new): make_server(db_path, port) -> HTTPServer on 127.0.0.1 (port 0 = free port, server.db_path set); serve(db_path, port) = serve_forever with KeyboardInterrupt caught, server_close in finally. Handler maps every request onto fin.cli.execute(db_path, user, argv).
+  - GET (user=None): /accounts, /transactions (account/from/to), /balances (at), /reports/income (from/to/currency), /reports/balance-sheet (at/currency), /reports/aging (at, payables=1), /invoices (status), /invoices/ID, /audit (by). Query values always sent as --opt=value; unknown query keys ignored; blank values ignored.
+  - POST: /transactions -> 201 (txn add), /invoices -> 201 (invoice create), /invoices/ID/issue -> 200, /invoices/ID/payments -> 200 (invoice pay ID AMOUNT --date= --account=).
+  - X-User missing -> 401 (checked before body parse); AuthError -> 401, Forbidden -> 403, other UserError (incl. bad JSON, wrong types, floats for amounts, ';' in invoice line fields, empty lines) -> 400 {"error"}; unknown path -> 404 {"error"}; unexpected exception -> 500 {"error":"internal error"}. log_message silenced.
+- tests/test_api.py (new): 6 tests, run in a thread with make_server(self.db, 0). Reads, transactions/balances incl. negative amount, audit, auth codes (401/403), bad input 400 with no change, invoice lifecycle.
+- Check result: `python3 -m unittest tests.test_api` -> Ran 6, FAILED (failures=1). 5 pass. The one failure is test_invoice_lifecycle, which fails at its first setup call `self.ok("customer", "add", "Acme")`: "invalid choice: 'customer'" because billing has not registered its commands yet. It is not an api bug.
+- Shared files: none edited, changes.md untouched. No scratch files, no commits.
+
+**In progress**
+- Nothing in my files. Invoice path (customer/tax/invoice/aging routes) is not verified end to end; only the argv builders were checked directly (outputs: `invoice create --customer=Acme --date=2026-02-01 --line=Consulting;2;50.00;VAT --line=Fee;1;5;`, `invoice pay 3 -5 --date=... --account=...`).
+
+**Next step**
+- After billing lands: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_api`. Expect 6/6. If invoice_lifecycle fails on a value, check the billing output against the assertions there (total "120.00", number "INV-2026-0001", balance "100.00", aging total "100.00", list filter status=partial).
+- Also worth checking once billing exists: that argparse accepts the positional negative amount in `invoice pay 3 -5` (the builder passes it unchanged). If it doesn't, the API returns 400 with the argparse message, which is acceptable but the test would show it.
+
+**Do not redo**
+- Checked argparse: cli.Parser.error/exit raise UserError, so argparse problems become 400s with no printed output.
+- cli.execute: write commands with user None or unknown raise AuthError; viewer role raises Forbidden. Both verified by test_auth_status_codes (passes).
+- Ledger's `account add` exists and works (setUp passes). `account list` returns parent accounts too (Assets, Income), so tests expect four names.
+- Full test run before billing: only test_invoice_lifecycle fails, at the customer add. The other five pass.

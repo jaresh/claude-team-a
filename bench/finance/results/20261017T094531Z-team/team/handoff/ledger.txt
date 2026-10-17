@@ -1,0 +1,21 @@
+Done
+- Created fin/ledger.py: register(sub) with account add/list, txn add/list, balance, fx add, convert.
+  Leaf parsers set handler/write/admin per contract (write=True for account add, txn add, fx add; others read-only; admin=False everywhere).
+- Created tests/test_ledger.py: 19 tests (AccountTests, TxnTests, BalanceTests, FxTests).
+- Check: `python3 -m unittest tests.test_ledger` -> Ran 19 tests, OK (about 7s).
+- No edits to shared files (core.py, cli.py, helpers.py, changes.md untouched). No commit.
+
+Design choices the lead may want to know about
+- fx add rejects FROM == TO with UserError ("currencies must differ"). Same-currency convert needs no rate and returns the amount unchanged (tested).
+- fx add stores the rate string exactly as given (after validation via core.parse_decimal, must be > 0).
+- txn add amounts go through core.parse_amount, which rounds to cents (core behaviour).
+- account add rejects names containing '=' or empty segments (e.g. "Assets::X") in addition to core.account_type's top-level check, because posting parsing splits on the first '='.
+- txn list --account matches with `account = P OR substr(account,1,len(P)+1) = P+":"` (no LIKE, so '_' and '%' in names are literal). Each returned txn is the full txn (all postings), via core.get_txn.
+- Parent accounts created implicitly by account add take the currency given on that call (core.ensure_account behaviour); not changed.
+
+Next step
+- None for ledger. Lead can run the full check: `python3 -m unittest discover -s tests` once banking/reports/billing land.
+
+Do not redo
+- Ran the ledger test module once against the current tree: all 19 pass. No other checks were needed.
+- Did not run the full discover suite (other modules are other teammates' work).
