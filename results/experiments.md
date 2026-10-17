@@ -17,6 +17,7 @@ Protocol: `lab/protocol.md`. One section per run; cost reports in `results/metri
 | e4-D | Traps + help overlay, 2 teammates | kit 3.2; goal only, lead plans | 003a776 (base + kit 3.2) | 616fa41a session | 0.258 (cold 0.356) | 0.219 | 0.039 | lead 7, team 64 | 56K (traps) | yes, first check; tuning within the contract |
 | e5-A | Score, stats + high scores, 2 teammates | kit 3.3; goal only; default lead tools | 55561f3 | 156cf93c session | 0.229 (cold 0.328) | 0.201 | 0.028 | lead 7, team 44 | 51K (summary) | yes, first check |
 | e5-B | Score, stats + high scores, 2 teammates | kit 3.4; goal only; `team_kit.py lead` (removal list) | 55561f3 | 9e3c2255 session | 0.255 (cold 0.255) | 0.224 | 0.031 | lead 7, team 53 | 55K (summary) | yes, first check |
+| e6-A | Shop (pilot of the plain-prompt flow), 2 teammates | kit 3.6; plain request; `team_kit.py lead` | c560560 | 46038565 session | 0.436 (cold 0.478) | 0.398 | 0.038 | lead 15, team 58 | 54K (ui) | yes, first check (167 tests, 52 acceptance; lead's own tests); staged |
 
 ### m0 notes
 
@@ -66,3 +67,10 @@ prompt 40K to 25K tokens; 22% cheaper at a cold start, same quality. Adopted as 
 recommended way to start a team session (a plain session with `/team` still works). A first B
 attempt with a `--tools` allow-list never started (the list option swallowed the prompt);
 discarded and fixed. Details: `results/runs/e5/compare-A-B.md`.
+
+### e6 notes
+
+Pilot of the user's flow: a new session, a plain request, no prepared contract or tests. With
+kit 3.6 the lead loaded the skill, wrote the contract and acceptance tests first, ran the team
+and staged the result; first check, real tests. 4 lead turns were lost to a staging-folder bug
+in the testbed's `npm run stage` (fixed). Review: `results/runs/e6/review.md`.
