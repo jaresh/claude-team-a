@@ -1,0 +1,13 @@
+agent          model       effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:a447572a  sonnet-5-5            21     19     54    57218  1026379   22946        0     66944          0            0  0.6637
+purchases      haiku-5-5   medium    12     15     24    59511   403812   10526        8     59513          0            0  0.0167
+ledger         haiku-5-5   medium    13     21     26    61171   418744   24121        5     61173          0            0  0.0239
+sales          haiku-5-5   medium    12     19     24    63354   460185   13240        6     63356          0            0  0.0191
+reports        haiku-5-5   medium    16     22     32   105015   442807   60694        9     50203          0            2  0.0479
+importer       haiku-5-5   medium    10     13     20    90079   244356   36036        6     59249          0            1  0.0317
+api            haiku-5-5   medium    17     18     34    71473   492275   12555       13     57213          0            1  0.0201
+TOTAL          sonnet-5-5            21     19     54    57218  1026379   22946        0     66944          0            0  0.6637
+TOTAL          haiku-5-5             80    108    160   450603  2462179  157172       47     63356          0            4  0.1595
+total $0.8233
+cold start $0.8602: the lead's first message read a prefix another session had cached; written by this run it would cost $0.0369 more.
+out_est: responses whose output was estimated from visible content (3.5 chars/token); hidden thinking is not counted.

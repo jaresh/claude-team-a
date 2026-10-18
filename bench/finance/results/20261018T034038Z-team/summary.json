@@ -1,0 +1,106 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.11",
+  "started": "2026-10-18T03:40:38Z",
+  "ended": "2026-10-18T03:55:54Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 173,
+  "own_total": 173,
+  "python_lines": 3485,
+  "cost": 0.8233,
+  "cost_cold": 0.8602,
+  "lead_cost": 0.6637,
+  "team_cost": 0.1595,
+  "teammates": [
+    "purchases",
+    "ledger",
+    "sales",
+    "reports",
+    "importer",
+    "api"
+  ],
+  "lead_messages": 21,
+  "lead_peak_ctx": 66944,
+  "lead_compactions": 0,
+  "team_peak_ctx": 63356,
+  "coverage": 0.97,
+  "least_covered": [
+    "fin/__init__.py (50%)",
+    "fin/__main__.py (75%)",
+    "fin/cli.py (89%)"
+  ],
+  "quality": {
+    "app_files": 13,
+    "app_lines": 1400,
+    "test_files": 9,
+    "test_lines": 1464,
+    "test_functions": 173,
+    "test_to_app_ratio": 1.05,
+    "functions": 131,
+    "mean_function_lines": 9.5,
+    "max_function_lines": 33,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 3.2,
+    "max_complexity": 15,
+    "functions_complexity_over_10": 2,
+    "most_complex": [
+      "fin/cli.py:run_ns (15)",
+      "fin/core.py:post_transaction (14)",
+      "fin/importer.py:_import (10)"
+    ],
+    "docstring_coverage": 0.37,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 6,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 8,
+      "data_safety": 9,
+      "tests": 7,
+      "consistency": 7,
+      "overall": 7
+    },
+    "issues": [
+      "fin/importer.py `_checked_postings` re-implements the posting validation in `core.post_transaction`, even though core.py's docstring says not to; the two copies can drift apart, so a recurring template that passes the check could still be rejected (or accepted differently) when it runs.",
+      "fin/api.py turns each JSON body or query back into CLI argv strings and runs them through `cli.run`, so the HTTP layer depends on argparse syntax; positional values such as the payment `amount` in `_payment_argv` can be read as options, and a GET with an unknown `X-User` returns 401 even though GETs need no user.",
+      "Logic is duplicated between modules: `_paid`, `invoice_dict`/`bill_dict`, tax-code lookup (`sales._tax_rate` vs inline in `purchases._parse_line`) and currency validation (`cli._init`, `ledger._currency`, `reports._currency`), and the copies already behave differently (bill_pay checks 'already paid' by balance while invoice_pay checks status).",
+      "fin/reports.py `_in_currency` rounds each account/currency conversion separately, so `_trial_balance` totals (and the balance-sheet equation) may not match in multi-currency books; `_ledger` also converts each posting at its own date while the opening balance is converted at FROM-1, which mixes rate dates.",
+      "fin/cli.py `_period_close` writes an audit entry even when the month is earlier than one already closed and nothing changes, and `api._serve` commits run_ns's transaction itself, an awkward workaround in the transaction lifecycle.",
+      "tests/test_reports.py builds fixtures by inserting rows directly into the invoices/bills/payments/budgets tables, which ties the tests to the schema rather than the behaviour; tests/test_core.py packs init, users, periods and audit into one large test."
+    ],
+    "strengths": [
+      "Every command runs in a single BEGIN IMMEDIATE transaction with rollback in `cli.run_ns`, and errors share one UserError hierarchy (Auth/Perm subclasses with HTTP status), so the exit-2/400/401/403 behaviour is consistent and atomic.",
+      "Money is handled carefully: Decimal is used everywhere and stored as text, `money.fmt` and `round2` are the single place for half-up rounding and the '0.00' rule, and every SQL value is passed as a parameter.",
+      "The modules have a clean registration pattern (`register(sub)` with `leaf(..., access)`) that keeps permissions declarative, and most tests run the real CLI as a subprocess and check full JSON documents, including error paths."
+    ],
+    "review_cost": 0.8984
+  },
+  "reviews": [
+    {
+      "overall": null,
+      "scores": {
+        "structure": 7,
+        "readability": 8,
+        "correctness_risks": 7,
+        "error_handling": 8,
+        "data_safety": 9,
+        "tests": 7,
+        "consistency": 7,
+        "overall": 7
+      },
+      "review_cost": 0.8984
+    }
+  ]
+}

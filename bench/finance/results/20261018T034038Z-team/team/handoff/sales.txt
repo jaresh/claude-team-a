@@ -1,0 +1,29 @@
+**Done**
+- Files: fin/sales.py (new), tests/test_sales.py (new). No shared files edited, so no changes.md line.
+- Commands: tax add/list, customer add/list, invoice create/issue/pay/show/list (spec section 13, minus report aging).
+- Exports: `register(sub)`, `invoice_dict(conn, invoice_id)` (raises UserError for unknown id). `INVOICE_STATUSES` constant.
+- Audits: tax.add (code), customer.add (name), invoice.create / invoice.issue / invoice.pay (id as string).
+- Check: `python3 -m unittest tests.test_sales` -> Ran 36 tests, OK.
+
+**In progress**
+- Nothing. Task complete. Not committed (lead commits).
+
+**Next step**
+- None for sales. When ledger merges, the full check `python3 -m unittest discover -s tests` should be run by the lead. Note tests/test_sales.py creates asset/expense accounts via core.ensure_account on the db directly, so it does not depend on `account add`.
+- For report aging (reports teammate): invoices table has status issued/partial/paid, `due` and `total` as strings; paid = SUM(payments.amount) WHERE kind='invoice' AND doc_id=invoices.id, filtered by payments.date <= AT.
+
+**Do not redo**
+- Read cli.py, core.py, money.py, db.py, errors.py, helpers.py, spec sections 1, 11-17 headings, plan.md. No need to re-read.
+- Tests: the first run failed only because the test helper's sqlite connection lacked `row_factory = sqlite3.Row` (core.get_setting needs it). Fixed in tests/test_sales.py mk_account. Not a fin/ bug.
+
+**Assumptions (for README, spec left them open)**
+- An invoice needs at least one --line (user error otherwise).
+- Negative quantity or price is a user error; a zero quantity or price is allowed.
+- Line description must be non-empty; line format is exactly 4 fields split on ";" (so ";" cannot appear in descriptions).
+- `--status` on invoice list is restricted to draft/issued/partial/paid (argparse choices).
+- Payment ACCOUNT must be an asset account and must not be Assets:Receivable itself.
+- Payment amount must be positive and at most the balance; rounded half up to cents first.
+- Issue numbering counts already-numbered invoices in the same year (per spec), so numbers are not reused.
+- Invoice account postings (Assets:Receivable, Income:Sales, Liabilities:SalesTax) are created in the book currency via ensure_account; a pre-existing account in another currency makes issue/pay fail as "does not balance" (post_transaction behaviour).
+- Tax rate for `tax add` must be a non-negative number; it is stored and shown exactly as given.
+- Customer terms must be a non-negative integer (default 30).

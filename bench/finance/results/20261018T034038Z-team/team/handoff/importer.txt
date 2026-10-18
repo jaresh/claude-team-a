@@ -1,0 +1,24 @@
+**Done**
+- fin/importer.py (new): register(sub) adds `rule add|list`, `import FILE --account [--date-col 0 --desc-col 1 --amount-col 2 --skip-header]`, `budget set ACCOUNT MONTH AMOUNT`, `recurring add NAME --every {monthly,weekly,yearly} --start DATE --posting ACCT[=AMT] (repeatable)`, `recurring run --until DATE`, `loan schedule PRINCIPAL RATE MONTHS --start DATE` (read access).
+- tests/test_importer.py (new): 62 tests in ImporterCase subclasses (RuleTests, ImportTests, BudgetTests, RecurringTests, LoanTests). Helpers: make_account, query, postings, count_txns, write_file, audit_actions, add_rent, dates. No helper named fail/run/assert*/setUp.
+- Checks: `python3 -m py_compile fin/importer.py tests/test_importer.py` OK. `python3 -m unittest tests.test_importer` -> Ran 62 tests, OK (about 25 s).
+- No shared files edited. changes.md not touched. Nothing committed.
+
+**In progress**
+- Nothing. Section complete.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_importer` once more after merging, then commit with the other sections. Nothing for the importer teammate to do.
+
+**Do not redo**
+- Test run above passed on the first try after writing both files; no code change was needed.
+- Assumptions to check when reviewing (my choices, not in the spec text I was given):
+  1. Import dedupe key is (account, date, description, fmt(amount)) stored in `imported`. The same row imported into a different account is imported again. Repeats within one file count as skipped.
+  2. Rule match: first rule by id whose regex matches the description via `re.search`, IGNORECASE. No match -> Expenses:Uncategorized (amount < 0) or Income:Uncategorized (amount >= 0), created with ensure_account in book currency.
+  3. Import pre-validates every row and calls check_open on each date before writing anything, so a closed period fails the whole file. The whole command is one transaction.
+  4. Import audit target is the account name, written even if all rows were skipped. Rule add audits the pattern. Budget set audits "ACCOUNT MONTH". Recurring add audits the name. Recurring run audits the until date.
+  5. Budget output shape is my choice: {"account", "month", "budget"} with the amount as a two-decimal string. Budget accepts expense accounts only, amount >= 0, rounded half up. INSERT OR REPLACE on (account, month).
+  6. Recurring postings: one posting may omit its amount (balanced by the rest). Validation mirrors core.post_transaction without writing, so a start date in a closed period is accepted on add and fails on run. Stored as JSON [[acct, "amt"|null]].
+  7. Recurring occurrences are always counted from the start date (add_months(start, k) etc.), so monthly from Jan 31 gives Feb 28 and Mar 31. recurring_done prevents duplicates, so run is idempotent and incremental. A closed period anywhere in the run rolls back the whole run.
+  8. Loan: payment = round2(P*r/(1-(1+r)^-n)) computed under prec 50; rate 0 -> P/n. Each row's interest is round2(balance*r). The last row pays the remaining balance plus interest, so the balance ends at 0.00. Dates are add_months(start, n). Output {"payment", "total_interest", "rows": [{n, date, payment, interest, principal, balance}]}, all strings. Principal > 0, rate >= 0, months >= 1.
+  9. Negative column indexes are rejected. Amounts are round2 (half up) on import.

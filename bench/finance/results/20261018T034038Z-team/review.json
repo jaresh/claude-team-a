@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 9,
+    "tests": 7,
+    "consistency": 7,
+    "overall": 7
+  },
+  "issues": [
+    "fin/importer.py `_checked_postings` re-implements the posting validation in `core.post_transaction`, even though core.py's docstring says not to; the two copies can drift apart, so a recurring template that passes the check could still be rejected (or accepted differently) when it runs.",
+    "fin/api.py turns each JSON body or query back into CLI argv strings and runs them through `cli.run`, so the HTTP layer depends on argparse syntax; positional values such as the payment `amount` in `_payment_argv` can be read as options, and a GET with an unknown `X-User` returns 401 even though GETs need no user.",
+    "Logic is duplicated between modules: `_paid`, `invoice_dict`/`bill_dict`, tax-code lookup (`sales._tax_rate` vs inline in `purchases._parse_line`) and currency validation (`cli._init`, `ledger._currency`, `reports._currency`), and the copies already behave differently (bill_pay checks 'already paid' by balance while invoice_pay checks status).",
+    "fin/reports.py `_in_currency` rounds each account/currency conversion separately, so `_trial_balance` totals (and the balance-sheet equation) may not match in multi-currency books; `_ledger` also converts each posting at its own date while the opening balance is converted at FROM-1, which mixes rate dates.",
+    "fin/cli.py `_period_close` writes an audit entry even when the month is earlier than one already closed and nothing changes, and `api._serve` commits run_ns's transaction itself, an awkward workaround in the transaction lifecycle.",
+    "tests/test_reports.py builds fixtures by inserting rows directly into the invoices/bills/payments/budgets tables, which ties the tests to the schema rather than the behaviour; tests/test_core.py packs init, users, periods and audit into one large test."
+  ],
+  "strengths": [
+    "Every command runs in a single BEGIN IMMEDIATE transaction with rollback in `cli.run_ns`, and errors share one UserError hierarchy (Auth/Perm subclasses with HTTP status), so the exit-2/400/401/403 behaviour is consistent and atomic.",
+    "Money is handled carefully: Decimal is used everywhere and stored as text, `money.fmt` and `round2` are the single place for half-up rounding and the '0.00' rule, and every SQL value is passed as a parameter.",
+    "The modules have a clean registration pattern (`register(sub)` with `leaf(..., access)`) that keeps permissions declarative, and most tests run the real CLI as a subprocess and check full JSON documents, including error paths."
+  ],
+  "review_cost": 0.8984
+}

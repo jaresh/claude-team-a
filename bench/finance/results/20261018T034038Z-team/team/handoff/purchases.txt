@@ -1,0 +1,28 @@
+**Done**
+- Files: fin/purchases.py (new), tests/test_purchases.py (new). No shared file touched; .claude/team/changes.md not changed.
+- Implemented spec section 14 except `report aging --payables`: vendor add/list; bill create/pay/show/list; export `bill_dict(conn, bill_id)` (raises UserError if the bill is unknown).
+- Access: vendor add, bill create, bill pay = write; vendor list, bill show, bill list = read.
+- Check: `python3 -m unittest tests.test_purchases` -> Ran 12 tests, OK.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for this task. The lead can run `python3 -m unittest discover -s tests` once all modules are merged.
+
+**Do not redo**
+- Assumptions I chose where the spec is silent (list these in README):
+  - `vendor add` output is `{"name", "terms"}`, same shape as `vendor list` rows; terms must be an integer >= 0 (argparse int, default 30).
+  - Vendor names are checked only for blank; duplicate name is a user error.
+  - `bill create` needs at least one `--line` (argparse required). Each line must have exactly 4 `;`-separated parts; description must be non-empty; amount must parse and be >= 0.
+  - Line ACCOUNT must exist and be type expense or asset (asset account type is `asset` in the accounts table).
+  - Empty TAXCODE means no tax (`tax_code: null`, tax `0.00`), same as invoices.
+  - Per-line tax = round2(net * rate / 100); bill tax = sum of line taxes; total = net + tax.
+  - `Assets:TaxReceivable` is posted only when the bill tax is non-zero; `Liabilities:Payable` is created with ensure_account on every bill create.
+  - Bill ref must be unique per vendor (checked before insert; the UNIQUE constraint is not relied on).
+  - `bill pay`: amount is round2'd and must be > 0; payment account must be type asset; a fully paid bill is a user error ("already paid"); amount above balance is a user error. The payment date is not checked against the bill date.
+  - Payment rows go into `payments` with kind 'bill', doc_id = bill id, amount = fmt(amount), account, txn_id. Status is stored as `partial` or `paid` and recomputed on each pay.
+  - `bill list --status` uses argparse choices open/partial/paid (bad value -> user error).
+  - Audit targets: `vendor.add` = name; `bill.create` and `bill.pay` = bill id (str).
+- Checked and working: rounding half up (33.33 at 20% -> 6.67; 0.10 at 5% -> 0.01; 0.03 at 5% -> 0.00); closed period on bill create leaves no bill row and no transaction; viewer and no-user cases fail with exit 2 and empty stdout; read commands work with no --user.
+- Note for reports (aging --payables): the bills table `status` column and payments rows with kind='bill' (doc_id = bill id) carry the data; bill_dict is the source of truth for totals.

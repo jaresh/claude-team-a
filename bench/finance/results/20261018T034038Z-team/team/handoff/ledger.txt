@@ -1,0 +1,24 @@
+Done
+- Files changed: fin/ledger.py (new), tests/test_ledger.py (new). No shared files edited, no changes.md line needed.
+- Commands: account add/list, txn add/list, balance, fx add, convert (spec sections 1-4).
+- Check: `python3 -m unittest tests.test_ledger tests.test_core` -> Ran 33 tests, OK.
+- Choices the spec left open (lead may want to review):
+  - `account add` prints {"name","type","currency"}; `txn add` prints the txn dict; `fx add` prints {"date","from","to","rate"}; `convert` prints {"amount","currency"}.
+  - `fx add` rejects FROM == TO, rate <= 0, and non-finite rates (user error).
+  - `fx add` on an existing (date, FROM, TO) replaces the rate (INSERT OR REPLACE). Not tested.
+  - `convert --at` is required.
+  - `balance` includes every account with postings (and its ancestors) even when the sum is zero ("0.00").
+  - `txn list --account` matches by account tree (`in_tree`), so `Assets:Bank` does not match `Assets:Bankx`.
+- Helper written in my own file, not in the shared core: `_currency(text)` in fin/ledger.py (strip, upper, must match [A-Z]{3}). fin/cli.py `init` does the same check inline. Other modules (sales, purchases, importer, reports) may need it too; the lead can move it into fin/money.py or fin/core.py.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` after all modules merge. For this module alone: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_ledger tests.test_core`.
+
+Do not redo
+- Ran the full ledger and core test set once: 33 tests, all pass. No failures to investigate.
+- Did not run the whole suite (other modules not mine; sales/purchases/etc. may still be in progress).
+- Did not commit (team rule).
+- Did not call EnterWorktree: the lead assigned this directory and the work is uncommitted edits to two new files I own.

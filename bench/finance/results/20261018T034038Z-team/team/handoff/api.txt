@@ -1,0 +1,21 @@
+**Done**
+- fin/api.py: `register(sub)` adds `serve --port N` (access "read"). The handler blocks in ThreadingHTTPServer on 127.0.0.1. `_serve` issues COMMIT first, because run_ns holds a BEGIN IMMEDIATE that would otherwise block every per-request write.
+- fin/api.py: GET routes /accounts, /transactions (account, from, to), /balances (at), /reports/income (from, to, currency), /reports/balance-sheet (at, currency), /reports/aging (at, payables=1), /invoices (status), /invoices/ID, /audit (by). POST routes /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200). Each request runs fin.cli.run(db, X-User, argv) in-process.
+- Errors: UserError subclasses map to their status (400/401/403). Unknown path gives 404 (NotFound, a UserError subclass defined in api.py). Bad JSON or a non-object body gives 400. Other exceptions give 500 {"error": "internal error"}. POST without X-User gives 401.
+- Fixed during this run: an empty request body (e.g. POST /invoices/ID/issue) was rejected as bad JSON. It now reads as {}.
+- tests/test_api.py: 18 tests, all pass. Run: `python3 -m unittest tests.test_api` gives "Ran 18 tests ... OK" in about 12 s. They cover: serve needs --port; GET with no user and with an unknown user; POST transaction 201, balances, audit; viewer 403, editor 201; a balance error leaves nothing committed; closed period 400; malformed bodies 400; unknown path 404; GET results equal the CLI output; income report value; invoice flow (create, issue, partial and full payment, aging, payables=1); invoice errors; a CLI write while the server runs.
+- Files changed: fin/api.py, tests/test_api.py. Nothing else. No shared file edited, so .claude/team/changes.md is untouched. Nothing committed.
+- Scratch: .claude/team/scratch/api/t.db (used to reproduce the empty-body bug).
+
+**In progress**
+- Nothing. The api task is complete.
+
+**Next step**
+- The lead runs the full check: `python3 -m unittest discover -s tests`. I ran only tests.test_api, so the full suite has not been run from my side.
+
+**Do not redo**
+- The COMMIT in _serve is required. Without it, a CLI write during a live server would block on the write lock held by run_ns. test_cli_writes_work_while_serving covers this path and passes.
+- The 400 on POST /invoices/ID/issue was my empty-body bug, not a sales.py bug. The CLI `invoice issue 1` works on a fresh db (checked by hand), and the HTTP flow passes after the fix.
+- Invoice and aging endpoints pass against the current sales.py and reports.py (tests/test_api.py, invoice_flow). I did not read or change those files.
+- Transactions and balances pass against the current ledger.py (tests/test_api.py).
+- Lint was not run; the module imports and all 18 tests run, so no syntax errors.

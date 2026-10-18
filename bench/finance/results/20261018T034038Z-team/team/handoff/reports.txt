@@ -1,0 +1,26 @@
+Done
+- fin/reports.py: `report income`, `report balance-sheet`, `report networth`, `report budget MONTH`,
+  `report aging --at [--payables]`, `report tax --from --to`, `report trial-balance --at`,
+  `report ledger ACCOUNT --from --to`, and `reconcile ACCOUNT --date --balance [--clear ID ...]`
+  (write access, audit action "reconcile" on the account).
+- tests/test_reports.py: 12 tests (income incl. --currency conversion and missing rate, balance sheet
+  with retained earnings, networth month-ends and reversed months, budget incl. descendants,
+  aging receivables and payables, tax per code and date range, trial balance, ledger opening/
+  running/closing and unknown account, reconcile clear/invalid clear/uncleared/difference/audit/viewer
+  refused, reports readable without a user).
+- Check: `python3 -m unittest tests.test_reports` -> Ran 12 tests, OK.
+- No shared files edited. No commit made (team rule).
+
+In progress
+- Nothing. Section `reports` is complete.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` once all teammates are merged, to confirm the
+  cross-module suite. No command needed from reports.
+
+Do not redo
+- Tests set up data via core.parse_posting / core.ensure_account / core.post_transaction (ledger
+  module not needed) and direct sqlite3 inserts for invoices, bills, payments, budgets, rates.
+- Reports read invoices/bills/payments tables directly; drafts are excluded from aging and tax.
+- Sign conventions follow the spec: income shown positive, liabilities and equity positive on the
+  balance sheet, retained earnings = -(income + expense) raw balances.
