@@ -1,0 +1,44 @@
+Done
+----
+Files created (all logged in .claude/team/changes.md):
+- fin/core.py: UserError/Unauthorized/Forbidden, ACCOUNT_TYPES, SCHEMA (the 22 CREATE TABLE lines of plan.md, checked verbatim), money (parse_money, parse_decimal, cents, fmt), dates (parse_date, fmt_date, month_of, parse_month, month_end, add_months), parse_posting, utc_now, open_db, create_schema, book_currency, create_book, run, Context, command_group, account_type, ensure_account, resolve_account, closed_through, check_open, resolve_postings, post_transaction, convert.
+- fin/cli.py: MODULES (11 names), build(modules), main(argv=None, modules=None).
+- fin/__main__.py: python3 -m fin entry.
+- fin/__init__.py: docstring only.
+- tests/support.py: new_book(testcase, currency="EUR", admin="alice"), call(path, fn, user="alice").
+- tests/test_core.py and tests/test_cli.py (written first, then made to pass).
+
+Check results:
+- python3 -m unittest discover -s tests -p 'test_core.py': Ran 64 tests, OK.
+- python3 -m unittest discover -s tests -p 'test_cli.py': Ran 16 tests, OK.
+- Done check passes as one command.
+
+In progress
+-----------
+Nothing. Core is complete. No stub modules, no other teammates' files, no DDL changed. Nothing committed.
+
+Next step
+---------
+Nothing for core. Downstream teammates import from fin.core: run, Context, UserError, parse_money, parse_decimal, cents, fmt, parse_date, post_transaction, convert, ensure_account, resolve_account, check_open, closed_through, command_group. Run the done check again after any edit:
+  cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_cli.py'
+
+Assumptions (for the lead to review)
+------------------------------------
+- Posting pos starts at 0 and follows the order given.
+- create_book rejects an empty admin name (after strip) and a currency not matching [A-Z]{3}. Audit entry 1 is action 'init', target = currency.
+- meta key 'closed_through' holds YYYY-MM; check_open rejects a date whose YYYY-MM <= that value.
+- A blank posting (ACCOUNT with no amount) gets -(sum of the other postings in its currency). If it has no other postings in its currency it gets 0.00, so the transaction still balances. I changed my own test to assert this (it had expected an error); it follows plan.md line 79 literally.
+- command_group keeps its registry on the subparsers action as attribute _fin_groups. The group dest is f"{name}_command", metavar is the upper-cased name, and required=True.
+- run() with init=True creates the schema before BEGIN IMMEDIATE; the initialized check runs inside the transaction. A book with no meta table or no currency row is "not initialized".
+- main() catches SystemExit from argparse and returns its code (2 for usage errors, 0 for --help). UserError prints "fin: MESSAGE" to stderr and returns 2. With --json the output uses separators (",", ":") and no indent; otherwise indent=2.
+- main(argv=None, modules=None) takes an optional module-name list for tests. modules=None uses MODULES.
+- fmt() returns "0.00" for any zero, including negative zero.
+- convert(conn, amount, frm, to, at) with frm == to returns cents(amount). Otherwise it uses the latest rate on or before `at` for frm->to, falling back to 1/rate of the latest to->frm rate.
+- account_type() accepts only a first segment in ACCOUNT_TYPES and rejects empty segments; the error message is "bad account name: NAME".
+
+Do not redo
+-----------
+- DDL: checked by grep. Each of the 22 CREATE lines in plan.md lines 89-114 appears verbatim in fin/core.py. Do not re-copy.
+- Test suites: both pass as of the last run. The stderr usage line from the required-subcommand test is suppressed with redirect_stderr.
+- The test import problem (missing support and fin.core) is resolved; it was the expected red state.
+- The earlier stale "changed on disk" notice for tests/test_cli.py was my own edit; the file on disk is current.

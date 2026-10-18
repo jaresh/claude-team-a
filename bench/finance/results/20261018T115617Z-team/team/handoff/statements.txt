@@ -1,0 +1,23 @@
+Done
+- fin/statements.py: register(sub) adds `report income --from --to [--currency]`, `report balance-sheet --at [--currency]`, `report networth --from --to` (months, YYYY-MM). Each leaf uses set_defaults(handler=..., init=False). Functions: report_income, report_balance_sheet, report_networth, plus private helpers _totals, _converted, _select, _fmt_all, _sum.
+- tests/test_statements.py: 16 tests (IncomeReportTests, BalanceSheetTests, NetworthTests, CommandLineTests). A build_book fixture with EUR and USD accounts and a 2026-01-01 USD->EUR rate of 0.90.
+- Done check: `python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_statements.py'` exits 0. test_core: Ran 64 OK. test_statements: Ran 16 OK. py_compile on both files passes. pyflakes was not run (not installed or not checked).
+- No shared files edited (fin/core.py, fin/cli.py, plan.md, changes.md untouched). No commits. The program was not run.
+
+In progress
+- Nothing. The section is complete.
+
+Next step
+- Lead: review fin/statements.py and tests/test_statements.py, then run the done check above. To try the CLI yourself: `python3 -m fin --db <book> report income --from 2026-01-01 --to 2026-12-31` (adjust the entry point if the lead's CLI wrapper differs).
+
+Do not redo
+- The CLI test uses modules=["fin.statements"]. cli.MODULES uses full module names. The short name "statements" fails with ModuleNotFoundError. This was already fixed.
+- Worktree: EnterWorktree was not available to me. The cwd /home/jaca/claude-team-a/bench/work/finance-team is already a git worktree (.git is a file), so I worked there directly and did not create a new one.
+
+Assumptions (not tested)
+- Income is shown positive (-1 times the signed sum of Income accounts). Expenses are shown positive (the signed sum of Expense accounts). net = income - expenses.
+- Income and expense reports convert at the `to` date. The balance sheet converts at `at`. Networth converts each month at its month end, in the book currency.
+- Zero-total accounts are listed with "0.00" when they had postings in range.
+- networth returns [] when from > to. It raises UserError on a malformed month.
+- Per-account rounding happens before the totals are summed. In a multi-currency book, total_assets can differ from total_liabilities + total_equity by 1 cent. This is inherent to the per-account convert and is not covered by a test.
+- retained_earnings = signed Income sum - signed Expense sum, through `at` (all periods, no closing entries).

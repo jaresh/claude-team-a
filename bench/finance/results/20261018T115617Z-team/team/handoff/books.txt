@@ -1,0 +1,25 @@
+DONE
+- fin/books.py implemented: init, account add/list, txn add/list, balance, fx add, convert, user add/list, audit list [--by], period close/status. register(sub) builds the groups with core.command_group and sets handler/init defaults via _leaf.
+- tests/test_books.py: 55 tests (written first, red at 54 failures on the stub, green now).
+- Checks: `python3 -m unittest discover -s tests -p 'test_core.py'` -> Ran 64 tests, OK. `python3 -m unittest discover -s tests -p 'test_books.py'` -> Ran 55 tests, OK.
+- No shared files touched; no changes.md line needed. Nothing committed. The program was not run.
+
+Assumptions
+- fx rate must be positive; a second rate for the same date and pair is an error (fx_rates PK).
+- convert requires --at.
+- account add rejects any existing name, including implicit parents created earlier.
+- balance keeps currency keys whose sum is zero and lists each ancestor account.
+- Currency codes are validated with core.CURRENCY_RE.
+- period close on a month at or before the closed one returns the current value and writes no audit entry.
+- txn list --account matches the account or its descendants by whole segments.
+
+IN PROGRESS
+- Nothing open. The work is complete for section books.
+
+NEXT STEP
+- Lead: review fin/books.py and tests/test_books.py, then run `python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_books.py'` and commit if satisfied.
+
+DO NOT REDO
+- Did not change core.py or cli.py; the core API (create_book, ensure_account, post_transaction, convert, closed_through, parse_month, command_group) was used as is and matches its signatures.
+- Did not run the program (fin CLI); verification is via the unit tests only.
+- The red-then-green test cycle was already done; no need to repeat it.

@@ -1,0 +1,19 @@
+agent          model      effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:35142d37  haiku-5-5            34     38     98   124496  1511700   76854        0     65913          0            2  0.0785
+core           haiku-5-5  medium    28     32     56   101127  1076382   32894       18     60032          0            1  0.0399
+imports        haiku-5-5  medium    16     15     32    42250   611688   15982       11     55856          0            0  0.0194
+ledger         haiku-5-5  medium    12     15     24    44528   416532   13419       10     58134          0            0  0.0164
+books          haiku-5-5  medium    13     17     26    69478   412731   18368        9     60186          0            1  0.0220
+recurring      haiku-5-5  medium    14     14     28    33599   457263   10166       11     47205          0            0  0.0139
+loans          haiku-5-5  medium    17     17     34    31658   544748    8955       12     45264          0            0  0.0139
+statements     haiku-5-5  medium    18     23     36    70009   691603    7879       15     66598          0            1  0.0196
+budgets        haiku-5-5  medium    16     17     32    34705   550142    7734       13     48311          0            0  0.0137
+bills          haiku-5-5  medium    22     22     44    71990   943133   21591       14     66634          0            1  0.0292
+invoices       haiku-5-5  medium    17     22     34   119371   504019   18539       13     63647          0            2  0.0292
+api            haiku-5-5  medium    20     26     40    78471   748097   21313       14     66736          0            1  0.0280
+taxes          haiku-5-5  medium    18     17     36    38265   624825   11488       12     52605          0            0  0.0168
+readme         haiku-5-5  medium    21     25     42    74610   725580   33360       15     54694          0            1  0.0333
+TOTAL          haiku-5-5           266    300    562   934557  9818443  298542      167     66736          0           10  0.3737
+total $0.3737
+cold start $0.3755: the lead's first message read a prefix another session had cached; written by this run it would cost $0.0018 more.
+out_est: responses whose output was estimated from visible content (3.5 chars/token); hidden thinking is not counted.

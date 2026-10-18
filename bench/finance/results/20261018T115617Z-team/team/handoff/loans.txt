@@ -1,0 +1,28 @@
+## Done
+- fin/loans.py: register(sub) adds `loan schedule PRINCIPAL RATE MONTHS --start DATE` (group via core.command_group, leaf defaults handler and init=False). loan_schedule(ctx, principal, rate, months, start) is the plain command function (strings in, JSON-able dict out). Read-only: no require_*, no audit, no DB reads.
+- tests/test_loans.py: 14 tests (zero rate, annuity values checked against an independent Decimal calculation, last-row clearing, principal/interest totals, add_months dates, single-month loan, validation of each argument, no audit row, no-user call, and two CLI tests through cli.main(..., modules=["fin.loans"])).
+- Shared files: none touched. No changes.md line.
+
+## Check
+- python3 -m unittest discover -s tests -p 'test_core.py' → Ran 64 tests, OK
+- python3 -m unittest discover -s tests -p 'test_loans.py' → Ran 14 tests, OK
+- Done check (both as one command) passes.
+- Test written first and seen failing (1 failure, 26 errors) before fin/loans.py was implemented.
+
+## Assumptions
+- Validation messages: a malformed principal comes from core.parse_money ("bad amount: X"); a zero or negative principal gives "bad principal: X". Negative rate: "bad rate: X". Months not a positive integer: "bad months: X". Bad start: core.parse_date ("bad date: X").
+- A months value whose last payment would fall after year 9999 is rejected with "bad months: X" (otherwise datetime raises).
+- Calculation runs in a Decimal context with prec 50. Payment = cents(P·r / (1 − (1+r)^−n)); rate 0 gives cents(P / n). Interest = cents(balance · r). Non-final rows: principal = payment − interest. Final row: principal = remaining balance, payment = remaining + interest, balance 0.00.
+- The top-level "payment" is the level payment; the final row's payment can differ by a cent (example: 1000 at 12% for 12 months gives 88.85 each, final 88.84).
+- Rate is annual percent: monthly rate = RATE / 1200.
+
+## In progress
+- Nothing. Loans task complete.
+
+## Next step
+- none. Lead can run: cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_loans.py'
+- Note for the lead/README: no cap on MONTHS other than the year-9999 guard. A very large MONTHS (for example 10 million) will build that many rows and be slow. Decide whether to cap it.
+
+## Do not redo
+- Rounding and the annuity figures were checked: 1000 / 12% / 12 months gives payment 88.85, total interest 66.19, last row 88.84 with interest 0.88 and principal 87.96. Reference computed with Decimal at prec 50 and ROUND_HALF_UP.
+- Test file helper `schedule` is not a unittest method name. Also check that `python3 -m fin --help` lists the loan group once fin.loans is in the real MODULES list (not run here; the module list is core's and unchanged).

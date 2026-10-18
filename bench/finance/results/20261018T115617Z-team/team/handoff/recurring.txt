@@ -1,0 +1,27 @@
+## Done
+- fin/recurring.py: register(sub) adds `recurring add NAME --every monthly|weekly|yearly --start DATE --posting ACCOUNT=AMOUNT [...]` and `recurring run --until DATE`. Logic functions: recurring_add(ctx, name, every, start, postings), recurring_run(ctx, until), plus occurrence(start, every, k). Handlers _cli_add and _cli_run.
+- tests/test_recurring.py: 26 tests (add, validation, permissions, monthly/weekly/yearly dates, idempotent runs, audit, closed-period rollback, ordering).
+- Check: `python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_recurring.py'` → core: Ran 64 tests, OK; recurring: Ran 26 tests, OK.
+- CLI parse smoke test via cli.build(['fin.recurring']) gives the expected namespaces. No book was initialized from the CLI, because the books module is still a stub.
+- Shared files touched: none. changes.md not appended. Nothing committed.
+
+## In progress
+- Nothing.
+
+## Next step
+- None for this task. The lead can run the done check above, then an end-to-end CLI run once books (init) exists: `python3 -m fin --db X init EUR alice`, then `python3 -m fin --db X --user alice recurring add Rent --every monthly --start 2026-01-31 --posting Expenses:Rent=900 --posting Assets:Bank` (accounts must be created first with account add), then `recurring run --until 2026-04-30`.
+
+## Assumptions
+- A blank posting is stored with amount NULL; it is re-balanced by core.resolve_postings at each run, so the same balancing rule as txn add applies.
+- Stored amounts are fmt(parse_money(...)), so "900" is stored as "900.00".
+- Names are stripped; an empty name is a UserError ("name required"). A duplicate name is a UserError ("recurring exists: NAME").
+- --every must be monthly, weekly or yearly; checked in recurring_add, not by argparse choices, so the API gets the same check.
+- run iterates recurrings in creation order (rowid) and occurrences in date order; each occurrence is created with core.post_transaction, which checks the closed period. A closed-period hit raises UserError and core.run rolls back the whole run.
+- Audit target for recurring.run is the until argument exactly as given. It is written only when created > 0.
+- Occurrence k is computed from the original start (add_months(start, k) or start + 7k days), so a monthly Jan 31 start yields Feb 28, Mar 31, Apr 30, and never drifts.
+- Start dates are not checked against closed periods on add (the spec only restricts postings made by run).
+
+## Do not redo
+- Process note: I wrote the implementation before running the new tests, so I did not see the red state first. I ran the suite after writing the code: all 26 pass. Any regression check should rerun the test file.
+- Core API: I used only core.run, core.Context methods, command_group, parse_date, parse_money, fmt, fmt_date, add_months, parse_posting, resolve_postings, post_transaction, UserError, Unauthorized, Forbidden. I did not edit core.py, cli.py or support.py.
+- The viewer test user is inserted directly with SQL in the test setup, since there is no user-add command in core. This matches the users table DDL.

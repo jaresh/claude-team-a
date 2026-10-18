@@ -1,0 +1,31 @@
+## Done
+- fin/taxes.py: report_tax(ctx, from_date, to_date) and register(sub). register adds report tax --from DATE --to DATE, joining the existing `report` group that invoices.py creates through core.command_group (same group object, no duplicate).
+- tests/test_taxes.py: 18 tests, driving invoice_create/invoice_issue/invoice_pay and bill_create through support.call, plus one CLI test through cli.main(modules=["fin.invoices", "fin.bills", "fin.taxes"]).
+- Shared files: none touched. changes.md not edited. Nothing committed.
+
+## Check
+- python3 -m unittest discover -s tests -p 'test_core.py' → OK (64 tests)
+- python3 -m unittest discover -s tests -p 'test_taxes.py' → OK (18 tests)
+- Red state first: 17 errors, all from the Expense:Office account name (bad account name). After that name was fixed, 16 errors remained with AttributeError: module 'fin.taxes' has no attribute 'report_tax'; the 17th was the CLI test, which I did not inspect separately. Before fin/taxes.py existed, the suite was red.
+- The CLI test runs with modules=[invoices, bills, taxes]. `python3 -m fin report tax --help` with the real MODULES also works (checked after the advisor review).
+- Full suite: test_cli.py → OK (16 tests) with the real MODULES.
+
+## Assumptions
+- collected: invoice lines with status other than draft (issued, partial, paid), dated from..to inclusive. paid: all bill lines dated from..to inclusive (bills have no draft status).
+- Period bounds are both inclusive and compared as YYYY-MM-DD text after parse_date.
+- from later than to is a UserError ("bad period: X is after Y" (same wording as ledger.py)). The spec does not say this; the alternative is an empty report.
+- by_code: a tax code appears when a non-draft invoice line or a bill line in the period uses it, even at zero tax. Lines with no tax code add nothing to totals or by_code.
+- Amounts are summed as Decimal from the stored line tax text via core.parse_money, then core.fmt. No conversion.
+- Read-only: no user needed, no audit entry.
+- The leaf helper _leaf is a private copy of the one in fin/invoices.py (imports of another module's private helper are avoided). The plan does not name a shared leaf helper; core.py has none. Lead may move it to core if wanted.
+
+## In progress
+- Nothing. The task is complete.
+
+## Next step
+- none for taxes. The api task (wave 3) may call report_tax(ctx, from_date, to_date) directly for GET /report/tax if the API spec needs it.
+- Combined run: cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_taxes.py'
+
+## Do not redo
+- The account type names are "Expenses", "Assets", "Liabilities", "Equity", "Income" (core.ACCOUNT_TYPES). "Expense:..." is rejected. The test file already uses "Expenses:Office".
+- The tax test file's "changed on disk" notice was the sed edit I made to the account name. The file on disk is current.

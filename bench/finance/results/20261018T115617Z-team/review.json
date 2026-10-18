@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "fin/invoices.py and fin/bills.py each have their own copies of the same helpers (_name, _terms/_days, _tax_rate, and the line/payment summing), and invoices.report_aging reaches into the bill tables by building table names with f-strings instead of sharing one document abstraction.",
+    "fin/api.py _serve_cmd commits and later reopens core.run's transaction by hand (ctx.conn.execute('COMMIT') / 'BEGIN'), so the HTTP layer leaks into the storage layer; core.run also takes BEGIN IMMEDIATE (a write lock) for every read and every GET.",
+    "fin/ledger.py report_trial_balance quietly moves any cent-rounding residual into the largest account, so one account's reported balance differs from its real converted balance; fin/statements.py report_balance_sheet has no translation adjustment either, so multi-currency books can break total_assets = total_liabilities + total_equity.",
+    "fin/cli.py main only catches core.UserError, so sqlite3 errors (for example an unwritable --db path) or other unexpected exceptions crash with a traceback, and core.open_db creates an empty fin.db file even for read-only commands on a missing book.",
+    "Validation differs between modules: bills.bill_list rejects an unknown --status but invoices.invoice_list accepts anything; ledger and taxes reject from > to but statements.report_income does not; terms are parsed by argparse type=int for vendors but as a string by _terms for customers.",
+    "fin/api.py _body uses json.loads without parse_float=Decimal and _text calls str() on the value, so JSON numbers for amounts pass through float before reaching parse_money."
+  ],
+  "strengths": [
+    "The core is clean: one core.run transaction per command with rollback on any exception, a UserError/Unauthorized/Forbidden hierarchy that maps neatly to exit code 2 and HTTP 400/401/403, and every SQL statement uses parameters.",
+    "Money handling is careful: strict regex parsing into Decimal, ROUND_HALF_UP to cents, a single fmt() that never prints -0.00, and amounts stored as text.",
+    "The tests are thorough and behaviour-focused: each test builds its own temp book, covers edge cases (BOM, duplicate rows within one file, whole-import rollback on a closed period, roles, audit entries) and checks API responses against the functions' output."
+  ],
+  "review_cost": 0.9187
+}

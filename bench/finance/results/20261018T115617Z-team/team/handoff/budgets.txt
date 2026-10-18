@@ -1,0 +1,26 @@
+## Done
+- fin/budgets.py: budget_set(ctx, account, month, amount), report_budget(ctx, month), register(sub) with `budget set` (top-level group "budget") and `report budget` (via core.command_group(sub, "report", ...)).
+- tests/test_budgets.py: 15 tests (set, replace, rejects, permissions, audit, report sort/actuals/descendants/month filter/negative remaining, CLI round trip through cli.main(modules=["fin.budgets"])).
+- Red state confirmed first: 15 errors before the implementation existed.
+
+## Check
+`python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_budgets.py'` → OK (core: 64 tests, budgets: 15 tests).
+
+## In progress
+Nothing. No shared files touched, so .claude/team/changes.md is unchanged. Nothing committed.
+
+## Next step
+- none for budgets. The lead can run the done check above, then commit if wanted.
+
+## Assumptions
+- `budget set` requires write access (viewer gets Forbidden, unknown or missing user gets Unauthorized). The account must exist and have type `expense`, else UserError. A replace is an INSERT OR REPLACE on (account, month).
+- The amount goes through parse_money and is stored as fmt() text, so it has two decimals. Negative budgets are accepted; the spec does not forbid them.
+- Closed periods (check_open) are not checked for budget set, because a budget is not a transaction.
+- `actual` sums the raw signed posting amounts (debits positive, as expense postings are) for postings in the account and descendants (exact name or `name:` prefix), with the month taken from transactions.date. No currency conversion.
+- `report budget` needs no user and lists only accounts with a budget row for that month, sorted by account. `remaining` = budget − actual, so it can be negative.
+- The cli MODULES names are "fin.budgets" (not "budgets"). Use that in any test that calls cli.main(modules=...).
+
+## Do not redo
+- Checked that row factory is sqlite3.Row (core.open_db), so tests compare via tuple(row). A helper `query_rows` in tests/test_budgets.py does this.
+- Checked that core.command_group works for any group name (the "budget" group and the "report" group both use it), and that the "report" group is shared with other modules.
+- Checked the budgets DDL in plan.md line 102 (budgets(account, month, amount), PK (account, month)); no schema change was needed.

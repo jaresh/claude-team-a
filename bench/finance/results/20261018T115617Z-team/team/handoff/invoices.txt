@@ -1,0 +1,38 @@
+Done
+----
+Files changed (own files only):
+- fin/invoices.py: replaced the stub with the full module. Tax: tax_add, tax_list. Customers: customer_add, customer_list. Invoices: invoice_create, invoice_issue, invoice_pay, invoice_show, invoice_get, invoice_list. Reports: report_aging(ctx, at, payables=False). register(sub) adds groups tax (add, list), customer (add, list), invoice (create, issue, pay, show, list), report (aging).
+- tests/test_invoices.py: written first, then run red (Ran 56, errors 56), then three wrong expectations fixed in the test file (May 1 61-90 bucket, Feb 20 total 0.00, Assets:Bank created in the bills test). No implementation-driven test changes.
+
+No shared files edited, so .claude/team/changes.md has no new entry. Nothing committed.
+
+Check
+-----
+- python3 -m unittest discover -s tests -p 'test_core.py': Ran 64 tests, OK.
+- python3 -m unittest discover -s tests -p 'test_invoices.py': Ran 56 tests, OK.
+- Done check passes as one command.
+
+Assumptions (for the lead to review)
+------------------------------------
+- Each line is stored as text: quantity as str(Decimal), price via fmt, net and tax via cents. Tax is cents(net * rate / 100), and a line with no tax code has tax 0 and tax_code NULL.
+- Tax rate is read from tax_codes.rate at line creation and not stored on the line.
+- Numbering is INV-YEAR-NNNN, where NNNN is COUNT of existing numbers with that year prefix plus 1. The year comes from the invoice date, not from the issue date.
+- invoice_issue posts Assets:Receivable (+total), Income:Sales (-net), and Liabilities:SalesTax (-tax) only when tax is non-zero. Description is "Invoice NUMBER". Accounts are created with ensure_account.
+- invoice_pay needs status issued or partial, a positive amount not above the balance, and an account of type asset in ctx.currency. It posts account (+amount) and Assets:Receivable (-amount), description "Payment NUMBER". Status becomes paid when the balance reaches 0, otherwise partial.
+- invoice_show and invoice_get return the same §13 dict. invoice_get is the API entry point.
+- invoice_list orders by id and takes an optional status filter.
+- report_aging excludes draft invoices. It counts invoices dated on or before --at, and sums only payments dated on or before --at. Buckets are current (not yet due), 1-30, 31-60, 61-90, 90+ (days past due). Amounts are fmt strings; total is included.
+- --payables reads bills, bill_lines and bill_payments directly through SQL and does not import bills.py. It has no status filter, since bills have no draft status to exclude.
+- customer_add terms must be a non-negative whole number. Default is 30. Errors are "bad terms: X".
+- tax_add stores the rate text as given after parse_decimal validation. Duplicate codes are a UserError.
+
+Next step
+---------
+Nothing is blocking. If the lead wants a combined run, use:
+  cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_invoices.py'
+The bills module teammate should confirm that the bills and bill_payments column names match what report_aging queries (bill_lines: bill_id, net, tax; bill_payments: bill_id, date, amount; bills: id, date, due).
+
+Do not redo
+-----------
+- Red state was confirmed before implementation (Ran 56, errors 56, missing attributes in fin.invoices). Do not repeat it.
+- Both suites pass as of the last run. Re-run the done check only after an edit.

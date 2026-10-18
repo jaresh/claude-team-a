@@ -1,0 +1,28 @@
+## Done
+- fin/imports.py: register(sub) with `rule add PATTERN ACCOUNT`, `rule list`, `import FILE --account ACCOUNT [--date-col N] [--desc-col N] [--amount-col N] [--skip-header]`. Functions: rule_add(ctx, pattern, account), rule_list(ctx), import_file(ctx, path, account, date_col=0, desc_col=1, amount_col=2, skip_header=False). Handlers _rule_add_cmd, _rule_list_cmd, _import_cmd take (ctx, args); leaves set init=False.
+- tests/test_imports.py: 29 tests (rules, import behaviour, errors and permissions, CLI parsing through cli.main with modules=["fin.imports"]). Written first; red before implementation (2 failures, 26 errors against the stub).
+- No shared files touched. changes.md not appended. core.py, cli.py and other modules untouched.
+
+## Check
+python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_imports.py' → OK (64 core tests, 29 imports tests)
+
+## In progress
+Nothing. Not committed.
+
+## Next step
+None for this task. The lead may run the done check again; no further edits planned.
+
+## Assumptions
+- Import rows: blank lines (csv yields []) are skipped. The file is read as UTF-8 with an optional BOM (utf-8-sig). Date, description and amount are stripped of surrounding whitespace before use.
+- The stored description is the stripped one. The duplicate key (account, date, description, amount) uses that stripped value and the fmt() amount.
+- Errors inside import name the record number: "row N: ..." (the number counts CSV records from 1, including the header when --skip-header is given). A short row gives "row N: missing column".
+- Column numbers below 0 are a user error ("column numbers start at 0").
+- A file that cannot be opened or decoded is a user error: "cannot read PATH: ...".
+- Uncategorized accounts and the category of a matching rule are posted in the book's currency. An import into an account in another currency fails with "unbalanced transaction" (the category account is in the book currency, so the two currencies do not balance). Spec says the category is created in the book's currency, so this follows the spec; it is not special-cased.
+- A zero-amount row with no matching rule goes to Income:Uncategorized (the expense branch is value < 0 only). It still posts 0.00 on both sides.
+- An empty description after stripping fails the whole import ("description required", from post_transaction).
+- rule add does not reject an empty pattern (it matches every description).
+
+## Do not redo
+- Checked the core API by reading fin/core.py: post_transaction, ensure_account, resolve_account, fmt_date, parse_date, parse_money, fmt, Context.require_write/audit, command_group. All used as documented in plan.md, no changes needed in core.
+- The stub fin/imports.py was replaced in full; register() is now real. cli.main is exercised through the tests, so the argparse wiring (init default, handler dispatch, --json output) is verified.

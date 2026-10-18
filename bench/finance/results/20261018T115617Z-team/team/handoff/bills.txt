@@ -1,0 +1,41 @@
+## Done
+- fin/bills.py: vendor add/list, bill create/pay/show/list, register(sub), and the public functions
+  vendor_add(ctx, name, terms=30), vendor_list(ctx), bill_create(ctx, vendor, ref, date, lines),
+  bill_pay(ctx, bill_id, amount, date, account), bill_get(ctx, bill_id), bill_show(ctx, bill_id),
+  bill_list(ctx, status=None). Lines for bill_create are tuples (description, amount, account, tax_code).
+  The CLI handlers split "DESCRIPTION;AMOUNT;ACCOUNT;TAXCODE" into that tuple (_split_line).
+- tests/test_bills.py: 39 tests (vendors, create, pay, read, CLI through cli.main with modules=["fin.bills"]).
+- Shared files: none touched. changes.md not edited.
+
+## Check
+- python3 -m unittest discover -s tests -p 'test_core.py' → OK (64 tests)
+- python3 -m unittest discover -s tests -p 'test_bills.py' → OK (39 tests)
+- Red state first: 37 errors and 1 failure before fin/bills.py was implemented.
+- test_cli.py still OK (16 tests).
+
+## Assumptions
+- bill_get returns the spec section 14 shape. Line dicts have description, account, tax_code (null when none), net, tax.
+  bill_list returns full bill_get dicts ordered by id.
+- bill_create: at least one line is required. A repeated (vendor, ref) is UserError "duplicate bill ref: REF".
+  Line accounts must exist, be expense or asset, and use the book currency. Tax codes must exist.
+  Line nets are not checked for sign (zero or negative is accepted, as parse_money allows).
+- Assets:TaxReceivable is created only when the bill's tax total is nonzero. Liabilities:Payable is always ensured.
+- bill_pay: status must be open or partial. AMOUNT must be > 0 and ≤ balance. ACCOUNT must be an asset in the book currency.
+  Payment date is not checked against the bill date. Only the period-closed check (core.post_transaction) applies.
+- bill_pay sets status "paid" at zero balance, else "partial".
+- vendor_add terms: int or digit string, zero or more. Negative or non-numeric is UserError "bad terms: X".
+- Line pos values in bill_lines are 0-based, as postings are.
+- Read commands (vendor list, bill show, bill list) need no user. Writes call require_write.
+- bill list --status is validated against open, partial, paid (argparse choices on the CLI, UserError in the function).
+- Audit: vendor.add (name), bill.create (bill id), bill.pay (bill id).
+
+## In progress
+- Nothing. The bills task is complete.
+
+## Next step
+- none for bills. The statements or ledger task may read bill data through bill_get(ctx, id) or bill_list(ctx).
+- Lead: consider whether `report aging --payables` (spec section 14) should use bill_list(ctx, "open") / bill_get balances. It is not part of this task.
+
+## Do not redo
+- The line split and tuple convention are in place. The first run failed only because _check_line did not return a tax value. That is fixed.
+- Test failures in the first run were test-side only: the default bill total is 120.00 (100.00 + 20.00 VAT), and sqlite3.Row needs tuple() in comparisons. Both are fixed in tests/test_bills.py.

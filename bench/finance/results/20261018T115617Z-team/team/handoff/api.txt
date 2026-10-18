@@ -1,0 +1,30 @@
+DONE
+- Files changed (owned only): fin/api.py (implemented), tests/test_api.py (new, 11 tests).
+- No shared files touched; .claude/team/changes.md not appended. Nothing committed.
+- Done check passes:
+    python3 -m unittest discover -s tests -p 'test_core.py'  -> OK
+    python3 -m unittest discover -s tests -p 'test_api.py'   -> Ran 11 tests, OK (no warnings)
+- Smoke test against a real `python3 -m fin --db PATH serve --port N` (scratch DB in .claude/team/scratch/api/smoke.db):
+    POST /transactions with X-User alice -> 201, posting balanced by the blank posting
+    GET /balances -> 200
+- Module surface: register(sub) adds `serve --port` (default 8000); make_server(db_path, port) -> HTTPServer bound to 127.0.0.1 (port 0 = free port).
+- Routes: GET /accounts, /transactions (account, from, to), /balances (at), /reports/income (from, to required), /reports/balance-sheet (at required), /reports/aging (at required, payables=1), /invoices (status), /invoices/ID, /audit (by). POST /transactions, /invoices (201); /invoices/ID/issue, /invoices/ID/payments (200).
+- Status mapping: unknown path 404 (checked before user); no/unknown user on write 401; viewer 403; core.UserError 400; invoice id not found 404; other exceptions 500.
+- Each request is one core.run call (own transaction, user from X-User; reads need no user).
+
+IN PROGRESS
+- Nothing open in the code.
+
+NEXT STEP
+- Lead decisions (cannot be done inside api.py):
+  1. cli.main prints the return value of the handler, so a stopped `serve` prints `null`. Fix would be in cli.py: print only when the result is not None. Not changed, because cli.py is not mine.
+  2. _serve_cmd commits the transaction core.run opened (ctx.conn "COMMIT"), then re-opens it with "BEGIN" before returning, so core.run's COMMIT succeeds. Without this the write lock would be held for the whole serve and every request would block. If cli.main or core.run changes its transaction handling, revisit this.
+- Command to re-verify after any change: cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_api.py'
+
+DO NOT REDO
+- Routing and auth ordering were settled by the tests: path 404 first, then user check (401/403), then body parse (400).
+- The API reads match CLI functions exactly: tests compare JSON from the API with a JSON round trip of direct calls.
+- Shutdown with the mock test (test_serve_command_returns_when_stopped) returns 0, calls server_close, and the book accepts a later write.
+- Test helper `request` closes HTTPError with `with exc:`; the ResourceWarning is gone.
+- An early smoke attempt returned 401 "unknown user: alice" once; a rerun on the same DB passed the user check, and the server then gave only the expected 400/201 results. Not reproduced; cause not found.
+- `pkill -INT -f 'serve --port N'` matches the calling shell too and can end that shell with exit 1; use the PID instead when stopping a server by hand.

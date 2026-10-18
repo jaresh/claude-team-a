@@ -1,0 +1,26 @@
+## Done
+- fin/ledger.py: register(sub) adds `reconcile ACCOUNT --date --balance [--clear ID]...` and the report leaves `report trial-balance --at` and `report ledger ACCOUNT --from --to` (via core.command_group "report"). Command functions: reconcile(ctx, account, date, balance, clear=None), report_trial_balance(ctx, at), report_ledger(ctx, account, from_date, to_date). Private helpers: _clear, _sum, and the _*_cmd handlers.
+- tests/test_ledger.py: 16 tests (reconcile 7, trial balance 5, ledger 4). Written first; failed with 16 errors against the stub, then passed.
+- No shared file touched; nothing added to .claude/team/changes.md. Nothing committed.
+
+## Check
+python3 -m unittest discover -s tests -p 'test_core.py' && python3 -m unittest discover -s tests -p 'test_ledger.py' → OK (core: 64 tests, ledger: 16 tests).
+Also checked by hand that register() parses all three leaves through argparse (--clear repeats into a list of ints).
+
+## Assumptions
+- reconcile: `--clear` is type=int, so argparse rejects non-numeric ids with exit 2. Clearing a transaction that is already cleared is a no-op, and it still counts as "a --clear given" for the audit entry.
+- reconcile: a --clear marks every ACCOUNT posting in that transaction, not just one.
+- reconcile: does not call check_open. Clearing marks are not postings, so a closed period does not block them (spec §12 lists posting commands only).
+- reconcile: "uncleared" and "cleared_balance" match ACCOUNT exactly, not descendants (as the plan says).
+- trial-balance: one row per account name with postings dated on or before --at. Each account's raw balance is converted from its account currency to the book currency with core.convert at the --at date (convert already rounds to cents). Totals are the sums of the rounded debit and credit values.
+- ledger: opening and rows include ACCOUNT and its descendants (prefix match on "ACCOUNT:", done with substr, not LIKE). Ordering is date, transaction id, posting id.
+- ledger: FROM after TO is a UserError ("bad period: FROM is after TO"). The spec does not cover it.
+
+## Next step
+- Lead: the rounding question is open. In trial-balance, converting several foreign-currency accounts can leave a 1-cent gap between total_debit and total_credit, which breaks spec §17's "the totals are equal". I did not add a rounding adjustment. Decide whether to allocate the residual somewhere or accept it.
+- Nothing else for ledger. The CLI leaves are wired through fin.cli MODULES once the lead includes "ledger" (it already is in the 11 names).
+
+## Do not redo
+- Core API checked by reading fin/core.py: resolve_account, ensure_account, parse_money, parse_date, fmt, fmt_date, cents, convert, post_transaction, command_group, Context.require_write/audit. Not changed.
+- Tests use support.new_book / support.call and core.post_transaction. Helper names are post, seed, and the module-level helpers; none shadows a unittest method.
+- The full CLI was not run end to end because the books module (init) is still a stub. The argparse check above covers the wiring.
