@@ -23,6 +23,8 @@
 # .claude/ or Markdown files (the app's README may say how it was built), so neither the path,
 # the git status nor the files show the arm. The review's cost is recorded apart from the run's. REVIEWS=N runs N
 # independent reviews of the same code in parallel (default 1), to measure the reviewer's noise.
+# REVIEW2_MODEL=sonnet adds one review by another model (review-alt.json, "review_alt"), to check
+# whether the reviewer favours code from its own model family.
 #
 # Results go to bench/<bench>/results/<UTC stamp>-<mode>/ (cost, scores, quality, review, the
 # team's plan and handoffs, the app's README) and are committed. The built app is deleted
@@ -122,10 +124,14 @@ for i in $(seq 1 "$reviews"); do
   (cd "$rev" && timeout 1800 claude -p --model "${REVIEW_MODEL:-opus}" --effort "${REVIEW_EFFORT:-medium}" \
      --tools=Read,Glob,Grep --output-format json "$review_prompt" < /dev/null > "$out/review-raw-$i.json" 2>/dev/null) &
 done
+if [ -n "${REVIEW2_MODEL:-}" ]; then
+  (cd "$rev" && timeout 1800 claude -p --model "$REVIEW2_MODEL" --effort "${REVIEW_EFFORT:-medium}" \
+     --tools=Read,Glob,Grep --output-format json "$review_prompt" < /dev/null > "$out/review-raw-alt.json" 2>/dev/null) &
+fi
 wait || true
-python3 - "$out" "$reviews" <<'PY'
-import json, sys
-out, n = sys.argv[1], int(sys.argv[2])
+python3 - "$out" "$reviews" "${REVIEW2_MODEL:-}" <<'PY'
+import json, os, sys
+out, n, alt = sys.argv[1], int(sys.argv[2]), sys.argv[3]
 def load(i):
     try:
         raw = json.load(open(f"{out}/review-raw-{i}.json"))
@@ -141,6 +147,8 @@ reviews = [load(i) for i in range(1, n + 1)]
 json.dump(reviews[0], open(f"{out}/review.json", "w"), indent=2)
 if n > 1:
     json.dump(reviews, open(f"{out}/reviews.json", "w"), indent=2)
+if alt:
+    json.dump(dict(load("alt"), model=alt), open(f"{out}/review-alt.json", "w"), indent=2)
 PY
 rm -f "$out"/review-raw-*.json
 rm -rf "$(dirname "$rev")"
@@ -181,6 +189,9 @@ s = {"bench": bench, "mode": mode, "arm": arm, "claude_args": claude_args, "mode
      "quality": quality, "review": review,
      "reviews": [{"overall": r.get("overall"), "scores": r.get("scores"),
                   "review_cost": r.get("review_cost")} for r in more]}
+if os.path.exists(f"{out}/review-alt.json"):
+    a = json.load(open(f"{out}/review-alt.json"))
+    s["review_alt"] = {k: a.get(k) for k in ("model", "overall", "scores", "review_cost")}
 json.dump(s, open(f"{out}/summary.json", "w"), indent=2)
 print(json.dumps(s, indent=2))
 EOF
