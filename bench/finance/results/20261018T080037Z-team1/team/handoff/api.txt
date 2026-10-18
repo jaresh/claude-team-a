@@ -1,0 +1,18 @@
+**Done**
+- Files changed: fin/api.py (new), tests/test_api.py (new). No shared files edited, so no changes.md rows.
+- fin/api.py: `register` adds `serve --port N` (required int). `make_server(db_path, port)` returns a ThreadingHTTPServer on 127.0.0.1 (port 0 = free port); `serve` runs it with serve_forever. Each request is turned into argv for `fin.cli.execute(db, user, argv)`; UserError -> 400 `{"error": ...}`.
+- Routes: GET /accounts, /transactions (?account&from&to), /balances?at, /reports/income?from&to, /reports/balance-sheet?at, /reports/aging?at[&payables=1], /invoices (?status), /invoices/ID, /audit (?by). POST /transactions -> 201, POST /invoices -> 201, POST /invoices/ID/issue -> 200, POST /invoices/ID/payments -> 200. Anything else -> 404.
+- Auth for POST, checked in api.py before the command runs: missing X-User or unknown user -> 401; role viewer -> 403; editor/admin pass. Order: route (404) -> auth (401/403) -> JSON body (400) -> command.
+- Check: `python3 -m unittest discover -s tests` -> Ran 142 tests, OK (api tests: 14 in tests/test_api.py).
+
+**In progress**
+- Nothing. Module and tests finished; suite green.
+
+**Next step**
+- None for api. Lead smoke test (lead launches): `python3 -m fin --db /tmp/x.db serve --port 8080` in one shell, then `curl -H 'X-User: admin' -d '{...}' localhost:8080/transactions`.
+
+**Do not redo**
+- Checked the CLI argument formats the API depends on: `txn add --date --desc --posting ACC[=AMT]`, `invoice create --customer --date --line "DESC;QTY;PRICE;TAX"`, `invoice pay ID AMOUNT --date --account`, `invoice issue ID`, `user add --role`, `audit list --by`. Values are passed in `--opt=value` form so values starting with '-' are not parsed as options.
+- Found and fixed: an empty body (POST issue has none) failed JSON parsing with 400; parse_json now treats an empty body as {}.
+- Assumptions (for README): server binds 127.0.0.1 only; request values must be JSON strings (numbers are a 400); invoice line descriptions cannot contain ';' (the CLI line format splits on it, so the API returns 400); GET of an unknown invoice id is 400 (user error), not 404; 404 is only for unknown paths; GET never uses X-User; a POST whose body is not JSON gives 400 after the auth check.
+- core.py, cli.py and the other modules were not touched.

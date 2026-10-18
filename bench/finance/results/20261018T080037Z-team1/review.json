@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 8,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 8
+  },
+  "overall": 8,
+  "issues": [
+    "fin/api.py txn_add_argv/line_text/posting_text rebuild CLI argument strings from JSON fields (joined with ';' and '='), so a description containing ';' or an account containing '=' is misread or rejected instead of being passed through as structured data.",
+    "fin/cli.py run creates the database file before init is validated (core.connect runs before init_book's checks), so a failed init such as a bad currency leaves an empty fin.db; every later command then hits an uncaught sqlite3.OperationalError ('no such table: meta') in Ctx.__init__ and crashes with a traceback instead of exiting with code 2.",
+    "fin/api.py Handler.dispatch only catches HTTPError and UserError, so any other exception (sqlite lock timeout, bad Content-Length) leaves the client without a JSON error response; the X-User role check also repeats cli.run's permission logic instead of sharing it.",
+    "fin/automation.py recurring_add validates by actually calling ctx.add_txn inside a savepoint, which also runs check_open, so a recurring schedule whose start date falls in a closed month cannot be added even though adding it posts nothing.",
+    "fin/reports.py report_trial_balance and position convert and round each account separately, so with more than one currency total_debit may not equal total_credit and total_assets may not equal total_liabilities + total_equity, breaking guarantees the spec requires.",
+    "The SQL condition for 'this account or its descendants' is copied three times (ledger.txn_list, automation.report_budget, reports.family), and the invoice_pay/bill_pay and invoice_dict/bill_dict pairs are near-duplicates that could share one helper."
+  ],
+  "strengths": [
+    "Clean layering: each domain module registers its own argparse commands with core.bind; cli.run handles permissions and wraps each command in one BEGIN IMMEDIATE/ROLLBACK transaction; the HTTP API reuses cli.execute, so permission checks, validation and JSON output are the same everywhere.",
+    "Money is handled carefully: Decimal is used throughout, amounts are stored as text, q2/fmt round half up and never print -0.00, and every SQL value is passed as a parameter (the only f-string table names are internal constants).",
+    "The tests check behaviour through the CLI with a fresh temporary book per test; they cover rounding edges, aging bucket boundaries, closed periods, roles and audit entries, and after failed commands they assert both exit code 2 and that nothing changed."
+  ],
+  "review_cost": 0.8208
+}

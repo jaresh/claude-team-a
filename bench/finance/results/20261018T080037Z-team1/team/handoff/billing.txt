@@ -1,0 +1,37 @@
+**Done**
+
+Files changed (no shared files edited, so nothing added to .claude/team/changes.md; nothing committed):
+- fin/billing.py: register(sub, report_sub) with tax, customer, vendor, invoice (create/issue/pay/show/list), bill (create/pay/show/list), report aging [--payables]. Public helpers: invoice_dict(ctx, inv_id), bill_dict(ctx, bill_id), split_line, bucket.
+- tests/test_billing.py: 36 test methods across SplitLineTest, TaxTest, PartyTest, InvoiceCreateTest, InvoiceIssueTest, InvoicePayTest, BillTest, AgingTest. Covers spec 13 and 14 shapes, posting txns, audit entries, error cases with nothing changed, closed periods, and viewer role.
+
+Check: `python3 -m unittest discover -s tests` -> Ran 87 tests, OK (whole suite, including other modules' tests).
+
+Assumptions for README.md (lead to copy):
+- Invoice `number` is null while draft. Issuing assigns INV-{YYYY}-{NNNN} using the invoice date's year. The count is existing invoices with that prefix plus 1, so numbers are never reused.
+- Due date = date + terms. Terms default to 30 days for customers and vendors and must be non-negative integers.
+- Quantity must be positive and price non-negative. Line net = round_half_up(quantity x raw price). The displayed price is the price rounded to cents, so the displayed price times quantity can differ from net by a cent.
+- Tax code is optional; an empty code means no tax (tax_code null). Tax rate must be non-negative. Zero tax creates no Liabilities:SalesTax or Assets:TaxReceivable posting.
+- Line tax = round_half_up(net x rate / 100), computed per line.
+- Issuing an invoice posts Assets:Receivable (total) and Income:Sales (-net), plus Liabilities:SalesTax (-tax) if tax is non-zero. Description "Invoice {number}".
+- Invoice payments: amount must be positive, rounded to cents, and not more than the balance. The account is any existing account. Status becomes partial or paid. Posting: account (+amount), Assets:Receivable (-amount). Description "Payment {number}". Payments dated in a closed period are rejected by add_txn.
+- Only draft invoices can be issued. Only issued or partial invoices can be paid.
+- Bill ref must be non-empty and unique per vendor (checked before insert). Bill status is "open", then "partial" or "paid".
+- Bill line accounts can be any existing account except Income-type accounts. Line tax goes to Assets:TaxReceivable. Posting: line accounts (+net), Assets:TaxReceivable (+tax), Liabilities:Payable (-total). Description "Bill {ref}".
+- Bill payments: amount positive, cents, not more than balance. Posting: Liabilities:Payable (+amount), account (-amount). Description "Payment {ref}".
+- Aging buckets by days past due: current (<= 0), 1-30, 31-60, 61-90, 90+. Only balances > 0 count. Payments dated after --at are ignored. Invoice aging covers non-draft invoices dated <= --at. `--payables` covers bills dated <= --at. Output values are strings with two decimals.
+- Audit targets for invoice and bill actions are the id as a string (invoice.create, invoice.issue, invoice.pay, bill.create, bill.pay). Tax, customer and vendor audits use the code or name.
+
+**In progress**
+
+Nothing. Task complete. Not run as the program (no launch), no scratch files created.
+
+**Next step**
+
+Lead: copy the assumptions above into README.md, then run `python3 -m unittest discover -s tests` once more from the whole repository after the reports, automation and api modules land. The billing module needs no further work unless reports or api need invoice_dict or bill_dict with a different signature.
+
+**Do not redo**
+
+- Reviewed the spec 13/14 shapes against the code. Key names and order match the spec exactly.
+- Test-file fixes made while getting the suite green (test bugs, not module bugs): PartyTest tests call book() first; postings_of sums amounts per account, since two bill lines can post to one account; a duplicate Assets:Bank add was removed.
+- No changes were needed in core.py, cli.py or helpers.py; the module uses only the documented ctx API and core helpers (dec, q2, fmt, pdate).
+- No float used anywhere in billing.py or tests.

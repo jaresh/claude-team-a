@@ -1,0 +1,40 @@
+DONE
+- fin/reports.py (new): report income, report balance-sheet, report networth (§8); report tax (§15);
+  reconcile (§16); report trial-balance, report ledger (§17). register(sub, report_sub) binds all seven.
+- tests/test_reports.py (new): 42 tests, all passing. Covers each report's shape and numbers, period
+  edges, currency conversion (rate on/before date, missing rate is a user error), tax by code and
+  excluded drafts, reconcile marks/validation/permissions/audit-only-on-change, trial balance totals,
+  ledger opening/running/closing with descendants and sibling-name exclusion.
+- Check: `python3 -m unittest discover -s tests` -> Ran 129 tests, OK (whole suite, including other teammates' tests).
+- Shared files: none edited, so .claude/team/changes.md has no new rows. No commit made.
+
+Assumptions and deviations (for README):
+- --from after --to is a user error (not in spec) for income, tax, ledger, networth (months).
+- Income, balance sheet, and trial balance group by posting account name, not by ancestors.
+- ledger shows the account plus its descendants; opening = sum before --from; running balance per posting.
+- Conversion: per (account, currency) sum converted with ctx.convert at the report end date.
+- retained_earnings = all income minus all expenses up to the date; total_equity includes it.
+- networth = total_assets - total_liabilities at each month end (month string YYYY-MM).
+- trial-balance has no --currency flag; it uses the book currency.
+- With several currencies, per-account rounding can leave a cent difference between totals
+  (exact for a single currency).
+- reconcile matches the exact account only (not descendants). Clearing an already-cleared txn is a no-op.
+  The audit "reconcile" entry is written only when at least one new mark is added.
+- tax skips lines with no tax code; a code with zero tax still appears in by_code. Bills have no draft
+  status, so all bills dated in the period count as paid. Invoices count unless status is draft.
+
+IN PROGRESS
+- Nothing. All sections of plan.md `reports` are implemented and tested.
+
+NEXT STEP
+- Lead: review fin/reports.py and tests/test_reports.py, then run
+  `cd <repo> && python3 -m unittest discover -s tests` (expect 129 OK).
+- Optional: lead decides whether the trial-balance currency flag and the from>to user error should stay.
+
+DO NOT REDO
+- Ran the test module alone first: `python3 -m unittest tests.test_reports` -> 42 OK. Full suite -> 129 OK.
+- Verified CLI shapes against fin/billing.py before writing tests: invoice line "DESC;QTY;PRICE;TAXCODE",
+  bill line "DESC;AMOUNT;ACCOUNT;TAXCODE", tax add CODE RATE, customer/vendor add NAME, invoice issue ID.
+  Book currency in tests is EUR (tests/helpers.py init).
+- Fixed test expectations that were wrong (not code bugs): trial-balance total 9000 (not 9100); a USD
+  sale mixed with an EUR account (does not balance) was removed; reconcile clear ids use the actual txn ids.

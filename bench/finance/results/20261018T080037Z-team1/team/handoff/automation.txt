@@ -1,0 +1,28 @@
+**Done**
+- Files changed (only these two): fin/automation.py (new), tests/test_automation.py (new).
+- Implemented spec sections 5 (rule add/list, import), 6 (budget set, report budget), 7 (recurring add/run), 9 (loan schedule).
+- register(sub, report_sub) registers `rule`, `import`, `budget set`, `report budget` (via report_sub), `recurring add/run`, `loan schedule`.
+- Check: `cd /home/jaca/claude-team-a/bench/work/finance-team1 && python3 -m unittest discover -s tests` -> Ran 51 tests, OK.
+- No shared files edited, so .claude/team/changes.md is untouched. Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: confirm automation.py is wired into fin/cli.py (register call) and run the full suite once more after the other modules land.
+
+**Do not redo**
+- Test helper `run` was shadowing unittest.TestCase.run (caused AttributeError: no attribute 'db'); renamed to `run_due`. Do not reintroduce a helper named run/setUp/assert*/fail.
+- Grepped tests/test_automation.py for placeholder junk ("if False"): none left.
+- Dedupe: `dates()` lives once in AutomationBase.
+
+Design assumptions (for README.md if not already covered):
+- Rule target accounts must already exist; rules match case-insensitively, first matching rule (by id order) wins.
+- Import: all rows parsed and period-checked before any insert (all-or-nothing); duplicates are (account, date, description, amount) matches against the imported table, so repeats inside one file are also skipped. Amounts are q2-rounded. Unmatched rows go to Expenses:Uncategorized / Income:Uncategorized (created on demand). Importing into a foreign-currency account fails with the normal "does not balance" error from add_txn.
+- Import audits "import" only when at least one row was imported.
+- Budgets: amount >= 0, target must be an expense account, month format YYYY-MM; budgets are set with INSERT OR REPLACE and audited as budget.set.
+- report budget: actual includes descendant accounts; per-currency totals converted to the budget account's currency at month end; remaining = budget - actual.
+- Recurring add: postings validated by running add_txn inside a SAVEPOINT at the start date, then rolled back, so the same rules as txn add apply; nothing is stored on error.
+- Recurring occurrences: monthly/yearly computed from the original start with month-end clamping (Jan 31 -> Feb 28/29), yearly Feb 29 -> Feb 28 in non-leap years; weekly = start + 7k days.
+- recurring run: skips occurrences already recorded in recurring_done; fails (exit 2, nothing created) if an due occurrence falls in a closed period; audits "recurring.run" only when something was created.
+- Loan schedule: rate is annual percent, monthly rate = rate/1200; payment rounded to cents; last row absorbs the rounding remainder so balance ends at 0.00; months capped at MAX_MONTHS = 12000; principal > 0, rate >= 0; schedule is read-only (no audit).

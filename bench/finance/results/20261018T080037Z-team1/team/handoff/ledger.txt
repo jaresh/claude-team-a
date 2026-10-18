@@ -1,0 +1,29 @@
+**Done**
+- Files changed: fin/ledger.py (new), tests/test_ledger.py (new). No shared files edited, no changes.md rows needed.
+- Commands: account add/list, txn add/list, balance, fx add, convert, user add/list, audit list, period close/status.
+- Check: `python3 -m unittest discover -s tests` -> Ran 29 tests, OK (3 existing + 26 new in test_ledger).
+- Helpers in fin/ledger.py that other modules may import:
+  - `parse_posting(text) -> (account, Decimal|None)` parses 'ACCOUNT=AMOUNT' / 'ACCOUNT'. Automation's `recurring add --posting` needs it; import it from fin.ledger, or the lead can move it to core.py.
+  - `prefixes(name)` -> ['A', 'A:B', 'A:B:C'] (ancestor chain incl. self).
+  - `account_dict(row)`, `txn_dict` is ctx.txn_dict (core).
+- Output choices not fixed by the spec (for README assumptions):
+  - account add -> {"name","type","currency"}; fx add -> {"date","from","to","rate"}; user add -> {"name","role"}; period close -> {"closed_through"} (the value after the command); period status -> {"closed_through"}.
+  - fx add rejects rate <= 0, a same-currency pair, and bad dates/currencies (nothing stored).
+  - convert requires --at (argparse error otherwise). Negative amounts work (e.g. convert -10 USD EUR).
+  - period close audits only when the closed month actually moves forward (same or earlier month: no change, no audit).
+  - balance includes every ancestor of an account with postings on/before the date, with per-currency sums (ancestors can mix currencies if a child was created with another currency); accounts summing to zero show "0.00".
+  - txn list --account matches the account itself or a colon-segment descendant (no LIKE wildcard issues); --from/--to validated with pdate.
+  - audit list --by NAME filters by user; unknown NAME gives [].
+  - user add trims the name; empty name is a user error. Role is an argparse choice (bad role -> exit 2).
+  - balance --at and txn list dates are validated; '--at' is not a default-today.
+
+**In progress**
+- Nothing. Module and tests finished; suite green.
+
+**Next step**
+- None for ledger. The lead can run `python3 -m unittest discover -s tests` again after other modules land, and `python3 -m fin --db /tmp/x.db init --currency EUR --admin admin` for a smoke test (the lead does the launch).
+
+**Do not redo**
+- Checked that the existing core.py ROUND_HALF_UP, Ctx.rate (direct, then inverse, latest-first) and Ctx.add_txn (closed-period check, amountless posting, per-currency zero sum) already do what spec sections 2 and 4 need; ledger reuses them rather than re-implementing. Not changed.
+- READONLY/ADMIN_ONLY sets in core.py already cover my commands (account list, txn list, balance, convert, user list, audit list, period status are readonly; user add and period close admin-only); no change needed.
+- Ran the full suite before and after my edits: baseline 3 tests OK; after my module 29 OK.
