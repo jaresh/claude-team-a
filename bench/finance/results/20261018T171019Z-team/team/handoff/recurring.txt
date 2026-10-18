@@ -1,0 +1,34 @@
+Done
+- fin/recurring.py: `recurring add NAME --every monthly|weekly|yearly --start DATE --posting ...`
+  (write, audit `recurring.add` NAME) and `recurring run --until DATE` (write, audit
+  `recurring.run` with the DATE). Replaced the stub.
+- tests/test_recurring.py: 27 tests, all pass.
+  Check: `python3 -m unittest discover -s tests -p "test_recurring.py"` -> OK (27 tests).
+- No shared files edited; changes.md untouched.
+
+In progress
+- Nothing.
+
+Next step
+- None for this task. The lead can run the full suite: `python3 -m unittest discover -s tests`.
+
+Do not redo
+- Posting validation uses SAVEPOINT r / core.post / ROLLBACK TO r / RELEASE r (in a finally),
+  as the plan says. The tests show the successful add leaves no transaction behind.
+- Test for run hitting a closed period: earlier run's transactions stay, the failing run's
+  partial work is rolled back by core (verified by test_closed_period_hit_fails_whole_run).
+- Tests import `from fin import core, recurring` so the command registers (support.run does
+  not import fin.commands).
+
+Assumptions
+- Rule names are not unique (no schema constraint; run keys on rule id). A blank name is a UserError.
+- At least one --posting is required (explicit error); the posting rules come from core.post, so
+  a single posting or unbalanced postings fail as in txn add.
+- Validation posts on the start date, so a start in a closed period is refused at add time.
+  Later occurrences that fall in a closed period fail the whole `recurring run`.
+- --every is restricted by argparse choices (an invalid value is a UserError, exit 2 / 400).
+- Stored postings: [[account, money-string]] or [account, null] for the auto-balanced posting.
+- `recurring run` audits once even when it creates nothing (rule: every successful write
+  audits exactly once). Target is the until date in ISO form.
+- Run creates occurrences in rule id order, then date order; each one recorded in recurring_runs
+  with its txn id.

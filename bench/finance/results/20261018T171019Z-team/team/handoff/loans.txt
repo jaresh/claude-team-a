@@ -1,0 +1,30 @@
+Done
+- fin/loans.py: `loan schedule PRINCIPAL RATE MONTHS --start DATE` (read command, no write flag).
+  Validates principal > 0 (parse_amount), rate >= 0 (dec), months int >= 1, start date.
+  Payment and rows as spec section 9; last row repays the remaining balance, final balance "0.00".
+- tests/test_loans.py: 18 tests, all pass.
+  Check: python3 -m unittest discover -s tests -p "test_loans.py" -> OK (18 tests).
+
+Files
+- fin/loans.py (replaced stub)
+- tests/test_loans.py (new)
+
+Assumptions
+- Money arithmetic in a local Decimal context with prec 50; payment and interest rounded with core.cents (half up).
+- Non-last rows: principal = payment - interest. Last row: payment = balance + interest, principal = balance.
+- RATE 0: payment = cents(PRINCIPAL / MONTHS); interest is 0 on every row.
+- Dates via core.occurrence(start, "monthly", n), isoformat strings.
+- Output: money strings; "n" is an int; "date" is YYYY-MM-DD.
+- The test file imports `fin.loans` so the command registers without importing every module.
+- Like every non-bootstrap command, the command runs core's book_currency check, so it needs an
+  initialised book at --db (the spec's "no data written" is honoured; the book must exist).
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for this task. Lead: run the full suite when all waves are in (python3 -m unittest discover -s tests).
+
+Do not redo
+- Checked fin/core.py run()/_dispatch: argv must be strings (ints break the join in the unknown-command error), so tests pass str values.
+- Checked the payment formula against 1000 at 12% over 12 months: 88.8488..., rounds to 88.85, matching the test.

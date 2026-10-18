@@ -1,0 +1,37 @@
+Done
+- fin/contacts.py: `tax add CODE RATE`, `tax list`, `customer add NAME [--terms]`, `customer list`,
+  `vendor add NAME [--terms]`, `vendor list`. Writes audit tax.add / customer.add / vendor.add once.
+- tests/test_contacts.py: 18 tests, all pass.
+- Check: `python3 -m unittest discover -s tests -p "test_contacts.py"` -> Ran 18 tests, OK.
+- Shared helpers used: core.dec, core.command, core.UserError. Not edited: core, support, commands, changes.md.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: no action needed for contacts. Optionally run the full suite:
+  `python3 -m unittest discover -s tests`
+
+Do not redo
+- Ran the test file once; no failures, so no fixes were needed.
+- Did not call EnterWorktree: I worked in the lead-assigned checkout at
+  /home/jaca/claude-team-a/bench/work/finance-team-2 because the lead named these exact files.
+  No commits made (team rule).
+
+Assumptions (for README and the lead)
+- Add commands return the created record: tax add -> {"code","rate"}; customer/vendor add -> {"name","terms"}.
+  Spec is silent; the lead can change to None if preferred.
+- Tax rate is stored exactly as typed (whitespace stripped). Must parse with core.dec and be >= 0.
+  "0" is allowed. Empty, non-numeric, and negative rates are user errors.
+- Tax code: must be non-empty after strip and must not contain ";" (invoice/bill lines split on ";").
+- Customer/vendor names: must be non-empty after strip; stored as given (no trimming), so lookups by
+  invoices/bills must use the same string.
+- Terms: whole number of days, digits only (regex [0-9]+). "-1", "1.5", "+3", "" are user errors.
+  Default 30.
+- Duplicate code/name is a user error (400) and changes nothing (no audit row).
+- Viewers get 403 on add commands, no --user gets 401. List commands need no user.
+- Shared-helper note: the terms parser and the name check (_terms, _label) are private to
+  fin/contacts.py because core has no int or name helper. The lead may move them to core if
+  another task needs them.
+- Lists are ordered with SQL ORDER BY code / name (SQLite binary order, same as Python str order
+  for ASCII names).

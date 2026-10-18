@@ -1,0 +1,30 @@
+Done
+- fin/reconcile.py: `reconcile ACCOUNT --date DATE --balance AMOUNT [--clear ID ...]` (write command, audit action `reconcile` with target ACCOUNT). Validates the account exists, the date, the balance (≤2 decimals), and every --clear id (integer, with a posting to ACCOUNT dated ≤ DATE), all before marking anything. Then marks the postings cleared and returns the spec §16 shape.
+- tests/test_reconcile.py: 14 tests, all pass.
+  Check: python3 -m unittest discover -s tests -p "test_reconcile.py" -> Ran 14 tests, OK.
+- Covers: report with no clears; clear marks and balances; marks kept across runs; date limits; clear dated after DATE refused with nothing marked; clear with no posting to ACCOUNT refused; unknown transaction id; non-integer id; unknown account; bad balance/date; viewer 403; missing user 401; one audit entry on success, none on failure.
+
+Files
+- fin/reconcile.py (replaced stub)
+- tests/test_reconcile.py (new)
+- No shared files touched; changes.md not edited.
+
+Assumptions
+- Clear ids are transaction ids (integers). A non-integer id is a user error.
+- A transaction with several postings to ACCOUNT marks all of them.
+- --clear ids are validated against the postings dated ≤ DATE before any update, so an invalid id leaves everything unchanged (the command also runs inside core's transaction, which rolls back on UserError).
+- `uncleared` uses SELECT DISTINCT ORDER BY id; `cleared_balance` sums postings with cleared=1 dated ≤ DATE (later clears on postings dated after DATE are not counted).
+- Test file imports `reconcile` from fin directly (`from fin import core, reconcile`) to register the command, rather than importing fin.commands, so it does not depend on other tasks' modules importing cleanly.
+- Balance is parsed with core.parse_amount, so more than two decimals is a user error.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for this task. The lead can run: python3 -m unittest discover -s tests -p "test_reconcile.py"
+- Optional: once fin/commands.py imports all modules cleanly, the full suite is python3 -m unittest discover -s tests.
+
+Do not redo
+- Ran the reconcile tests after each change; the only failures were "unknown command" because the test file did not import fin.reconcile. Fixed by importing it; no failures remain.
+- Did not change core.py, support.py, commands.py, or any other task's files.
+- A notice said tests/test_reconcile.py had changed on disk after my edits. I re-read the whole file and kept its current content without reverting. I did not identify the external change; the file as read passes all 14 tests. The lead should check it if the difference matters.

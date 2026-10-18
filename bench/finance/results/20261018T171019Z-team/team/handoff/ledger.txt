@@ -1,0 +1,51 @@
+Done
+- fin/ledger.py (replaced stub): commands `txn add`, `txn list`, `balance`, `fx add`, `convert`;
+  module function `convert(conn, amount, frm, to, at) -> Decimal` (unrounded) for reports.
+- tests/test_ledger.py: 40 tests, all pass.
+  Check: python3 -m unittest discover -s tests -p "test_ledger.py" -> Ran 40 tests, OK.
+- No shared files edited (changes.md, core.py, support.py untouched). No commit.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` once all waves are in, to confirm the ledger
+  tests still pass alongside the others. No ledger change is needed for that.
+
+Do not redo
+- Schema: used tables as-is (transactions, postings, fx_rates). No schema change needed.
+- core.post already enforces balance, unknown accounts, closed period and two-posting minimum;
+  txn add relies on it and only adds the "at least one --posting" message and the audit.
+- Checked that the in-command failures roll back (failed txn add leaves no txn and no audit row).
+
+Assumptions (decisions where the spec was silent)
+- txn add with no --posting: UserError "txn add needs at least one --posting" (before core.post).
+  One posting given: core.post's "two or more postings" error.
+- txn add --desc and --date are required (argparse).
+- txn list --account, --from, --to are checked with `is not None`. Account matching uses
+  core.in_prefix in Python on each txn's postings (whole segments only: "Exp" does not match
+  "Expenses").
+- balance: an account appears if it has any posting on/before the date, even if its sums are
+  zero ("0.00", never "-0.00"). Ancestors are added via core.ancestors.
+- fx add: codes must be 3 ASCII letters, stored uppercase. RATE stored as given (stripped of
+  surrounding spaces) and returned as that string. RATE must parse by core.dec and be > 0.
+  FROM equal to TO is allowed (convert then ignores it).
+- fx add audit target "FROM/TO" (uppercase).
+- convert CLI: AMOUNT via parse_amount (at most two decimals); --at is required; output
+  amount is money(unrounded result), currency TO.
+- convert rule: same code returns the amount unchanged. Otherwise latest FROM->TO rate with
+  date <= at (ORDER BY date DESC, id DESC); if none, latest TO->FROM rate inverted as
+  amount * (1 / rate) in Decimal. Else UserError "no exchange rate FROM to TO on or before DATE".
+  The inverse is computed as (1 / rate) first, then multiplied, as the plan says.
+- Module `convert` returns an unrounded Decimal; reports must round with cents() per account.
+
+Cross-module note (lead to confirm, no change made here)
+- fx add and convert uppercase currency codes, so fx rates are keyed uppercase. If `account add`
+  (books) stores `--currency usd` as typed, balances would see `usd` and convert would fail with
+  "no exchange rate". books must uppercase account currencies, or fx/convert must stop
+  normalising. Not checked: books.py was not read (not my file).
+
+Checks run after writing this handoff
+- python3 -c "import fin.commands": no output, no error (all command modules register, no
+  duplicate paths from ledger).
+- spec §11 audit actions and targets (txn.add = id, fx.add = FROM/TO) match the code.

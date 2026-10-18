@@ -1,0 +1,38 @@
+Done
+- fin/books.py: init, user add, user list, account add, account list, audit list,
+  period close, period status. All spec §1, §11, §12 commands for this task.
+- tests/test_books.py: 35 tests, all passing.
+- Check: python3 -m unittest discover -s tests -p "test_books.py" -> OK (35 tests).
+- Shared files: none changed (no changes.md entry needed).
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for books. Lead: run `python3 -m unittest discover -s tests` once the other wave-1 modules
+  are in, to confirm the whole suite.
+
+Do not redo
+- Checked: fin/core.py command plumbing. init is bootstrap=True and write=True, so it skips
+  _authorise and runs under BEGIN IMMEDIATE; it sets ctx.user/ctx.role itself before the audit.
+- Checked: FinTestCase's make_book writes no audit row, so a fresh test book's audit list is
+  empty. Tests that check audit entries must make a write first.
+- Checked: tests call core.post directly for the closed-period case, not txn add (ledger's
+  command, still a stub). Tests import only `fin.books` (not fin.commands) so a broken sibling
+  stub can't break this file.
+
+Assumptions (for the README)
+- init prints nothing (returns None); spec gives no output for it.
+- init validates the currency and the admin name before writing. A bad currency on a new path
+  still leaves an empty, schema-only database file at that path (core.run creates the file
+  before the handler runs). A rerun with a valid currency then initialises it normally.
+- Currency codes (book and account) are 3 ASCII letters, stored uppercase. `_currency` in
+  books.py is the only check.
+- Names (user, admin) must be non-empty after stripping whitespace; otherwise no name rules.
+- user add --role is validated against core.ROLES in the handler (friendly message, status 400).
+- account add: the existing-name check runs before the currency check. ensure_account gives
+  any new parents the same currency, as spec §1 says.
+- audit list --by NAME filters on the user column. An unknown name returns [] (not an error).
+- period close: a month equal to the closed month changes nothing and makes no audit entry (same
+  as an earlier month). Returns {"closed_through": ...} in every case.
+- period status and the other read commands work with or without --user.

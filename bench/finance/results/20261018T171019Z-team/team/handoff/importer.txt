@@ -1,0 +1,42 @@
+Done
+- fin/importer.py: `rule add PATTERN ACCOUNT` (write, audit rule.add PATTERN), `rule list`,
+  `import FILE --account ACCOUNT [--date-col] [--desc-col] [--amount-col] [--skip-header]`
+  (write, audit import ACCOUNT, returns {"imported","skipped"}).
+- tests/test_importer.py: 30 tests, all pass.
+  Check: python3 -m unittest discover -s tests -p "test_importer.py"  -> OK (30 tests)
+- Both files are only mine; nothing shared was edited (changes.md untouched).
+
+In progress
+- Nothing. Not committed (per team rules).
+
+Next step
+- None for this task. The lead can run the wave-1 check: python3 -m unittest discover -s tests
+
+Do not redo
+- Tests import `fin.importer` directly so the commands register; `support.py` does not import
+  command modules. Without that import every command reports "unknown command".
+
+Assumptions
+- rule add: the pattern is compiled with re.IGNORECASE to validate it; the pattern is stored
+  as given. An empty pattern is allowed (matches everything). Output: None (nothing printed).
+- rule add checks ACCOUNT with core.account_type only; the account need not exist yet. The
+  rule's account is created at import time (ensure_account, book currency) if missing.
+- rule list: [{"pattern","account"}] by seq.
+- import: the bank ACCOUNT must already exist (core.post raises "unknown account" otherwise).
+  Not checked for type.
+- Category: the first rule whose pattern matches the description (re.search, IGNORECASE);
+  else Expenses:Uncategorized (amount < 0) or Income:Uncategorized (amount >= 0, so zero is
+  Income). Uncategorized accounts are created in the book currency.
+- Duplicate: an imports row with the same account, date, description and amount (amount
+  compared as money string). Within one file the earlier row is already in imports when the
+  later one is checked, so repeats are skipped naturally. A duplicate is skipped before the
+  closed-period check, so re-importing a file whose rows are now in a closed month succeeds
+  with those rows skipped; a new row in a closed month fails the whole import.
+- Description and each field are stripped of surrounding whitespace. Dates via parse_date,
+  amounts via parse_amount (at most two decimals). Column defaults 0/1/2; a missing column is
+  a user error that names the row. Blank rows (all cells empty after strip) are skipped; the
+  header (row 1 with --skip-header) is skipped. Row numbers count CSV records, header included.
+- CSV is read as utf-8-sig (plain UTF-8 works; a BOM is dropped). Unreadable file: user error.
+- Audit: exactly one `import` entry per successful command, even when 0 rows were imported.
+- Edge: a rule pointing at an existing account in another currency makes the balanced check
+  fail for that row (core.post sums per currency), so the import fails with a user error.

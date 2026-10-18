@@ -1,0 +1,20 @@
+Done
+- fin/budgets.py: `budget set ACCOUNT MONTH AMOUNT` (write, audit `budget.set` with target "ACCOUNT MONTH") and `report budget MONTH` (read).
+- tests/test_budgets.py: 23 tests, all pass (`python3 -m unittest discover -s tests -p "test_budgets.py"`).
+- Covers: set returns data, replace, zero allowed, unknown account, non-expense account, negative/bad amount, bad month, failed set changes nothing, needs user (401), unknown user (401), viewer (403), editor allowed, one audit per successful set; report empty month, invalid month, read without user, sort and month filter, descendant sums, month boundaries (Feb 28, Mar 1, Mar 31, Apr 1), overspend gives negative remaining, zero remaining is "0.00", other-currency postings not counted.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: nothing needed from budgets. Run the full suite with `python3 -m unittest discover -s tests` when the other waves are in.
+
+Do not redo
+- Registration: the test file imports `fin.budgets` directly because tests that import only fin.core do not register commands. Without that import every budget command reports "unknown command". Not a bug in budgets.py.
+
+Assumptions
+- actual counts only postings in the budget account's currency (a budget has no currency field; postings to an account carry its currency). Postings in another currency under the same prefix are excluded.
+- Budget amounts are stored as money strings; report `actual` is the raw signed sum (expense debits are positive), so spending shows as positive.
+- The budget account is looked up by exact name; the account must exist and have type "expense".
+- Negative budget amounts are a user error (spec says AMOUNT >= 0 per plan).
+- `report budget` returns [] for a month with no budgets.

@@ -1,0 +1,64 @@
+**Done**
+
+Files changed (all owned by this task):
+- fin/documents.py (new): shared logic for invoices and bills. Functions listed below.
+- fin/invoices.py (replaces the stub): commands `invoice create`, `invoice issue ID`, `invoice pay ID AMOUNT --date --account`, `invoice show ID`, `invoice list [--status]`, `report aging --at DATE [--payables]`.
+- tests/test_invoices.py (new): 25 tests covering create, issue, pay, show/list, aging and audit.
+
+Checks:
+- `python3 -m unittest discover -s tests -p "test_invoices.py"`: Ran 25 tests, OK.
+- `python3 -m unittest discover -s tests`: Ran 267 tests, OK.
+- No shared files edited, so no lines added to .claude/team/changes.md.
+- Nothing committed. Program not launched.
+
+Behaviour implemented (spec 13):
+- create: draft invoice, no postings. Due = date + customer terms. Totals from lines. Audit `invoice.create`.
+- issue: number INV-YYYY-NNNN (per-year count + 1, by issue order). Posts Assets:Receivable +total, Income:Sales -net, and Liabilities:SalesTax -tax only when tax != 0. Description "Invoice NUMBER". Status issued. Audit `invoice.issue`.
+- pay: posts ACCOUNT +amount and Assets:Receivable -amount, description "Payment NUMBER". Status partial, then paid. Audit `invoice.pay`.
+- aging: balances of non-draft documents dated on or before DATE; only payments dated on or before DATE count; zero balances are skipped; bucket by days past due (<=0 current, 1-30, 31-60, 61-90, 90+).
+
+Assumptions (for the lead to check against the spec):
+- quantity must be > 0 and is stored as given (text). price must be >= 0 (parse_amount, at most 2 decimals). Line net = round(quantity x price).
+- Tax codes must exist when given. An empty tax code means no tax.
+- The pay account must be an existing asset account.
+- Payment dates are not checked against the issue date.
+- Pay refuses drafts, paid invoices, amounts <= 0, and amounts above the balance.
+
+fin/documents.py functions (bills reuse these):
+- KINDS, PARTY_TABLE ("invoice"->"customers", "bill"->"vendors"), PARTY_WORD, AGING_KEYS, DOC_COLUMNS: constants.
+- split_line(text) -> list of 4 stripped parts; UserError unless exactly 4 parts separated by ';'.
+- description_of(text) -> stripped description; UserError if blank.
+- resolve_tax(conn, text) -> (code or None, Decimal rate); empty text gives (None, 0); unknown code is a UserError.
+- make_line(conn, description, net, tax_code, quantity=None, price=None, account=None) -> line dict {description, quantity, price, account, tax_code, net, tax}. net is rounded to cents; tax = core.tax_on(net, rate). Pass net as a Decimal.
+- totals(lines) -> (net, tax, total) as Decimals.
+- party_terms(conn, kind, name) -> terms in days; UserError "unknown customer|vendor: NAME".
+- create_document(conn, kind, party, date, lines, ref=None) -> doc id. Inserts the documents row and its lines. Invoices start 'draft', bills start 'open'. Due = date + terms. Does NOT post and does NOT set txn_id. Caller posts, then calls attach_txn.
+- attach_txn(conn, doc_id, txn_id): sets documents.txn_id.
+- load(conn, doc_id, kind) -> row in DOC_COLUMNS order (id, kind, number, party, ref, date, due, status, net, tax, total); UserError if missing or wrong kind.
+- parse_id(text, kind) -> int; UserError if not digits.
+- paid_total(conn, doc_id, on_or_before=None) -> Decimal sum of payments, optionally dated <= ISO date.
+- status_after(total, paid) -> 'paid' if nothing is left, else 'partial'.
+- document_dict(conn, doc_id) -> spec shape. Invoice: id, number, customer, date, due, status, lines (description, quantity, price, tax_code, net, tax), net, tax, total, paid, balance. Bill: id, vendor, ref, date, due, status, lines (description, account, tax_code, net, tax), net, tax, total, paid, balance.
+- pay(conn, doc_id, kind, amount_text, date_text, account) -> txn id. Does the postings: invoice = ACCOUNT +amt / Assets:Receivable -amt; bill = Liabilities:Payable +amt / ACCOUNT -amt. Description "Payment NUMBER" for invoices and "Payment REF" for bills. Inserts a payments row, updates status. Raises UserError on bad amount or date, draft, already paid, over balance, unknown account, or non-asset account. Does NOT audit (caller audits).
+- bucket(days_past_due) -> aging key string.
+- aging(conn, at, kind) -> dict of money strings: current, 1-30, 31-60, 61-90, 90+, total.
+
+Notes for bills (fin/bills.py):
+- For a bill, call make_line with account=..., create_document(conn, "bill", vendor, date, lines, ref=ref), post the bill's own transaction (Expenses +net, SalesTax/input tax, Liabilities:Payable -total, or the bill's own rule), then attach_txn.
+- Bill status starts 'open'. pay() handles status changes.
+- aging(conn, at, "bill") backs `report aging --payables`.
+
+**In progress**
+
+Nothing. The task is complete and verified.
+
+**Next step**
+
+Nothing needed from this task. The lead can run `cd /home/jaca/claude-team-a/bench/work/finance-team-2 && python3 -m unittest discover -s tests` to re-check after integrating other sections. If bills.py changes make_line, create_document, or pay, re-run `python3 -m unittest discover -s tests -p "test_invoices.py"`.
+
+**Do not redo**
+
+- Test failures found and fixed were in the tests, not the code: the default test invoice totals 1140.00 (net 950 + VAT 190), aging at 2026-02-28 is bucket 1-30 (19 days late, not current), and the audit table also holds setup rows (tax.add, customer.add), so the audit helper filters to `invoice.%`.
+- Viewer test: the `user add` command is in fin/books.py, which this test file does not import. The viewer row is inserted directly with SQL instead.
+- The full suite was run after the invoice tests passed: 267 tests OK.
+- No shared files were edited, so changes.md was not touched.

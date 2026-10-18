@@ -1,0 +1,40 @@
+**Done**
+
+Files changed (both owned by this task):
+- fin/bills.py (replaces the stub): commands `bill create --vendor --ref --date --line ...`, `bill pay ID AMOUNT --date --account`, `bill show ID`, `bill list [--status]`. Reuses fin/documents.py for lines, totals, due date, payments, status and document dicts. `report aging --payables` is not registered here; it is in fin/invoices.py and calls documents.aging(conn, at, "bill").
+- tests/test_bills.py (new): 31 tests covering create (shape, postings, no-tax case, asset account for a line), create errors (unknown vendor, duplicate ref per vendor, blank ref, no lines, unknown or income account, unknown tax code, bad line values, bad date, closed period, viewer role), pay (partial then paid, paid bill, over balance, zero amount, non-asset or unknown payment account, unknown bill, closed period), show and list (status filter, unknown id), audit, and payables aging (including the date cut-off and invoice aging excluding bills).
+
+Checks:
+- `python3 -m unittest discover -s tests -p "test_bills.py"`: Ran 31 tests, OK.
+- `python3 -m unittest discover -s tests`: Ran 298 tests, OK.
+- No shared files edited, so .claude/team/changes.md was not touched.
+- Nothing committed. Program not launched.
+
+Edit location: I edited in the lead's checkout at /home/jaca/claude-team-a/bench/work/finance-team-2, not in a new worktree. EnterWorktree was not in my tool list, and fin/ is untracked in git, so a worktree from HEAD would not contain documents.py. The lead should decide how to bring fin/ and tests/ into git.
+
+Behaviour implemented (spec 14):
+- create: posts at once. Expense or asset lines are debited at net, Assets:TaxReceivable at total tax (only when tax != 0), Liabilities:Payable credited at total. Description "Bill REF". Status open. Due = date + vendor terms. Audit `bill.create`.
+- pay: posts Liabilities:Payable +amount and ACCOUNT -amount. Description "Payment REF". Status partial, then paid. Audit `bill.pay`.
+- show: the bill in spec shape. list: all bills by id, optionally filtered by status.
+
+Assumptions (for the lead to check against the spec):
+- Line amount (net) may be zero but not negative. Line descriptions are required. Lines may repeat accounts.
+- Ref is stripped; a blank ref is refused. A ref is unique per vendor (duplicate is refused before insert, with a friendly message). The same ref under another vendor is allowed.
+- Pay account must be an existing asset account (checked by documents.pay).
+- The default tax on a line is none when the tax code is empty.
+- Payment dates are not checked against the bill date (same as invoices).
+- bill list filters in Python, like invoice list.
+
+**In progress**
+
+Nothing. The task is complete and verified.
+
+**Next step**
+
+Nothing needed from this task. To re-check after integration, run `cd /home/jaca/claude-team-a/bench/work/finance-team-2 && python3 -m unittest discover -s tests -p "test_bills.py"` and then `python3 -m unittest discover -s tests`. If documents.py changes make_line, create_document, pay, aging or document_dict, re-run test_invoices.py as well.
+
+**Do not redo**
+
+- The first run had 6 failures, all in my test expectations, not in bills.py. The default test bill (one line, 100.00 net plus VAT20) totals 120.00, not 140.00. The 140.00 figure only applies to the two-line shape test. I corrected the expectations for pay, aging and over-balance to 120.00. After that, the bills module and the full suite passed with no code changes.
+- The viewer test inserts into `users` with SQL. The `user add` command lives in fin/books.py, which this test file does not import.
+- The audit helper filters to `bill.%`, because setup rows (tax.add, vendor.add) are also in the audit table.

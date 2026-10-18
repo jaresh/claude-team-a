@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 8,
+    "readability": 8,
+    "correctness_risks": 6,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/core.py `_dispatch` opens the SQLite connection (creating the db file) before any validation and calls `book_currency`, so a failed command against a missing db still leaves a file behind. The CLI `main` also doesn't catch non-UserError exceptions such as a `csv.Error` or `UnicodeDecodeError` from `import`, or `sqlite3.DatabaseError` from a bad db file, so these end in a traceback instead of exit 2.",
+    "fin/server.py `serve` commits and re-begins the core transaction to release the lock, which depends on how `_dispatch` wraps commands. The HTTP layer also builds CLI argv strings (`--desc=...`, `;`-joined invoice lines) instead of calling domain functions. A description or customer name containing `;` or a leading `-` can therefore be mis-parsed through the API.",
+    "fin/ledger.py, fin/reports.py and fin/books.py each define their own 3-letter currency validator (`_code`, `_CODE_RE`/`_currency_option`, `_currency`), and `report_ledger`/`budgets._actual` repeat the same account-prefix SQL. Duplicated validation will drift apart.",
+    "fin/ledger.py `txn_list` runs one query per transaction (`txn_to_dict` in a loop) and applies the `--account` filter in Python, and `invoice_list`/`bill_list` filter by status in Python after building every document. This is an N+1 pattern that will be slow on large books.",
+    "Reports convert per account with rounding in `reports._converted`, so totals are sums of rounded per-account amounts. In `report_ledger` and `budgets._actual`, mixed-currency descendants either raise or are silently ignored. Both behaviours are fragile for multi-currency books.",
+    "Tests call `core.run` in-process instead of `python -m fin`, so exit code 2, empty stdout and `--json` formatting are never checked end to end. They also set up state by raw SQL (`make_book`, `set_closed_through`), which couples them to the schema. Error messages are also not always accurate: `documents.pay` says 'invoice' for a draft bill."
+  ],
+  "strengths": [
+    "Clear layering: `core.py` holds the money, date, posting and command-registry helpers, command modules stay thin, and `documents.py` shares invoice and bill logic. The HTTP API reuses the same `run()` path, so permissions, closed periods and balancing are enforced in one place.",
+    "Money is handled as Decimal everywhere, with half-up rounding in `cents()` and a `money()` formatter that never produces '-0.00'. All SQL is parameterised, and every command runs in a single BEGIN/COMMIT with rollback on any exception, so changes are atomic.",
+    "Extensive, readable test suite (about 300 tests across 13 files) with a shared per-test fresh-database fixture. It covers permissions, audit entries, closed periods and rollback on failure, and the module docstrings and comments are concise."
+  ],
+  "review_cost": 0.2753,
+  "model": "sonnet"
+}

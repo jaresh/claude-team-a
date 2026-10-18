@@ -1,0 +1,28 @@
+Done
+- fin/server.py: replaces the stub. Spec section 10 routes over core.run, section 11 X-User.
+  - GET: /accounts, /transactions, /balances?at, /reports/income?from&to, /reports/balance-sheet?at, /reports/aging?at[&payables=1], /invoices, /invoices/ID, /audit[?by=]. No user needed.
+  - POST: /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200). X-User is required (401 if missing; core gives 401 for an unknown user, 403 for a forbidden role).
+  - Route match runs before the user check, so an unknown POST path gives 404 even without X-User.
+  - Body must be a JSON object, else 400. Missing field, bad line, or non-list items give 400.
+  - core Result.status is passed through (400/401/403). Unexpected exceptions give 500 with {"error": ...} and the server keeps running.
+  - Responses are JSON (core.json_text, compact). log_message is silenced.
+  - make_server(db_path, port) binds 127.0.0.1 and returns an unstarted ThreadingHTTPServer (port 0 picks a free port).
+  - serve command: `serve --port N` (bootstrap False, no user, write False). It COMMITs core's read transaction and re-BEGINs (deferred) so the server holds no lock, then serve_forever(). KeyboardInterrupt ends it cleanly. Returns None.
+- tests/test_server.py: 16 tests, all passing. They run a real server on port 0 in a thread and use urllib. They cover GET without user, POST flows, 401/403/400/404 mapping, the invoice flow with aging, invoice line parts, and audit user and shape.
+- Checks: `python3 -m unittest discover -s tests -p "test_server.py"` gives 16 tests OK. `python3 -m unittest discover -s tests` gives 314 tests OK (full suite).
+- Shared files: none edited. No changes.md rows needed. No commits.
+
+In progress
+- Nothing. The task is complete.
+- Not done: the serve command was not run end to end (the lead runs the program). `serve` without --port gives the argparse error "the following arguments are required: --port" (checked).
+- Worktree: I did not call EnterWorktree (cwd is the team checkout, not under .claude/worktrees/). My edits are in place in the shared checkout: fin/server.py and tests/test_server.py only, plus this handoff and scratch/server/check.db.
+
+Next step
+- Lead: optionally smoke-test by hand, for example `python3 -m fin --db BOOK.db serve --port 8080`, then `curl -H 'X-User: admin' -d '{"date":"2026-01-10","description":"x","postings":[...]}' localhost:8080/transactions`. Use Ctrl-C to stop.
+- Lead: move scratch/server/check.db if you don't want it left (it is only scratch).
+
+Do not redo
+- Ran the full suite after the change: 314 OK. Server tests: 16 OK, including after the ResourceWarning fix (HTTPError bodies are now closed with `with e:`).
+- Checked core error classes: UserError 400, Unauthorized 401, Forbidden 403 (core.py lines 31-43). Result.status is set from them.
+- Checked command arg specs: invoice create/pay/issue, report aging/income/balance-sheet, audit list, txn add (ACCOUNT=AMOUNT posting form via core.parse_posting), balance --at. The server builds argv in the `--flag=value` form, so values beginning with "-" cannot be read as options.
+- Invoice line text is DESCRIPTION;QUANTITY;PRICE;TAXCODE (documents.split_line needs exactly four parts). The server sends an empty tax code when tax_code is absent. A description containing ";" is rejected with 400 by split_line.

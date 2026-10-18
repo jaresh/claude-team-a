@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 9,
+    "tests": 7,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "Several write commands return None, so with --json they print nothing instead of exactly one JSON document, while sibling commands return a dict: books.account_add, books.user_add, books.init and importer.rule_add do this, but contacts.tax_add, budgets.budget_set and ledger.fx_add return one.",
+    "fin/server.py (_txn_add, _invoice_create, _invoice_pay) turns JSON bodies back into CLI argv strings, so the HTTP layer depends on CLI syntax; an invoice line description containing ';' gets split into the wrong fields and fails, and an account name containing '=' has to be special-cased.",
+    "core._dispatch calls connect() and create_schema() before checking that a book exists, so a read command or a typo against a missing --db path quietly creates an empty database file even though the command fails as a user error.",
+    "Currency-code validation is copied three times (books._currency, ledger._code, reports._currency_option, each with its own regex), even though the core.py docstring says modules must not write their own parsing helpers.",
+    "No test runs fin.__main__.main or the real CLI, so exit code 2, the empty stdout on errors and the single JSON document on stdout are never checked; tests call core.run() directly and often set up state by writing SQL straight to the database (e.g. set_closed_through, inserting viewer users).",
+    "invoices.invoice_list and bills.invoice_list/bill_list load every document with N+1 queries and then filter --status in Python without checking the value, and serve() has to do a COMMIT/BEGIN workaround to get out of the transaction that _dispatch opened."
+  ],
+  "strengths": [
+    "A single command registry with one transactional _dispatch (BEGIN IMMEDIATE, ROLLBACK on any exception) checks authorisation, the audit log and atomicity in one place for both the CLI and HTTP, so failed commands leave nothing behind.",
+    "Money handling is careful: amounts are Decimal end to end and stored as strings, core.money rounds half up and never shows -0.00, and every SQL query uses parameters (the only interpolated table names come from internal constants).",
+    "Invoice and bill logic is factored into documents.py (lines, tax, payments, status, aging), and the tests are thorough and behaviour-focused, with a fresh temporary database per test and error cases checked for leaving no changes."
+  ],
+  "review_cost": 0.6125
+}
