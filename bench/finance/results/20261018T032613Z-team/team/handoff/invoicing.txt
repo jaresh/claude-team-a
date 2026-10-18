@@ -1,0 +1,24 @@
+**Done**
+- fin/invoicing.py: SCHEMA (taxes, customers, invoices, invoice_payments); commands tax add/list, customer add/list, invoice create/issue/pay/show/list (section 13 except aging). Exports invoice_dict(conn, id) and STATUSES.
+- tests/test_invoicing.py: 46 tests covering tax/customer rules, create totals and rounding, issue numbering and postings, pay rules, closed periods, viewer/editor permissions, list filters, and error cases.
+- Check: `python3 -m unittest tests.test_invoicing tests.test_core` -> Ran 48 tests, OK.
+- No shared files edited (no changes.md rows). Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: nothing needed from invoicing. Aging (fin/aging.py, section 13 report aging) can use the invoices and invoice_payments tables directly, or invoice_dict(conn, id) for totals/paid.
+
+**Do not redo**
+- Decisions I made where the spec was silent (move or change these only if the lead disagrees):
+  - Tax codes must match [A-Za-z0-9_-]+ (rejects empty, spaces, ';').
+  - Tax rate must be a non-negative decimal; stored and shown as typed.
+  - invoice create requires at least one --line (argparse required).
+  - Line description is everything before the last three ';' fields, so descriptions may contain ';'.
+  - Quantity and price are validated as finite decimals only; negative values are not rejected.
+  - Payment amount must be > 0 and <= balance. Payment date is not checked against the invoice date.
+  - Invoice issue ensures Assets:Receivable, Income:Sales, Liabilities:SalesTax in the book currency. If one of these exists in another currency, post_txn raises "does not balance" (not a clearer message).
+  - Invoice number = INV-YEAR-(count of already-numbered invoices in that year + 1), so numbers never go backwards.
+  - Payment status: 'paid' when amount equals balance, else 'partial'. A zero-total issued invoice stays 'issued'.
+- Checked and ruled out: closed-period failure on issue and pay leaves the invoice unchanged (CLI rollback), and the number is not consumed (tested).

@@ -1,0 +1,28 @@
+Done
+- fin/imports.py (rewritten from stub): SCHEMA (tables rules, imported, budgets, recurring); commands rule add / rule list, import, budget set, report budget, recurring add / recurring run, reconcile.
+- tests/test_imports.py: 43 tests covering sections 5, 6, 7 and 16 incl. error cases, permissions (viewer refused on write commands), atomicity (bad import row, closed period, recurring run) and currency conversion in report budget.
+- Check: `python3 -m unittest tests.test_imports tests.test_core` -> Ran 45 tests, OK.
+- No shared files edited (changes.md untouched). Nothing committed.
+
+Assumptions (for README.md, not written by me):
+- Rule account must exist when the rule is added. Rule pattern is a Python re, matched with re.search and IGNORECASE; first matching rule in add order wins.
+- Import: a blank CSV row is skipped; a row with too few columns, a bad date, a bad amount or a zero amount is a UserError naming the row number, and the whole file is rolled back.
+- Import description is the row's description as-is. Duplicates are keyed on (account, date, description, amount) in table imported; a duplicate counts in "skipped".
+- Uncategorized fallback: Expenses:Uncategorized for outflows, Income:Uncategorized for inflows, created in book currency if missing. If its currency differs from the bank account's, the import is refused.
+- Budgets: expense accounts only; amount must be >= 0; a budget covers the account and its descendants; report converts each posting to the budget account's currency at month end (via book.convert) and rounds once per budget line. Report rows are sorted by account name.
+- Recurring: occurrence n is computed from the start date by index (weekly: 7*n days; monthly/yearly: add_months), so day clamping does not drift (Jan 31 -> Feb 28 -> Mar 31). Recurring add dry-runs the postings in a SAVEPOINT and refuses bad postings. Run is atomic and creates every due occurrence up to --until, tracked by the created counter per recurring row.
+- Reconcile: --clear ids mark postings.cleared only on the given account's posting in that transaction; the transaction must have such a posting dated on or before --date. cleared_balance sums cleared postings up to --date; difference = statement - cleared; uncleared lists transaction ids with an uncleared posting in the account up to --date.
+
+In progress
+- Nothing. All sections in scope are implemented and passing.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` once all modules are merged, and copy the assumptions above into README.md if it does not already have them.
+- Optional: `python3 -m py_compile fin/imports.py` (already implicitly exercised by the test run).
+
+Do not redo
+- Checked: argparse errors reach the CLI as UserError (fin/cli.py Parser.error), so bad --every choices and non-integer --clear values are UserErrors; tests rely on this.
+- Checked: SAVEPOINT name "check" is a SQLite syntax error; renamed to recurring_check. Do not reuse "check".
+- Checked: account add with --currency USD also creates missing parents in USD (admin.py ensure_account behaviour). Tests create the EUR parent before the USD child; this is expected core behaviour, not an imports bug.
+- Checked: rates table is created by admin.py and written by ledger.py fx add; the report budget conversion test inserts a rate directly with SQL to avoid depending on the ledger module.
+- Checked: the import of Expenses rows yields positive amounts on the expense account (debit) and the bank gets the signed bank amount; the test expectation reflects that.

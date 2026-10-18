@@ -1,0 +1,20 @@
+**Done**
+- fin/ledger.py: txn add (mode write, audit txn.add target = id), txn list, balance (read), fx add (write, audit fx.add target "FROM/TO" normalized upper case), convert (read). SCHEMA stays "" (rates table is admin's).
+- tests/test_ledger.py: 4 test classes, 36 tests in total with test_core, covering spec sections 2, 3 and 4 and their user errors, roles, closed-period check and audit entries.
+- Check: `python3 -m unittest tests.test_ledger tests.test_core` -> Ran 36 tests, OK.
+- No shared files edited, no changes.md rows needed. Nothing committed.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- None for ledger. Lead can run `python3 -m unittest discover -s tests` once the other modules are in.
+
+**Do not redo**
+- Assumptions made (list these in README.md):
+  - `fx add` rejects FROM == TO (a user error); the rate must be a finite decimal > 0 and is stored as a plain (non-exponent) string.
+  - `txn list --account P` matches P itself and descendants via prefix "P:" (so "Expenses:Rent" does not match "Expenses:Rentals").
+  - `balance` lists each account/ancestor and each currency that has postings under it, including zero sums ("0.00"). Keys are sorted.
+  - `txn add` description is not checked for emptiness; `--posting` is required to produce at least two postings (post_txn enforces this).
+  - `convert` and `fx add` upper-case currency codes via currency_code; `convert` uses book.convert, so the same currency is 1:1 and a missing rate is a user error.
+- Verified by running the suite: the only failure during development was my own test setup (a USD account created in EUR), now fixed. No other issues.

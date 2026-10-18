@@ -1,0 +1,19 @@
+Done
+- fin/aging.py: `report aging --at DATE [--payables]` (read mode) and `report tax --from DATE --to DATE` (read mode), both registered under the "report" group. aging owns no tables (SCHEMA = "").
+- Aging: receivables use invoices with status != 'draft' dated on or before DATE; payables use bills dated on or before DATE. Balance = total minus payments dated on or before DATE; only positive balances count. Bucket by DATE - due: <=0 current, 1-30, 31-60, 61-90, 90+ (boundaries inclusive: 30 is 1-30, 90 is 61-90).
+- Tax report: collected = tax column of non-draft invoices dated in the period (inclusive); paid = tax column of bills dated in the period; net = collected - paid. by_code: every tax code on a line of those documents (including codes whose tax is 0.00), sorted by code, values from the per-line tax.
+- Assumptions (not in spec): --from after --to is a UserError (exit 2). Invalid dates go through date_str (UserError).
+- Shared helpers: used core fmt, D, date_str, parse_date, UserError. Wrote a private _bucket and _open_items; invoicing's _paid is not date-filtered, so I did not reuse it.
+- tests/test_aging.py: 16 tests, all pass. Covers empty book, bucket boundaries (0, 1, 30, 31, 90, 91 days), as-of date, drafts excluded, payments counted only on or before DATE (including invoices fully paid after DATE), tax in balances, payables aging, receivables and payables kept separate, invalid dates, viewer role can read, tax report by code, zero-rate code, empty period, inclusive bounds, from-after-to error.
+- Checks: `python3 -m unittest tests.test_aging` -> Ran 16 tests, OK. `python3 -m unittest discover -s tests` -> Ran 177 tests, OK.
+- No shared files edited (changes.md not touched). Nothing committed.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for aging. Lead: run `python3 -m unittest discover -s tests` after the other modules land; the api task is independent of aging.
+
+Do not redo
+- Ran both test commands above after the final edit; both green.
+- Did not call EnterWorktree: the environment set this checkout as my working tree (run commands from it), and I wrote only fin/aging.py and tests/test_aging.py.

@@ -1,0 +1,18 @@
+Done
+- fin/api.py: `serve --port N` (mode read, registered in register(reg)); make_server(db, port) returns a ThreadingHTTPServer bound to 127.0.0.1; each request runs cli.execute(db, user, argv) in-process. Errors: UserError -> e.status (400/401/403) with {"error": ...}; sqlite3.Error -> 400; unknown path -> 404. POST user comes from X-User (missing/empty -> 401 via the CLI's "needs --user" check). POST /transactions and POST /invoices -> 201; issue and payments -> 200.
+- Routes: GET /accounts, /transactions (?account &from &to), /balances?at, /reports/income?from&to, /reports/balance-sheet?at, /reports/aging?at[&payables=1], /invoices (?status), /invoices/ID, /audit (?by). POST /transactions, /invoices, /invoices/ID/issue, /invoices/ID/payments.
+- tests/test_api.py: 14 tests, all pass. Covers reads without user, POST with 401/403/201, user error 400 leaves nothing behind, malformed bodies 400, 404s, audit, report date params, closed period 400, invoice flow (create/issue/partial/paid/overpay), invoice line validation, aging route, and the `serve` command itself (run in a daemon thread on a free port).
+- Checks: `python3 -m unittest tests.test_api` -> OK (14 tests). `python3 -m unittest discover -s tests` -> OK (191 tests).
+- No shared files edited (no changes.md rows needed).
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review fin/api.py and run `python3 -m fin --db /path/fin.db serve --port 8080` to try it by hand (not done here, per rules). Nothing else needed from api.
+
+Do not redo
+- Checked: aging.py registers ("report","aging") with --at and --payables (store_true); the route passes --at=... and --payables, and the aging test passes.
+- Checked: invoice issue/pay return invoice_dict, so the API returns them directly.
+- Assumptions (put in README if not already): query filters on list endpoints are passed through when present (transactions account/from/to, invoices status, audit by); GET /invoices/abc is a 404 (not a 400); a body that is not valid JSON or is missing fields is a 400 and is checked before the user (so an unauthenticated POST with a bad body gets 400, not 401); a posting without amount is sent as ACCOUNT only; invoice line quantity/price/tax_code containing ';' is a 400.
+- Test output: the stdlib server logs each request to stderr, so the test run prints access lines; harmless, left as is.

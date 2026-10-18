@@ -1,0 +1,24 @@
+Done
+- fin/loans.py: `loan schedule PRINCIPAL RATE MONTHS --start DATE` (mode read, no audit, no tables; SCHEMA = ""). Helper `schedule(principal, rate, months, start)` returns the JSON-able dict.
+  Validation: principal > 0, rate >= 0, months >= 1 (argparse int type), --start required and validated by parse_date. D() rejects NaN/inf/garbage.
+  Math: inside localcontext prec 50; r = RATE/1200; payment = q2(P*r/(1-(1+r)^-n)); RATE 0 -> q2(P/n). Each row: interest = q2(balance*r), principal = payment - interest, last row repays the remaining balance with payment = balance + interest. Row date = add_months(start, n).
+- tests/test_loans.py: 15 tests with tests.test_core (test_loans: 14 tests, all pass). Covers known payment (1000 @ 6% / 12 = 86.07), last row and final balance 0.00, total_interest = sum of rows, row-by-row arithmetic, RATE 0 (even split and rounding of the last payment), one-month loan, month-end clamp and leap-year clamp, two-decimal money strings, tiny principals, read command without --user, and error cases (zero/negative principal, negative rate, months 0/-3/1.5, bad decimals, NaN, bad rate, bad/invalid date, missing --start).
+
+Check: `python3 -m unittest tests.test_loans tests.test_core` -> Ran 15 tests, OK.
+
+Assumption to record in README.md:
+- Rounding can make an earlier row repay the whole balance (a cent or two of overpayment on tiny loans). In that case the row repays the remaining balance and its payment becomes balance + interest, and later rows show payment, interest, principal and balance 0.00. Negative balances cannot occur.
+- No upper limit on MONTHS; a very large value produces a very large rows list.
+
+Shared files: none edited (changes.md untouched). No commit made.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for loans. Lead: `python3 -m unittest tests.test_loans tests.test_core` runs the check. `loan schedule` needs an initialized database (run init first) because the read path uses core.open_db(must_exist=True), same as every other read command.
+
+Do not redo
+- Checked the CLI path: cli.execute with user=None works for read mode, so no --user is required.
+- The first draft of the tiny-principal case returned a negative balance (0.05 at 18% over 7 months). Fixed by capping each row's repayment at the remaining balance; regression covered by test_tiny_principal_never_goes_negative.
+- Test expectations for dates were checked against add_months (2026-06-01 + 1 -> 2026-07-01, +2 -> 2026-08-01).

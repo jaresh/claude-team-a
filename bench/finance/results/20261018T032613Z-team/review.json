@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "fin/cli.py main: commands that change data but return None (init, user add, account add, fx add, rule add, budget set, recurring add, period close, tax/customer/vendor add) print nothing under --json, which breaks the rule that every command prints exactly one JSON document; output without --json is also JSON, just indented.",
+    "fin/invoicing.py _parse_line rounds the unit price to cents before multiplying (net = q2(quantity * q2(price))), so a price like 0.125 gives a different net from the spec's round(quantity \u00d7 price), and a test (test_lines_without_tax_code_and_rounding) locks this in.",
+    "fin/invoicing.py and fin/bills.py duplicate the tax-rate lookup, _paid, the document dict builders and the pay flow, and the copies have drifted: invoice_pay quietly rounds the amount while bill_pay rejects more than two decimals, invoice lines use rsplit while bill lines use split, customer names are stripped but vendor names are not, and 'already paid' is detected by status in one and by balance in the other.",
+    "fin/reports.py networth sums unrounded raw totals while balance_sheet sums per-account rounded values, so with multiple currencies the two reports can disagree by a cent for the same date; trial_balance rounds each row after conversion, so its debit and credit totals are not guaranteed to match.",
+    "fin/core.py open_db/fin/admin.py init: a failed init (such as an invalid currency) still leaves an empty database file, and executescript commits implicitly, so init is not one atomic transaction; recurring_add also runs check_open through post_txn, which refuses a start date in a closed month even though nothing is posted.",
+    "tests: every test runs in-process through cli.execute, so nothing checks exit code 2, empty stdout or stderr messages from main; account, user, audit and period behaviour is packed into one large test_core test; and some tests write straight to the database (ReportsTest.add_rate) instead of using the commands."
+  ],
+  "strengths": [
+    "Validation is centralised well: Book.post_txn handles balancing, the elided posting, unknown accounts and closed periods for every caller (import, recurring, invoices, bills), and the CLI runner wraps each command in a single transaction with rollback, plus a uniform audit hook driven by the Registry.",
+    "Money is handled safely throughout: Decimal is stored as TEXT, q2/fmt give half-up rounding with no negative zero, and every SQL value is passed as a parameter.",
+    "The HTTP API reuses the CLI commands through cli.execute, so JSON shapes, permissions (401/403 via exception status) and validation are the same in both interfaces, and the tests cover most sections with useful edge cases (month-end clamping, duplicate imports, partial payments, closed periods)."
+  ],
+  "review_cost": 0.8039
+}

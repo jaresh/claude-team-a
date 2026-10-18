@@ -1,0 +1,29 @@
+Done
+- fin/bills.py (170 lines): SCHEMA for vendors, bills (UNIQUE(vendor, ref)), bill_payments. register(): vendor add (write, audit vendor.add, target name, --terms int default 30), vendor list, bill create (write, audit bill.create, target id, --vendor/--ref/--date/--line required, repeatable --line), bill pay ID AMOUNT --date --account (write, audit bill.pay, target id), bill show ID, bill list [--status open|partial|paid].
+- Exported: bill_dict(conn, bill_id) -> the section 14 bill dict (paid and balance computed from bill_payments). Aging should use it.
+- tests/test_bills.py: 9 test methods (vendor add/list, bill create incl. posting balances, tax-free bill, vendor terms due date, create errors, same ref for another vendor, closed period, pay partial then paid, pay errors, show/list, permissions for viewer/editor).
+- Check: `python3 -m unittest tests.test_bills tests.test_core` -> Ran 13 tests, OK.
+- No edits to shared files, so changes.md is untouched. Did not commit.
+
+Assumptions (beyond the spec)
+- Line AMOUNT is rounded to cents (half up) and must be >= 0; a negative amount is a user error.
+- Line and payment accounts must be in the book currency, else a user error. Without this, post_txn fails with a confusing "does not balance".
+- Payment amount must be positive and have at most two decimals; more than the balance is an error.
+- Payment date is not checked against the bill date. Closed periods are caught by post_txn.
+- Bill and payment status: open (no payments), partial, paid.
+- Payable and TaxReceivable accounts are created only when needed (TaxReceivable only if the bill's tax is non-zero).
+- A zero-tax line still records its tax_code in output.
+
+Dependencies
+- Reads taxes(code, rate) owned by invoicing. fin/bills.py does not create that table; the tests create it with CREATE TABLE IF NOT EXISTS and insert rows directly.
+- EnterWorktree is not in my tool list, so I worked in the shared checkout at /home/jaca/claude-team-a/bench/work/finance-team-2.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: after invoicing lands its taxes table, run `python3 -m unittest discover -s tests` for the whole suite. Aging (wave 2) can import `from fin.bills import bill_dict`.
+
+Do not redo
+- Ran the two test modules: 13 tests OK. py_compile on fin/bills.py OK.
+- Checked the spec sections 13-17 and the plan's contract; the bills spec matches the implementation. The aging and reports sections are not mine.

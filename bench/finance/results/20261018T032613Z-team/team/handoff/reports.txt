@@ -1,0 +1,25 @@
+Done
+- fin/reports.py: register() adds ("report","income"), ("report","balance-sheet"), ("report","networth"), ("report","trial-balance"), ("report","ledger"). All mode read. SCHEMA stays "".
+- tests/test_reports.py: 9 test methods covering sections 8 and 17 (income, zero-sum account, bad range, balance-sheet and its identity, networth, trial-balance, ledger incl. descendants and empty period, FX conversion with --currency, missing rate, viewer read access).
+- Check: `python3 -m unittest tests.test_reports tests.test_core` -> Ran 14 tests, OK.
+- No shared files edited (changes.md not touched). Nothing committed.
+
+Design notes
+- Shared helper _sums(book, target, at, start, end) groups postings by (account, currency), sums in Decimal, then converts once per group with book.convert at the report date. Rounding happens once per output account (fmt/q2).
+- Totals are sums of the rounded per-account values, so displayed figures add up.
+- retained_earnings = sum of rounded income minus sum of rounded expenses (up to --at).
+- networth: assets and liabilities are rounded only at the end of each month; networth = fmt(assets) - fmt(liabilities).
+- ledger: each posting is converted to ACCOUNT's currency at its own posting date. Rows carry the transaction id (t.id). Opening = postings dated before FROM. Closing = last running balance.
+- trial-balance has no --currency option (spec says book currency only).
+- Choices not in the spec: --from after --to is a UserError for income, networth. Empty ranges give empty results. Income/balance-sheet convert every posting in range, so a USD posting with no rate is a UserError even if it is not income-related (consistent with "missing rate is a user error").
+
+Caveats
+- With FX, per-account rounding can leave a cent of drift, so total_assets may differ from total_liabilities + total_equity by 0.01 and trial-balance debit/credit totals may differ by 0.01. Exact for single-currency books (all tests use EUR only, plus one USD case that is exact at 0.9). If the lead wants an exact guarantee, tell me and I will change the rounding approach.
+
+Do not redo
+- Did not add a --currency flag to trial-balance or ledger (spec does not list one).
+- Did not change core.py / cli.py / admin.py / helpers.py.
+- The rates table is inserted directly in tests (via SQL) rather than `fx add`, so the test passes without the ledger module being finished.
+
+Next step
+- None for reports. The lead can run `python3 -m unittest tests.test_reports tests.test_core` after integration to confirm. For a live check: `python -m fin --db X --json report networth --from 2026-01 --to 2026-03`.
