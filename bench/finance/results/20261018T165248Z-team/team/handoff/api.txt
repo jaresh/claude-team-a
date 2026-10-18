@@ -1,0 +1,19 @@
+**Done**
+- fin/api.py (new): register(reg) adds `serve --port N` (db=False); cmd_serve prints the address to stderr and serves until interrupted. make_server(db_path, port, host="127.0.0.1") checks the book exists (UserError otherwise), returns an HTTPServer. Handler maps each route in spec section 10 to argv for cli.execute(db, user, argv); success status 201 for POST /transactions and POST /invoices, 200 otherwise. Errors: UserError -> e.status with {"error": msg}; no route -> 404; POST without X-User -> 401 before the body is read; invalid JSON body -> 400.
+- Extra query params passed through (not in spec): GET /transactions accepts account, from, to; GET /invoices accepts status; GET /audit accepts by; GET /reports/aging accepts payables=1 or true.
+- Invoice line fields containing ";" are a 400 (the --line format can't carry them).
+- Flags are sent in the `--name=value` form so values starting with "-" (e.g. descriptions) are not parsed as options.
+- tests/test_api.py (new): 9 tests, books commands only (transactions round trip, audit, 401/403, 400 bodies, 404 routes, serve parser, make_server without a book).
+- Checks: `python3 -m unittest tests.test_api_accept.ApiTest.test_errors tests.test_api` -> Ran 10 tests, OK. `tests.test_api` alone -> 9 OK. py_compile clean.
+- No shared files edited; changes.md untouched.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- None for api. When statements and invoicing land, run `python3 -m unittest tests.test_api_accept` to confirm test_invoices and the balance/report routes; the failures there, if any, belong to those modules.
+
+**Do not redo**
+- Route/argv mapping was checked against spec sections 10, 13 (invoice create/pay, report aging), and books.py flags (txn list --account/--from/--to, audit list --by, account list).
+- Note for the lead: tests/test_api_accept.py leaves HTTPError responses unclosed, so the run prints ResourceWarning lines (harmless; the file is lead-owned, so I did not change it).
+- Reading the accept test's test_transactions is not needed for this task; it depends on the `balance` and `report` commands (statements task).

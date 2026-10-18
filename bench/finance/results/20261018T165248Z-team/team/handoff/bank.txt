@@ -1,0 +1,30 @@
+**Done**
+- fin/bank.py (new): rule add/list, import, budget set, report budget, recurring add/run, reconcile. register(reg) defined. Helpers in file: ensure_tables, read_rows, occurrence, check_postings.
+- tests/test_bank.py (new): 15 unit tests (rules order, import repeats/bad rows/columns, budget negative/replace/overspend, recurring duplicate/idempotent run/unbalanced/single posting, reconcile foreign clear/unknown account/bad id). All pass.
+- Check results:
+  - python3 -m unittest tests.test_bank: 15 OK.
+  - python3 -m unittest tests.test_bank_accept tests.test_bank tests.test_books: 39 OK (after the lead's fix to test_bank_accept; the earlier audit-target failure no longer occurs).
+  - ensure_tables now calls core.ensure_schema (lead fixed it to run statement by statement); no workaround left.
+  - No shared files edited; .claude/team/changes.md not touched.
+- Scratch only: .claude/team/scratch/bank/probe.py, .claude/team/scratch/bank/audit_probe.py.
+
+**In progress**
+- Nothing in progress. Previously blocked on one lead-owned assertion (now resolved): tests/test_bank_accept.py line 81 in BudgetTest.test_report expects audit last target "Expenses:Rent 2026-02", but the test's own txn calls (lines 73-74) audit txn.add after that budget.set, so the last row is target "2". Any implementation that audits txn add (fin/books.py line 120 does) fails this line. Not fixed: that file is lead-owned.
+
+**Next step**
+- Lead: none required for bank. Optional: consider moving check_postings (fin/bank.py) into fin/core.py as a dry-run validator; it duplicates post_transaction's balance rules.
+
+**Do not redo**
+- Earlier concern (now fixed in core): ensure_schema used executescript, which commits. Probe (scratch/bank/probe.py): sqlite3 executescript commits an open transaction (in_transaction False afterwards; following ROLLBACK raised "cannot rollback - no transaction is active"). Calling ensure_schema inside a write handler (cli.run's BEGIN IMMEDIATE) would silently commit partial writes and break rollback on UserError. bank.py now calls core.ensure_schema (fixed by the lead).
+- Audit target failure confirmed by replay (scratch/bank/audit_probe.py): account.add, budget.set 'Expenses:Rent 2026-02', then txn.add '1'. Not a bank bug.
+- check_postings duplicates core rules only because core has no dry run; not a bug.
+
+**Assumptions (for README, lead to merge)**
+- Import: fully empty CSV lines are skipped; a row with fewer columns than needed is an error naming the line; negative column index is an error.
+- Import: uncategorized account is created via core.ensure_account in book currency, so importing into an account in another currency fails as an unbalanced transaction.
+- Import: dedup key stores amount via core.fmt; repeats within one file count as skipped.
+- Rule patterns are case-insensitive regexes (re.IGNORECASE); first matching rule by add order wins.
+- Budget: only expense-type accounts may have budgets; negative amounts are rejected; set replaces the month's value.
+- Budget actual: includes descendant accounts; per-currency totals are converted to book currency at month end with core.convert, then summed; remaining = budget - actual (may be negative).
+- Recurring: name must be unique and not empty; start and stored postings are validated at add time (balanced, at least two postings, known accounts); run creates every occurrence up to --until not yet created (tracked per name+date); a closed period in that range makes run fail with a UserError and nothing is created.
+- Reconcile: --clear ids must be integers with a posting to the account on or before --date (otherwise UserError); cleared marks persist per account; cleared_balance sums cleared postings up to the date; uncleared is the sorted list of txn ids with postings to the account that are not cleared.

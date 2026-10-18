@@ -1,0 +1,39 @@
+Done
+- fin/invoicing.py (new, about 500 lines): register(reg) with tax add/list, customer add/list,
+  vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list,
+  report aging [--payables], report tax. Handlers cmd_<group>_<sub>, builders invoice_doc and
+  bill_doc, aging_doc logic in cmd_report_aging, tax_by_code helper.
+- tests/test_invoicing.py (new): 17 unit tests on FinCase covering validation errors, line
+  parsing, status rules, number sequence, aging bucket edges (day 0, 1, 30, 31, 60, 61, 91),
+  payment-date cut-off, payables aging, tax report by code and range, drafts excluded, empty
+  period, show documents.
+- Shared files: none edited. changes.md not touched.
+- Check: `python3 -m unittest tests.test_invoicing_accept tests.test_invoicing tests.test_books`
+  -> Ran 40 tests, OK (7 acceptance, 17 invoicing unit, books tests).
+
+In progress
+- Nothing. The section is complete and its done check passes.
+
+Next step
+- Lead: add the assumptions below to README.md (owned by lead).
+- Lead: run `python3 -m unittest discover -s tests` once all sections land.
+
+Deviations and assumptions (for README)
+- Tables are created with core.ensure_schema(ctx.conn, SCHEMA) at the start of each handler;
+  SCHEMA is the joined CREATE TABLE statements in fin/invoicing.py. Lead fixed core.ensure_schema
+  to run statements with conn.execute (no implicit COMMIT); the local helper was removed.
+- Price is stored and shown as core.fmt(price) (two decimals); quantity is stored as given.
+- At least one --line is required; quantity, price and bill amount must not be negative;
+  tax-code rate must not be negative; terms must not be negative.
+- Bill line account must be an expense or asset account; payment accounts must be assets.
+- invoice list and bill list return full documents (lines, totals), filtered by --status
+  (any string; no match gives []).
+- Invoice number is INV-<year of invoice date>-NNNN, counted per year at issue time.
+- Aging and tax report use only non-draft documents; aging uses balance as of --at with
+  payments dated on or before --at.
+
+Do not redo
+- Acceptance tests (tests/test_invoicing_accept.py) all pass through this module unchanged.
+- ensure_schema finding was verified by a direct sqlite3 probe, not by reading the code only.
+- Lead-owned files (core.py, cli.py, books.py, helpers.py, test_*_accept.py, test_books.py)
+  were not edited.

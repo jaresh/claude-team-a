@@ -1,0 +1,30 @@
+Done
+- fin/reports.py: balance, report income, report balance-sheet, report networth, report trial-balance,
+  report ledger, loan schedule (db=False; MONTHS via type=int).
+- tests/test_statements.py: 18 extra unit tests (BalanceTest, IncomeTest, BalanceSheetTest,
+  NetworthTest, LedgerTest, LoanTest) covering ancestors roll-up, bad dates/periods, missing rate,
+  balance sheet with a USD child under a EUR asset, networth crossing a year boundary, ledger with a
+  USD descendant (converted at posting date), opening balance before --from, and loan validation.
+- No shared files edited; changes.md untouched. Nothing committed.
+- Check: python3 -m unittest tests.test_reports_accept tests.test_statements tests.test_books
+  -> Ran 41 tests, OK.
+
+In progress
+- Nothing open in my files.
+- Known caveat (not fixed): trial-balance totals are sums of per-account rounded values, but the trial
+  balance is always in the book currency, so totals match. A foreign-currency report of balance-sheet
+  could differ by a cent between total_assets and total_liabilities + total_equity, because each account
+  is converted and rounded separately. Spec wording is "totals equal"; I did not add a correction term.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` once all teammates are done. No action needed from
+  statements unless that run shows a failure in tests/test_reports_accept.py or tests/test_statements.py.
+
+Do not redo
+- Acceptance file (tests/test_reports_accept.py) passes unchanged (8/8 in the reports suite).
+- Balance sheet sign convention checked by hand: liabilities and equity are negated raw balances;
+  Equity:USD credit of 150 USD shows as +150.00 in equity. Retained earnings = -(sum of converted
+  income + expense raw balances).
+- Loan rounding: last row pays balance + interest; principal column sums exactly to the principal
+  (checked in test_last_row_clears_balance_and_principal).
+- Negative-zero: fmt() is used everywhere, so "-0.00" does not appear in any statements output.

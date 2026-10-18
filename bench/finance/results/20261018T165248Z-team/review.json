@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "The `bank.check_postings` function copies the posting-validation logic of `core.post_transaction` (blank posting, per-currency balance, error messages), and its own comment says it should move into core, so the two can drift apart.",
+    "Schema setup is lazy and spread out: every handler in `bank.py` and `invoicing.py` must start with `ensure_tables`/`ensure_schema`, including read-only commands that then run DDL for viewers outside a transaction. If one handler forgets the call, it crashes with a raw `sqlite3.OperationalError`.",
+    "`cli.main` only catches `UserError`, so a `--db` pointing at a non-SQLite or non-fin file, a locked database, or the `RuntimeError` from a handler that skipped `ctx.audit` all end in a traceback. Likewise, `api.Handler._run` sends no 500 JSON on unexpected exceptions, and a bad `Content-Length` (`int()` ValueError) breaks the connection.",
+    "`reports.cmd_report_trial_balance` converts and rounds each account separately, so a multi-currency book can produce `total_debit` != `total_credit` even though the spec says the totals are equal. `cmd_report_ledger` converts at each posting's date, while every other report converts at the report date.",
+    "`invoicing.invoice_rows` shows `price` rounded with `fmt(unit)` but computes `net` from the unrounded price (`10.005` displays as `10.01` while net uses `10.005`). The module also builds SQL table and column names with f-strings (`party_terms`, `cmd_report_aging`, `tax_by_code`); the values are internal constants, but this weakens the parameters-only rule.",
+    "`books.cmd_init` lets `core.connect(create=True)` run `executescript(SCHEMA)` before `BEGIN`, so a failure after that point leaves a half-initialised database file. Meanwhile `cmd_fx_add` validates the stripped rate but stores the raw `args.rate` string."
+  ],
+  "strengths": [
+    "Write commands share one clean path: `cli.run` checks the role, wraps the handler in `BEGIN IMMEDIATE`/`ROLLBACK`, and enforces exactly one audit entry. Because the HTTP API reuses `cli.execute`, its documents and errors match the CLI's `--json` output by construction.",
+    "Money handling is careful throughout: amounts are stored as TEXT Decimals, `core.money`/`core.fmt` give one place for half-up rounding and never print `-0.00`, there is no float anywhere, and ordinary values always go in as SQL parameters.",
+    "The tests are behaviour-focused and independent (a fresh temp database per test through `FinCase`), check exit code 2, empty stdout and 'nothing changed' after errors, and cover edge cases such as aging bucket boundaries, rounding, multi-currency balancing, prefix filters (`Assets:US` vs `Assets:USD`), and API 401/403/400."
+  ],
+  "review_cost": 0.8067
+}

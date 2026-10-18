@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 6,
+    "error_handling": 8,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/bank.py `check_postings` duplicates the posting-validation logic of `core.post_transaction`, and its own docstring admits it, so the two copies can drift apart (for example a blank posting in a currency with no other postings).",
+    "fin/bank.py `cmd_recurring_run` and `recurring add` rely on the date and rule checks inside `post_transaction`, and `cmd_recurring_run` loops `while True` over occurrences from the start. A start date far in the past with a weekly frequency, or a far-future `--until`, makes it iterate and write an unbounded number of rows.",
+    "Read-only commands (`tax list`, `invoice show`, `report aging`, `rule list`, `report budget` and others) call `ensure_schema` or `ensure_tables` on every invocation. That runs DDL and can write to the database in a path that is meant to be read-only, and every command repeats the boilerplate instead of creating the tables once at `init`.",
+    "fin/invoicing.py mixes concerns in one ~500-line module (tax codes, parties, invoices, bills, aging, tax report) and builds SQL with f-string table names (`party_terms`, `add_party`, `cmd_report_aging`, `insert_lines`). The names are internal constants and not user input, but the pattern is fragile.",
+    "fin/api.py turns HTTP requests into CLI argv lists and re-parses them with argparse on every request (`cli.execute` rebuilds the parser each time). That couples the API layer to CLI flag syntax, needs ad-hoc guards such as the `;` and `=` checks, and is slow. A request for an unknown user is also resolved inside the CLI layer.",
+    "Exchange rates are applied per posting and rounded each time (`cmd_report_ledger` converts each posting at its own date; `in_currency` rounds each currency part). Foreign-currency rounding can therefore differ from converting a total, and the trial balance may not have equal totals for multi-currency books. Also, `cmd_fx_add` stores the raw `args.rate` string without normalising it."
+  ],
+  "strengths": [
+    "Decimal is used for all money, with consistent `fmt`/`money` helpers that give half-up rounding and never print \"-0.00\". All SQL values are bound as parameters.",
+    "A single command registry and dispatcher in cli.py gives uniform permission checks, one SQLite transaction per write command with rollback on any error, and a mandatory audit entry, so exit code 2 and atomicity are handled in one place.",
+    "Tests use a shared in-process base class with a fresh temporary database per test. They check observable behaviour (exit codes, JSON output, nothing changed after an error) and include edge cases such as duplicate imports, bad rows, and overspent budgets."
+  ],
+  "review_cost": 0.32,
+  "model": "sonnet"
+}
