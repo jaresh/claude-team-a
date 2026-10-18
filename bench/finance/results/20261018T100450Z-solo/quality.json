@@ -1,0 +1,27 @@
+{
+  "app_files": 11,
+  "app_lines": 1697,
+  "test_files": 6,
+  "test_lines": 484,
+  "test_functions": 71,
+  "test_to_app_ratio": 0.29,
+  "functions": 143,
+  "mean_function_lines": 9.1,
+  "max_function_lines": 44,
+  "functions_over_50_lines": 0,
+  "mean_complexity": 3.3,
+  "max_complexity": 15,
+  "functions_complexity_over_10": 6,
+  "most_complex": [
+    "fin/ledger.py:report_balance_sheet (15)",
+    "fin/db.py:resolve_postings (14)",
+    "fin/ledger.py:txn_list (14)"
+  ],
+  "docstring_coverage": 0.24,
+  "duplicate_share": 0.001,
+  "float_calls": 0,
+  "sql_built_from_strings": 9,
+  "bare_except": 0,
+  "broad_except": 1,
+  "parse_errors": []
+}

@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 8,
+    "tests": 6,
+    "consistency": 8
+  },
+  "overall": 7,
+  "issues": [
+    "db.py balanced_values (used by report_balance_sheet and report_trial_balance) quietly adds FX rounding differences to the largest account, so that account's reported value no longer matches its converted balance; also, ledger.report_ledger converts each posting at its own date, unlike the report-date rule other reports use.",
+    "db.select_postings loads every posting into Python and filters in memory, and it is called once per month in report_networth and once per budget via tree_total; txn_list, list_documents and report_aging also issue one query per row (N+1), so cost grows quickly as the book grows.",
+    "db.py mixes several unrelated jobs (schema, the command registry and argparse helpers, permissions, posting and FX logic, report valuation), and the layers leak: server.query_arguments has a special case for the 'payables' keyword, and errors.NotFound (documented as 'No such API route') is reused by docs.find_doc for a missing invoice.",
+    "There is duplicated or dead code: db.line_fields is unused and nearly identical to docs.parse_line; the mapping `\"invoices\" if kind == \"invoice\" else \"bills\"` is repeated in find_doc, pay_document, list_documents and report_aging; and import_cmd calls ensure_account again after category_for has already done so.",
+    "books.init runs executescript(SCHEMA) outside write_tx, so a failure before the meta and admin rows are committed leaves a half-built database that later init calls refuse; separately, period_close writes an audit entry even when closing an earlier month changes nothing.",
+    "The tests leave important edge cases uncovered: multi-currency reports and --currency, running recurring twice (idempotence), Jan 31 and Feb 29 recurrences through the CLI, duplicate rows within one import file, and the exact audit entry shapes; test_api also shares one server database across all tests, so the expected invoice numbering depends on which tests ran before."
+  ],
+  "strengths": [
+    "Money is stored and calculated as integer cents, with Decimal used for rates and quantities and ROUND_HALF_UP rounding; fmt_cents guarantees two decimals and never prints -0.00, and all SQL values are passed as parameters.",
+    "The command registry (@command/@arguments plus db.call) puts permission checks, a single BEGIN IMMEDIATE transaction with rollback, and audit logging in one place, and the CLI and HTTP API both use it, so behaviour and JSON shapes match.",
+    "Functions are small and well named, with clear docstrings; validation helpers (parse_date, parse_cents, clean_text, check_open) are used the same way everywhere, and user errors map cleanly to exit code 2 or the right HTTP status."
+  ],
+  "review_cost": 0.8629
+}

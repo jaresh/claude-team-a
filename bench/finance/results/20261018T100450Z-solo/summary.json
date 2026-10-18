@@ -1,0 +1,102 @@
+{
+  "bench": "finance",
+  "mode": "solo",
+  "arm": "solo-haiku",
+  "claude_args": "",
+  "model": "haiku",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.12",
+  "started": "2026-10-18T10:04:51Z",
+  "ended": "2026-10-18T10:41:15Z",
+  "accept_passed": 42,
+  "accept_total": 42,
+  "own_passed": 71,
+  "own_total": 71,
+  "python_lines": 2624,
+  "cost": 0.3118,
+  "cost_cold": 0.3118,
+  "lead_cost": 0.3118,
+  "team_cost": 0,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [],
+  "lead_messages": 72,
+  "lead_peak_ctx": 66753,
+  "lead_compactions": 9,
+  "team_peak_ctx": 0,
+  "coverage": 0.909,
+  "least_covered": [
+    "fin/__main__.py (0%)",
+    "fin/__init__.py (50%)",
+    "fin/cli.py (76%)"
+  ],
+  "quality": {
+    "app_files": 11,
+    "app_lines": 1697,
+    "test_files": 6,
+    "test_lines": 484,
+    "test_functions": 71,
+    "test_to_app_ratio": 0.29,
+    "functions": 143,
+    "mean_function_lines": 9.1,
+    "max_function_lines": 44,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 3.3,
+    "max_complexity": 15,
+    "functions_complexity_over_10": 6,
+    "most_complex": [
+      "fin/ledger.py:report_balance_sheet (15)",
+      "fin/db.py:resolve_postings (14)",
+      "fin/ledger.py:txn_list (14)"
+    ],
+    "docstring_coverage": 0.24,
+    "duplicate_share": 0.001,
+    "float_calls": 0,
+    "sql_built_from_strings": 9,
+    "bare_except": 0,
+    "broad_except": 1,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 8,
+      "data_safety": 8,
+      "tests": 6,
+      "consistency": 8
+    },
+    "overall": 7,
+    "issues": [
+      "db.py balanced_values (used by report_balance_sheet and report_trial_balance) quietly adds FX rounding differences to the largest account, so that account's reported value no longer matches its converted balance; also, ledger.report_ledger converts each posting at its own date, unlike the report-date rule other reports use.",
+      "db.select_postings loads every posting into Python and filters in memory, and it is called once per month in report_networth and once per budget via tree_total; txn_list, list_documents and report_aging also issue one query per row (N+1), so cost grows quickly as the book grows.",
+      "db.py mixes several unrelated jobs (schema, the command registry and argparse helpers, permissions, posting and FX logic, report valuation), and the layers leak: server.query_arguments has a special case for the 'payables' keyword, and errors.NotFound (documented as 'No such API route') is reused by docs.find_doc for a missing invoice.",
+      "There is duplicated or dead code: db.line_fields is unused and nearly identical to docs.parse_line; the mapping `\"invoices\" if kind == \"invoice\" else \"bills\"` is repeated in find_doc, pay_document, list_documents and report_aging; and import_cmd calls ensure_account again after category_for has already done so.",
+      "books.init runs executescript(SCHEMA) outside write_tx, so a failure before the meta and admin rows are committed leaves a half-built database that later init calls refuse; separately, period_close writes an audit entry even when closing an earlier month changes nothing.",
+      "The tests leave important edge cases uncovered: multi-currency reports and --currency, running recurring twice (idempotence), Jan 31 and Feb 29 recurrences through the CLI, duplicate rows within one import file, and the exact audit entry shapes; test_api also shares one server database across all tests, so the expected invoice numbering depends on which tests ran before."
+    ],
+    "strengths": [
+      "Money is stored and calculated as integer cents, with Decimal used for rates and quantities and ROUND_HALF_UP rounding; fmt_cents guarantees two decimals and never prints -0.00, and all SQL values are passed as parameters.",
+      "The command registry (@command/@arguments plus db.call) puts permission checks, a single BEGIN IMMEDIATE transaction with rollback, and audit logging in one place, and the CLI and HTTP API both use it, so behaviour and JSON shapes match.",
+      "Functions are small and well named, with clear docstrings; validation helpers (parse_date, parse_cents, clean_text, check_open) are used the same way everywhere, and user errors map cleanly to exit code 2 or the right HTTP status."
+    ],
+    "review_cost": 0.8629
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 8,
+        "correctness_risks": 7,
+        "error_handling": 8,
+        "data_safety": 8,
+        "tests": 6,
+        "consistency": 8
+      },
+      "review_cost": 0.8629
+    }
+  ]
+}

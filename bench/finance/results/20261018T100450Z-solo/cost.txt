@@ -1,0 +1,4 @@
+agent          model      effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:22072d9f  haiku-5-5            72     96    144   390935  2759477  412072        0     66753          0            9  0.3118
+TOTAL          haiku-5-5            72     96    144   390935  2759477  412072        0     66753          0            9  0.3118
+total $0.3118
