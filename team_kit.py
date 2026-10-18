@@ -573,10 +573,13 @@ def message_cost(model, u):
 
 
 def session_of(path):
-    """Lead session id of a transcript: its own name, or the folder above subagents/."""
+    """Lead session id of a transcript: its own name, or the session folder it sits under
+    (<project>/<session>/subagents/..., or deeper, as workflow agents' transcripts do)."""
     parts = path.split(os.sep)
-    if len(parts) >= 3 and parts[-2] == "subagents":
-        return parts[-3]
+    if "projects" in parts:
+        below = parts[parts.index("projects") + 2:]   # skip the project folder
+        if len(below) > 1:
+            return below[0]
     return os.path.basename(path)[:-len(".jsonl")]
 
 
@@ -642,7 +645,7 @@ def scan(path, since, until, project):
            "model": models.most_common(1)[0][0], "msgs": len(usage),
            "tools": len(tools), "input": 0, "cache_w": 0, "cache_r": 0, "output": 0,
            "peak_ctx": 0, "over_100k": 0, "compactions": compactions, "cost": 0.0,
-           "unpriced": 0, "out_est": 0,
+           "unpriced": 0, "out_est": 0, "advisor_calls": 0, "cost_adv": 0.0,
            **{k: 0.0 for k in PARTS},
            "first": first.isoformat() if first else None,
            "last": last.isoformat() if last else None}
@@ -658,6 +661,17 @@ def scan(path, since, until, project):
         row["output"] += u.get("output_tokens", 0)
         row["peak_ctx"] = max(row["peak_ctx"], prompt_size(u))
         row["over_100k"] += prompt_size(u) > LONG
+        # Advisor calls are billed at the advisor's rates and reported only in usage.iterations,
+        # not in the top-level fields.
+        for it in u.get("iterations") or []:
+            if isinstance(it, dict) and it.get("type") == "advisor_message":
+                a = message_cost(it.get("model"), it)
+                row["advisor_calls"] += 1
+                if a is None:
+                    row["unpriced"] += 1
+                    continue
+                row["cost_adv"] += sum(a.values())
+                row["cost"] += sum(a.values())
         c = message_cost(model, u)
         if c is None:
             row["unpriced"] += 1
@@ -682,8 +696,8 @@ def totals(agents, role):
     rows = [r for r in agents if r.get("role", "lead" if r["agent"].startswith("lead:")
                                          else "teammate") == role]
     t = {k: sum(r.get(k, 0) for r in rows) for k in ("cost", "msgs", "tools", "output",
-                                                     "over_100k", "compactions",
-                                                     "cold_extra") + PARTS}
+                                                     "over_100k", "compactions", "cold_extra",
+                                                     "advisor_calls", "cost_adv") + PARTS}
     t["peak_ctx"] = max((r["peak_ctx"] for r in rows), default=0)
     t["startup_ctx"] = max((r.get("startup_ctx", 0) for r in rows), default=0)
     t["models"] = sorted({r["model"].replace("claude-", "") for r in rows})
@@ -794,6 +808,9 @@ def cost_main(argv):
     total = sum(r["cost"] for r in rows)
     print(f"total ${total:.4f}" + ("  (some messages unpriced)" if any(r["unpriced"] for r in rows)
                                    else ""))
+    if any(r["advisor_calls"] for r in rows):
+        print(f"advisor: {sum(r['advisor_calls'] for r in rows)} calls, "
+              f"${sum(r['cost_adv'] for r in rows):.4f} (included above)")
     cold = sum(r["cold_extra"] for r in rows)
     if cold:
         print(f"cold start ${total + cold:.4f}: the lead's first message read a prefix another "

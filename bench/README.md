@@ -60,6 +60,12 @@ review of 8 and 6 and cost $1.62 and $1.06. So:
 
 A kit change is judged the same way: 3 runs of the new kit against the current kit's runs.
 
+**Single-change variants** (`bench/variants/`): each file there is one change to `team_kit.py`
+(`apply(src)`), tested before it goes into the kit: `VARIANT=force-haiku bench/run.sh finance
+team` installs that variant, and its results carry the kit version `3.12+force-haiku`. Other
+arms: `MODEL=haiku` (solo or lead on Haiku), `CLAUDE_ARGS="--advisor sonnet"`, `ARM=<name>`.
+One run each first; a variant that holds gets the full 4 runs before it is adopted.
+
 First check of the method (finance v2, kit 3.9 against solo): the reviewer's noise floor was 0
 for the overall score and 1 for sub-scores, and all three decision metrics were stable at 4 runs
 per arm (review flipped at 3). Plan on 4 runs per arm. See `finance/results/REFERENCE.md`.

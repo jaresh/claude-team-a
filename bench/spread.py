@@ -87,7 +87,8 @@ def main():
     runs = [r for r in runs if r["prompt"] == prompt]
     groups = {}
     for r in runs:
-        key = "solo" if r["mode"] == "solo" else f'{r["mode"]}, kit {r.get("kit", "?")}'
+        arm = r.get("arm") or r["mode"]
+        key = arm if r["mode"] == "solo" else f'{arm}, kit {r.get("kit", "?")}'
         groups.setdefault(key, []).append(r)
     names = sorted(groups, key=lambda k: (k == "solo", k))
     print(f"Prompt version {prompt}: median (min-max) per group\n")

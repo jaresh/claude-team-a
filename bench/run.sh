@@ -11,6 +11,11 @@
 #       alone. Otherwise the same tools as team mode.
 # Both: the same model (MODEL=sonnet), effort (EFFORT=medium) and 1-hour prompt cache.
 #
+# Single-change experiments: VARIANT=<name> installs the kit as bench/variants/<name>.py changes
+# it (its version becomes <kit>+<name>); CLAUDE_ARGS adds session flags (e.g. "--advisor
+# sonnet"); ARM names the arm in the results (default: the mode, plus the model when it isn't
+# sonnet), so spread.py keeps each arm apart.
+#
 # Every run is scored three ways: the hidden acceptance tests, code-quality metrics
 # (bench/quality.py), and a blind review by a fixed reviewer (REVIEW_MODEL=opus, REVIEW_EFFORT=
 # medium, read-only tools, rubric in bench/<bench>/review.md). The reviewer reads a copy in a
@@ -52,6 +57,13 @@ out=$here/results/$stamp-$mode
 version=$(cat "$here/prompt.md" "$here"/accept/*.py "$here/review.md" | sha256sum | cut -c1-12)
 kit=$(sed -n 's/^KIT_VERSION = "\(.*\)"$/\1/p' "$repo/team_kit.py")   # solo uses its tool list too
 reviews=${REVIEWS:-1}
+kitfile=$repo/team_kit.py
+if [ -n "${VARIANT:-}" ]; then
+  kitfile=$(mktemp -d "${TMPDIR:-/tmp}/kit-XXXXXX")/team_kit.py
+  python3 "$repo/bench/variants/make.py" "$VARIANT" "$kitfile"
+  kit=$(sed -n 's/^KIT_VERSION = "\(.*\)"$/\1/p' "$kitfile")
+fi
+arm=${ARM:-$mode$([ "$model" = sonnet ] || echo "-$model")}
 
 git -C "$repo" worktree remove --force "$ws" 2>/dev/null || true
 git -C "$repo" branch -D "$branch" >/dev/null 2>&1 || true
@@ -61,7 +73,7 @@ git -C "$repo" worktree add -q --orphan -b "$branch" "$ws"
 # whole repo (hidden tests included) and pushed their branches to origin.
 deny="$(python3 "$repo/team_kit.py" lead --print-args),EnterWorktree,ExitWorktree"
 if [ "$mode" != solo ]; then
-  python3 "$repo/team_kit.py" install "$ws" >/dev/null
+  python3 "$kitfile" install "$ws" >/dev/null
 else
   deny="$deny,Agent"
 fi
@@ -69,7 +81,8 @@ prompt=$(MODE="$mode_line" python3 -c 'import os,sys; print(open(sys.argv[1]).re
 
 cd "$ws"
 started=$(date -u +%FT%TZ)
-launch=$(claude --bg --model "$model" --effort "$effort" --permission-mode auto "$deny" \
+# shellcheck disable=SC2086  # CLAUDE_ARGS is a list of flags
+launch=$(claude --bg --model "$model" --effort "$effort" --permission-mode auto "$deny" ${CLAUDE_ARGS:-} \
          --settings '{"promptCacheTtl":"1h","autoMemoryEnabled":false,"permissions":{"deny":["Bash(git push:*)"]}}' "$prompt" 2>&1) || true
 id=$(grep -oE 'backgrounded · [0-9a-f]+' <<<"$launch" | awk '{print $3}')
 [ -n "$id" ] || { echo "Could not start the session: $(tail -c 400 <<<"$launch")" >&2; rm -rf "$out"; exit 1; }
@@ -133,9 +146,9 @@ rm -f "$out"/review-raw-*.json
 rm -rf "$(dirname "$rev")"
 lines=$(cd "$ws" && git ls-files --others --exclude-standard --cached -- '*.py' | xargs cat 2>/dev/null | wc -l)
 
-python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$ended" "$lines" "$kit" <<'EOF'
+python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$ended" "$lines" "$kit" "$arm" "${CLAUDE_ARGS:-}" <<'EOF'
 import json, os, re, sys
-out, bench, mode, model, effort, version, started, ended, lines, kit = sys.argv[1:]
+out, bench, mode, model, effort, version, started, ended, lines, kit, arm, claude_args = sys.argv[1:]
 def tally(path):
     text = open(path).read()
     ran = re.search(r"Ran (\d+) test", text)
@@ -150,12 +163,15 @@ quality = json.load(open(f"{out}/quality.json"))
 coverage = json.load(open(f"{out}/coverage.json"))
 review = json.load(open(f"{out}/review.json"))
 more = json.load(open(f"{out}/reviews.json")) if os.path.exists(f"{out}/reviews.json") else [review]
-s = {"bench": bench, "mode": mode, "model": model, "effort": effort, "prompt": version, "kit": kit,
+s = {"bench": bench, "mode": mode, "arm": arm, "claude_args": claude_args, "model": model,
+     "effort": effort, "prompt": version, "kit": kit,
      "started": started, "ended": ended, "accept_passed": acc[1], "accept_total": acc[0],
      "own_passed": own[1], "own_total": own[0], "python_lines": int(lines),
      "cost": round(cost["total_cost"], 4), "cost_cold": round(cost["cold_start_cost"], 4),
      "lead_cost": round(sum(a["cost"] for a in lead), 4),
      "team_cost": round(sum(a["cost"] for a in team), 4),
+     "advisor_calls": sum(a.get("advisor_calls", 0) for a in cost["agents"]),
+     "advisor_cost": round(sum(a.get("cost_adv", 0) for a in cost["agents"]), 4),
      "teammates": [a["agent"] for a in team],
      "lead_messages": sum(a["msgs"] for a in lead),
      "lead_peak_ctx": max((a["peak_ctx"] for a in lead), default=0),
