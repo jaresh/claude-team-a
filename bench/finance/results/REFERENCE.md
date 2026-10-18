@@ -314,3 +314,32 @@ until dynamic workflows are enabled.
 - The reviewer is also Opus 5.5 (blind, but the same model family as this lead).
 - For comparison, a Sonnet lead with one teammate at a time reached consistency 8 (4 runs) at
   $0.773.
+
+## Lead model, 4 runs each (finance v2.1; Haiku teammates, effort medium)
+
+| Metric | Haiku lead | Sonnet lead (kit 3.11) | Opus lead | Sonnet, one at a time | Solo Sonnet |
+|---|---|---|---|---|---|
+| Hidden tests | 41 (41-42) | 42 (41-42) | **42 (42-42)** | 41 (41-42) | 42 (42-42) |
+| Review, Opus reviewer | 7 (7-8) | 7 (7-7) | 8 (7-8) | 7.5 (7-8) | 7 (6-7) |
+| Review, Sonnet reviewer | 7 (7-7), 3 runs | - | 7 (7-7), 3 runs | - | - |
+| Consistency | 6 (6-7) | 6 (6-7) | 7.5 (7-8) | 8 (7-8) | 7 (7-8) |
+| Structure | 7 (7-7) | 7 (7-7) | 8 (7-8) | 7 (6-8) | 6 (5-6) |
+| Cost $, cold start | **0.416** (0.334-0.468) | 0.832 (0.654-0.866) | 2.238 (2.038-2.472) | 0.773 (0.722-0.921) | 1.154 (1.098-1.319) |
+| Wall minutes | 31 (19-46) | 14 (11-17) | 14 (13-16) | 28 (28-29) | 7 (7-8) |
+| Teammates | 12.5 (11-14) | 6.5 (5-8) | 4 (4-4) | 6.5 (5-8) | - |
+
+Leave-one-out against the Sonnet lead (review ties within the noise floor of 1):
+
+- **Opus lead:** hidden tests, both reviews and structure tie; consistency higher but not stable
+  (flips); cost 2.7x (stable). It is the only lead with 42/42 in every run, and it does more of
+  the work itself (4 teammates, about 45K output tokens of its own).
+- **Haiku lead:** half the cost (stable) and the same reviews, but one hidden test lower (stable:
+  draft amounts twice, closed periods once) and twice the wall time, with 11-14 teammates.
+- **Reviewer check:** the Opus reviewer gave Opus-led code 8 in three of four runs, the Sonnet
+  reviewer gave it 7 every time, and the Sonnet reviewer scored Haiku-led and Opus-led code the
+  same (7 each). The Opus lead's review of 8 looks partly like the reviewer's preference for its
+  own model family; under the method it is a tie.
+- Conclusion: on finance a stronger lead doesn't measurably raise quality; the Sonnet lead stays
+  the default. The Haiku lead is the budget option (half the cost, slower, slightly more spec
+  misses). For more consistent code, one teammate at a time does it at Sonnet's cost. Finance may
+  be near its ceiling for telling leads apart: 42/42 and a review of 7 are reached by every lead.
