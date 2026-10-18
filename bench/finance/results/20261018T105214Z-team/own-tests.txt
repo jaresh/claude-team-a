@@ -1,0 +1,11 @@
+........../usr/lib/python3.14/argparse.py:1487: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x73122ae64c70>
+  registry = self._registries.setdefault(registry_name, {})
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.14/argparse.py:1487: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x73122ac49210>
+  registry = self._registries.setdefault(registry_name, {})
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+...............................................................................................................................................................
+----------------------------------------------------------------------
+Ran 169 tests in 23.041s
+
+OK

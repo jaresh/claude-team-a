@@ -1,0 +1,30 @@
+Done
+- fin/importing.py (new): spec 5, 6, 7. Commands: rule add, rule list, import, budget set, report budget, recurring add, recurring run. Own SCHEMA tables: rules, imported_rows, budgets, recurring, recurring_occurrences.
+- tests/test_importing.py (new): 31 tests, all pass.
+- Check: python3 -m unittest tests.test_importing -> OK (31 tests). py_compile fin/importing.py clean.
+- No shared files edited. changes.md not touched. Nothing committed.
+- Worktree note: EnterWorktree is not in my tool list, so I worked in place in the lead's checkout, touching only my two files.
+
+Assumptions for spec gaps (review these)
+- import requires an existing ACCOUNT (it does not create it). Uncategorized rows go to Expenses:Uncategorized (negative amount) or Income:Uncategorized (positive); these accounts are created on use.
+- Any row in a closed period fails the whole file, even if that row would be a duplicate.
+- Zero amounts, empty descriptions, short rows and bad dates/amounts are errors (all-or-nothing, nothing imported).
+- Blank CSV lines are skipped. --skip-header skips line 1 only. utf-8-sig is accepted.
+- Rule patterns: Python regex, case-insensitive, first match by id wins. Empty pattern rejected. Rule add does not create the target account.
+- Dedupe key: (account, date, description, amount). A repeat within one file counts as a duplicate.
+- budget set: amount must be >= 0; account must exist and be type expense; INSERT OR REPLACE per (account, month).
+- report budget: actual = sums of the account and its descendants (name or name:...) for the month, converted to the book currency at month end. Sorted by account.
+- recurring add: name not unique; >= 2 postings; at most one bare posting (it balances its currency); stored postings are the computed amounts; start must be a valid date.
+- recurring run: occurrences are monthly (add_months from start, so start day is kept and clamped), weekly (7-day steps), yearly (add_years, Feb 29 -> Feb 28). Each due date is checked for closed period before any post; an occurrence is recorded in recurring_occurrences, so reruns create 0.
+- Audit: import records (import, account) and recurring run records (recurring.run, until) even when created count is 0.
+- set/add commands return None (no JSON).
+
+In progress
+- Nothing. Work complete.
+
+Next step
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_importing` to confirm, then the full suite `python3 -m unittest discover -s tests` once all sections are in.
+
+Do not redo
+- Ran the full module tests: 31/31 pass after fixing test-side mistakes (missing account fixtures, a USD-only post needing a USD account, a wrong expectation for positive rows going to Income:Uncategorized, a closed_through value that still blocked January, a bad date in the header fixture, and a ';' separator in a comma CSV).
+- Did not change fin/importing.py behavior during test fixing. The module's errors are the intended user errors (closed period, invalid date, unknown account).

@@ -1,0 +1,26 @@
+Done
+- fin/api.py: `serve` command (access "read", --port, default 8000, 127.0.0.1 only) and the HTTP API. Every route runs cli.execute(argv, db=..., user=...). GET needs no user (user=None); POST needs X-User (missing -> 401 before body parse). AuthError unauthenticated -> 401, forbidden -> 403, UserError -> 400 {"error": msg}, unknown path -> 404. Creations 201 (/transactions, /invoices), others 200.
+- tests/test_api.py: 21 tests (GET routes, no-user GET, 401 missing and unknown user, 403 viewer, 400 unbalanced / closed period / missing field / bad JSON / non-object body / bad id / missing query param, 404 GET and POST, invoice create/issue/pay, issue twice, unknown customer, amount starting with "--" is rejected, aging with payables flag, audit entries).
+- Bug fixed during the run: the handler method was named `command`, which shadowed BaseHTTPRequestHandler.command (the request method string). Renamed to `run_command`.
+- Checks: `python3 -m unittest tests.test_api` -> 21 OK. `python3 -m unittest discover -s tests` -> 169 tests OK (includes the other modules as they stand now).
+- No shared files edited, so no changes.md entry. Nothing committed.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests`. Optional manual check: `python3 -m fin serve --port 8000` (or whatever the entry point is) and curl a GET /accounts.
+- Lead: add the assumptions below to README.md (section API).
+
+Assumptions for README
+- POST with an empty body is treated as {} (so /invoices/ID/issue needs no body). A missing required field is 400.
+- Invoice line descriptions cannot contain ";" (the CLI line format splits on ";"), so such a line gets 400.
+- Payment amount is passed after "--", so a value like "-5" or "--help" is the positional amount, not an option.
+- Bad JSON, a non-object body, or an invalid Content-Length -> 400. Non-ASCII JSON is returned as UTF-8 (ensure_ascii=False).
+- Access is per command: viewer gets 403 on writes; editor/admin follow the CLI roles.
+
+Do not redo
+- Shadowing: `command` is an attribute of BaseHTTPRequestHandler. Do not reuse that name. Already fixed.
+- Argparse: the "--" form for the payment amount works (test_payment_amount_starting_with_dash_is_not_an_option passes).
+- Test fixtures: in a posting list, the account with the amount is the explicit one and the balancing account has None. Income postings are negative in balances (the Income:Salary balance is -3000 when the bank is debited 3000). Already checked.
+- The full discover run passes, so no other module is broken by these changes.

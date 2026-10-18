@@ -1,0 +1,27 @@
+**Done**
+- Files: fin/basics.py (new), tests/test_basics.py (new). No shared files edited; changes.md not touched.
+- Commands registered: account add (write), account list (read), txn add (write), txn list (read),
+  balance (read), fx add (write), convert (read), user add (admin), user list (read),
+  audit list (read), period close (admin), period status (read).
+- Check: `python3 -m unittest tests.test_basics` -> Ran 47 tests, OK.
+- Not committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests` once the other modules exist.
+- Lead may want to add these to README assumptions:
+  - txn add / recurring: description must be non-empty after strip (spec silent).
+  - fx add rejects FROM == TO (rate for same currency is meaningless); rate must be > 0.
+  - period close returns no output and writes no audit entry when the month is not later than the closed one (nothing changed).
+  - Silent commands (account add, user add, fx add, period close) print nothing with --json; spec gives no result document.
+  - txn list filters by account in Python (exact name or name + ":" prefix); --from/--to are inclusive.
+  - balance includes accounts whose postings sum to zero (shown as "0.00") and every ancestor.
+  - Posting amounts are rounded half up to cents by parse_amount before posting; "=" is split at the first "=".
+  - audit list --by with an unknown user returns [] (no error).
+
+**Do not redo**
+- Private helpers in fin/basics.py: `_currency`, `_name`, `_posting`, `_under` are not in shared modules (fin/money.py has no currency or name validator); cli.cmd_init has its own inline currency check, left alone. Consider moving `_currency` into money.py if others need it.
+- Ran tests after fixing my own fixture errors (balance expectations 87.60, audit seq 4, mixed-currency fixture uses USD accounts). All 47 pass; no further failures to chase.
+- Did not touch fin/cli.py, db.py, money.py, errors.py, tests/helpers.py.

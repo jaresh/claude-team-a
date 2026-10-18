@@ -1,0 +1,22 @@
+**Done**
+Files changed (only these two):
+- fin/statements.py: report income, report balance-sheet, report networth, report trial-balance, report ledger (all access="read"); register(R) adds them.
+- tests/test_statements.py: 19 tests, subclass of FinTestCase. Covers period filtering, zero-sum accounts, conversion with --currency (rates via book().x INSERT), balance-sheet identity (single and converted currency), networth months, trial balance (incl. zero row and empty book), ledger opening/rows/closing, parent ledger including descendants, a descendant posting in another currency converted per posting, and user-error cases (bad dates/months/currency, from > to, missing args, unknown account, missing rate). Each error case asserts exit 2 and empty stdout via self.bad.
+Check: `python3 -m unittest tests.test_statements` -> Ran 19 tests, OK.
+No shared files edited; changes.md not touched; nothing committed.
+
+**In progress**
+Nothing. Task complete.
+
+**Next step**
+Lead: run `python3 -m unittest discover -s tests` once all teammates are in.
+
+**Do not redo**
+- Currency validation: money.py has no currency helper, so statements.py has a private `_currency` (3 letters, upper-cased). Basics may have its own; move it if a shared helper appears.
+- Decisions made where the spec was silent (for the README assumptions list):
+  1. Ranged reports (income, networth, ledger) reject from > to as a user error.
+  2. Income/expense/balance lines are per account name (no roll-up to parents), as the spec says.
+  3. report ledger converts each posting at its own transaction date into ACCOUNT's currency; the opening balance is the sum of those converted pre-FROM postings. Rows are the same, converted per posting.
+  4. report networth, trial-balance and balance-sheet accept an optional --currency; default is the book currency.
+- KNOWN LIMITATION (needs lead decision): values are converted and rounded per account, as the plan says. In a multi-currency book with non-exact rates, the balance-sheet identity total_assets = total_liabilities + total_equity and the trial-balance total_debit = total_credit can differ by a few cents from rounding. The identity holds exactly in single-currency books and with exact rates (tests cover both). A fix would mean converting per-currency aggregates for the totals, which contradicts the plan's "sum of per-account rounded values" rule. I did not change it; please decide.
+- Also checked: the balance-sheet sign convention (liabilities/equity negated, retained earnings = income - expenses) and the networth as-of-month-end rule match spec §8.

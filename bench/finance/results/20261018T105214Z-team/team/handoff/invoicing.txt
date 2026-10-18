@@ -1,0 +1,24 @@
+**Done**
+- fin/invoicing.py: tax add/list, customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list, report aging (--payables, --at required), report tax (--from/--to). Own tables via SCHEMA: tax_codes, parties, docs (shared by invoices and bills, keyed by kind), doc_lines, doc_payments (with date).
+- tests/test_invoicing.py: 33 tests across TaxAndPartyTests, InvoiceTests, AgingTests, BillTests, TaxReportTests. Cover the spec shapes, line math, error cases (exit 2, empty stdout, unchanged data via row counts), closed-period errors, read-only user rejection, and audit actions.
+- Check: `python3 -m unittest tests.test_invoicing` -> Ran 33 tests, OK. `py_compile` on both files OK.
+- No shared files edited; no changes.md line needed. Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None required for this teammate. Lead can run `python3 -m unittest tests.test_invoicing` to confirm, and the full suite `python3 -m unittest discover -s tests` once all modules are in.
+
+**Do not redo**
+- Test failures found and fixed were all wrong expectations in my tests, not module bugs: bill pay setup used 320 instead of the 120 bill total; a liability-account pay of 120 was really "paid" (changed to 100); Income:Sales net for three invoices is 1100 (950+100+50), not 1150.
+- Earlier self-review fix: pay_doc's asset-account check applies to invoices only. Spec §14 requires only that the bill payment account exists. Bill pay from Liabilities:Card is tested and accepted.
+- Worktree: EnterWorktree was considered and skipped because cwd is already the lead's worktree with untracked files; no edits were made elsewhere.
+- Decisions to keep (documented in code, relied on by tests):
+  - tax add: duplicate code is a user error; rate must be a non-negative decimal.
+  - customer/vendor add: duplicate name is a user error; terms default 30, must be a non-negative integer.
+  - invoice line format "desc;qty;price;tax" (tax may be empty for no tax): qty must be > 0, price >= 0, net = round(qty*price).
+  - bill line format "desc;amount;account;tax": account must exist and be expense or asset; amount >= 0; bill --ref is stripped and non-empty; duplicate (vendor, ref) is a user error checked in code.
+  - Drafts: paid 0.00, balance = total, no postings. Invoice numbers INV-YYYY-NNNN per year over issued invoices.
+  - Aging: non-draft docs with date <= --at; payments counted only with date <= --at; zero or negative balances excluded.
+  - report tax: non-draft docs in [from, to] by date; by_code only includes codes used in the range.
