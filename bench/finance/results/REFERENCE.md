@@ -196,3 +196,24 @@ ran `pwd`, `ls` and `git log` there, removed it within seconds and built in the 
 no hidden-test or result file was read, so those runs stand. A solo run at 19:47 built in the
 worktree and pushed its branch to origin: discarded (no result recorded; the branch is deleted,
 as is `bench/finance-solo`, pushed by the 09:22 run). Team leads never used either.
+
+## Kit 3.11 (no test helper named after a test-framework method), 4 runs on v2.1
+
+| Metric | Kit 3.11 (n=4) | Kit 3.10 (n=4) | Solo (n=4) |
+|---|---|---|---|
+| Hidden tests passed | 42 (41-42) | 42 (41-42) | 42 (42-42) |
+| Review overall | 7 (7-7) | 6.5 (5-7) | 7 (6-7) |
+| Review tests | 7 (7-8) | 5.5 (3-8) | 6.5 (6-7) |
+| Runs with a shadowed `fail` | 0 of 4 | 2 of 4 | 0 of 4 |
+| Cost $, cold start | 0.832 (0.654-0.866) | 0.676 (0.604-0.774) | 1.154 (1.098-1.319) |
+| Teammates / lead turns | 6.5 / 17.5 | 5 / 15 | - / 15 |
+
+- **Quality:** the bug it targets is gone (0 of 4 runs vs 2 of 4), and the review is 7 in every
+  run. Against solo: ties on hidden tests and review, cheaper (-28%), all stable.
+- **Cost:** 23% above 3.10, stable at 4 runs. But a lead turn costs the same in both kits
+  ($0.030-0.040) and so does a teammate ($0.021-0.032): these leads chose more teammates and
+  took more turns. The 3-line rule can't account for that; the lead's own team-size choice is
+  the largest source of cost spread left, and n=4 doesn't separate it from the kit.
+- **Adopted** (quality first): kit 3.11 is the current kit.
+- `run 20261018T034038Z-team`: the reviewer put `overall` inside `scores` (7); the runner now
+  accepts both places, and this run's record was corrected.

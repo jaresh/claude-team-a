@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Run-to-run spread and stability of a benchmark's results.
 
-    bench/spread.py bench/finance/results [--kit 3.9]
+    bench/spread.py bench/finance/results [--kit 3.9] [--vs 3.8]
 
 Groups the runs of the latest prompt version by arm (team runs also by kit version; solo runs
 don't use the kit, so they form one group) and prints n, median and range per metric. A run
 reviewed more than once (REVIEWS=N) counts with the median of its reviews, and the reviewer's
 own spread on identical code is listed apart: that is the noise floor of the review.
 
-Then the stability check, team on --kit (default: the newest kit with team runs) against solo:
+Then the stability check, team on --kit (default: the newest kit with team runs) against solo,
+or against team on another kit with --vs:
 for each metric, which arm is better on the medians, and whether that still holds after
 leaving out any one run of either arm. "stable" means no single run decides the conclusion. A
 review difference no larger than its noise floor (the widest spread of that score between one
@@ -72,11 +73,11 @@ def stats(runs, f):
     return med, f"{fmt(med)} ({fmt(min(vals))}-{fmt(max(vals))})"
 
 
-def verdict(a, b, f, better, tol=0):
+def verdict(a, b, f, better, tol=0, names=("team", "solo")):
     ma, mb = stats(a, f)[0], stats(b, f)[0]
     if ma is None or mb is None or abs(ma - mb) <= tol:
         return "tie"
-    return "team" if (ma > mb) == (better == "high") else "solo"
+    return names[0] if (ma > mb) == (better == "high") else names[1]
 
 
 def main():
@@ -109,19 +110,21 @@ def main():
 
     kits = sorted({r.get("kit") for r in runs if r["mode"] == "team"}, key=lambda v: [int(x) for x in v.split(".")])
     kit = sys.argv[sys.argv.index("--kit") + 1] if "--kit" in sys.argv else kits[-1]
-    team, solo = groups.get(f"team, kit {kit}", []), groups.get("solo", [])
+    other = f"team, kit {sys.argv[sys.argv.index('--vs') + 1]}" if "--vs" in sys.argv else "solo"
+    team, solo = groups.get(f"team, kit {kit}", []), groups.get(other, [])
     if len(team) < 2 or len(solo) < 2:
-        print(f"\nStability check needs at least 2 runs per arm (team kit {kit}: {len(team)}, solo: {len(solo)}).")
+        print(f"\nStability check needs at least 2 runs per arm (team kit {kit}: {len(team)}, {other}: {len(solo)}).")
         return
-    print(f"\nStability, team kit {kit} (n={len(team)}) vs solo (n={len(solo)}): better on the medians, "
+    names = (f"kit {kit}", other.replace("team, ", ""))
+    print(f"\nStability, team kit {kit} (n={len(team)}) vs {other} (n={len(solo)}): better on the medians, "
           "and whether leaving out any one run changes it\n")
     print("| Metric | Better | Leave-one-out |")
     print("|---|---|---|")
     for label, f, better, key in METRICS:
         tol = floor.get(key, 0) if key else 0
-        base = verdict(team, solo, f, better, tol)
-        alts = {verdict(team[:i] + team[i + 1:], solo, f, better, tol) for i in range(len(team))}
-        alts |= {verdict(team, solo[:i] + solo[i + 1:], f, better, tol) for i in range(len(solo))}
+        base = verdict(team, solo, f, better, tol, names)
+        alts = {verdict(team[:i] + team[i + 1:], solo, f, better, tol, names) for i in range(len(team))}
+        alts |= {verdict(team, solo[:i] + solo[i + 1:], f, better, tol, names) for i in range(len(solo))}
         print(f"| {label} | {base} | {'stable' if alts == {base} else 'flips: ' + '/'.join(sorted(alts))} |")
 
 
