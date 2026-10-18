@@ -47,7 +47,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.10"
+KIT_VERSION = "3.11"
 
 SKILL = """\
 ---
@@ -119,7 +119,9 @@ exists.
 Tests first: unless the user gave a check, write acceptance tests for the contract, each
 interface between tasks included, in the repo's test layout, before starting the team, and run
 them once to see them fail. They are yours: teammates don't edit them, and they add unit tests
-for their own code.
+for their own code. Never give a test helper the name of a test-framework method (in unittest:
+`fail`, `assert...`, `setUp`, `run`, `skipTest`): the framework calls its own, and a shadowed
+`fail` turns every failing assertion into a pass.
 
 Tell the user the plan in a few lines.
 
@@ -236,6 +238,8 @@ files are in `.claude/team/`.
 
 - Run your task's done check and fix your own code until it passes. Never hand back while a job
   you started is still running, and never report a partial count as final.
+- In tests, never name a helper after a test-framework method (in unittest: `fail`,
+  `assert...`, `setUp`, `run`): a shadowed `fail` turns failing assertions into passes.
 - Write `.claude/team/handoff/<your name>.txt` with four sections: **Done** (files changed,
   counts, check results), **In progress** (where you stopped), **Next step** (the exact next
   action and command, runnable without your history), **Do not redo** (what you checked and
