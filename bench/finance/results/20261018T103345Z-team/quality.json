@@ -1,0 +1,27 @@
+{
+  "app_files": 10,
+  "app_lines": 1300,
+  "test_files": 8,
+  "test_lines": 849,
+  "test_functions": 68,
+  "test_to_app_ratio": 0.65,
+  "functions": 143,
+  "mean_function_lines": 8.4,
+  "max_function_lines": 44,
+  "functions_over_50_lines": 0,
+  "mean_complexity": 2.8,
+  "max_complexity": 15,
+  "functions_complexity_over_10": 3,
+  "most_complex": [
+    "fin/banking.py:cmd_import (15)",
+    "fin/cli.py:run (12)",
+    "fin/invoicing.py:_pay (11)"
+  ],
+  "docstring_coverage": 0.22,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 11,
+  "bare_except": 0,
+  "broad_except": 2,
+  "parse_errors": []
+}

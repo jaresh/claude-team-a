@@ -1,0 +1,26 @@
+**Done**
+- Files changed: fin/banking.py (new implementation), tests/test_banking.py (new, 15 tests). No shared files edited; changes.md untouched.
+- Commands: rule add/list; import FILE --account [--date-col N --desc-col N --amount-col N --skip-header]; budget set; report budget MONTH; recurring add/run.
+- Tables: rules, imported (dedupe key), budgets (PK account+month), recurring (name UNIQUE, postings as JSON), recurring_runs (PK recurring_id+date, txn_id).
+- Audit: rule.add (pattern), import (account), budget.set ("ACCOUNT MONTH"), recurring.add (name), recurring.run (until date).
+- Checks: `python3 -m unittest tests.test_banking` 15 tests OK; `python3 -m unittest discover -s tests` 40 tests OK.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: review, then commit fin/banking.py and tests/test_banking.py. README assumptions below should go into README.md.
+
+**Do not redo**
+- Checked that core.add_transaction raises on closed periods, so import and recurring run are all-or-nothing via cli rollback (tested).
+- Checked that the cli already enforces --user and viewer role for write=True commands (tested for viewer on rule add and import).
+
+**Assumptions (for README)**
+- rule add: the target account must already exist (transactions never create accounts). Pattern is compiled case-insensitively; an invalid regex is a user error.
+- import: the bank ACCOUNT must exist. Rows with fewer columns, bad date/amount, or a zero amount are user errors (message names the row number). Blank CSV lines are skipped. Files are read as UTF-8 (a BOM is accepted). A category from a rule must share the bank account's currency, otherwise the transaction does not balance and the import fails. Default categories are created in the book currency. Dedupe uses the imported-row table only, so manually entered transactions do not count as duplicates.
+- import audit: only written when at least one row was imported.
+- budget set: the account must exist and be an expense account; the amount must be >= 0; setting again replaces the budget. Output: {"account", "month", "amount"}.
+- report budget: actual is in the budget account's currency. Postings to descendants in another currency are converted at the month's last day, and a missing rate is a user error. Accounts with a budget but no postings show actual "0.00".
+- recurring add: names are unique (user error on duplicates). Postings are validated with the txn add rules. Output: {"id", "name", "every", "start"}. Occurrence n is computed from the start (not chained), so monthly Jan 31 goes Feb 28, Mar 31, Apr 30.
+- recurring run: occurrences are processed per recurring item in id order. A closed-period occurrence that is not yet created makes the whole run fail and nothing is created. The recurring.run audit entry is written only when something was created.
+- rule add and import keep the spec's audit targets.

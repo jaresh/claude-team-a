@@ -1,0 +1,34 @@
+**Done**
+- fin/api.py (new): Handler (GET/POST routing), make_server(db, port), cmd_serve, register(root, report) defining `serve --port N` (required).
+  Each request calls fin.cli.execute(db, user, argv) once; documents are the commands' --json results.
+  Routes: GET /accounts, /transactions (?account&from&to), /balances (?at), /reports/income (?from&to), /reports/balance-sheet (?at),
+  /reports/aging (?at&payables=1), /invoices (?status), /invoices/ID, /audit (?by).
+  POST /transactions -> txn add (201); POST /invoices -> invoice create (201); POST /invoices/ID/issue -> invoice issue (200);
+  POST /invoices/ID/payments -> invoice pay (200).
+- fin/cli.py: _modules() now imports and includes `api` (one line, logged in .claude/team/changes.md).
+- tests/test_api.py (new): 10 tests. In-process server for the API cases; one subprocess test for `serve --port`.
+- Checks: `python3 -m unittest tests.test_api` -> 10 tests OK. `python3 -m unittest discover -s tests` -> 68 tests OK (includes the other modules as they are now).
+  Log: .claude/team/scratch/api/run.log
+- Not committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for api. Lead: run `python3 -m fin --db ./fin.db serve --port 8080` to start it by hand (the server binds 127.0.0.1 only).
+
+**Do not redo**
+- Auth order for POST: route match (unknown path -> 404) -> X-User check (missing or unknown -> 401, viewer -> 403) -> body parse (400) -> execute. Checked by test_unknown_paths and test_users_and_roles.
+- Role check reads the users table directly (core.open_db + SELECT role). All POST commands here are writes, none admin-only, so editor and admin pass.
+- A POST with an unbalanced explicit posting pair gives 400. A POST with one implicit posting is balanced and gives 201 (a first test assumed otherwise; that was the test's mistake, not the code's).
+- ResourceWarnings from urllib HTTPError and the serve subprocess pipe were fixed in the test (close the error response; stderr to DEVNULL). The remaining output is only the request log lines from the server, which go to stderr.
+
+**Assumptions (for README)**
+- Every user error (CLI-level UserError, including missing query params and an invoice that does not exist) returns 400, not 404. Only unknown paths return 404.
+- Non-user exceptions return 500 with {"error": str(e)}.
+- Invoice line text cannot contain ';' because the CLI line format is DESCRIPTION;QUANTITY;PRICE;TAXCODE. Such a line is a 400.
+- Invoice lines and postings accept JSON strings or numbers; booleans, objects and arrays are a 400.
+- Server binds to 127.0.0.1 only. There is no --host option.
+- Only the listed routes exist. POST /bills, user add, and period close are not exposed.
+- Extra query params not in the spec: /transactions?account, /invoices?status, /audit?by, /reports/aging&payables=1 (or true).
+- Each request opens its own SQLite connection (via cli.execute), so the ThreadingHTTPServer threads do not share a connection.

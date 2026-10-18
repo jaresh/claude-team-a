@@ -1,0 +1,29 @@
+**Done**
+Files changed (only my own):
+- fin/invoicing.py: SCHEMA (tax_codes, customers, vendors, invoices, invoice_lines, invoice_payments, bills, bill_lines, bill_payments). Commands: tax add/list, customer add/list, vendor add/list (--terms, default 30), invoice create/issue/pay/show/list (--status), bill create/pay/show/list, report aging (--at, --payables), report tax (--from, --to). Helpers usable by others: invoice_doc, bill_doc, create_invoice, issue_invoice, pay_invoice, pay_bill, create_bill.
+- tests/test_invoicing.py: 18 tests (InvoicingTests(BookCase)) covering every command, error cases, closed periods, viewer role, aging buckets, tax report, audit entries.
+No shared files edited. changes.md not touched. Nothing committed.
+
+Checks:
+- python3 -m unittest tests.test_invoicing: Ran 18 tests, OK (about 23 s).
+- python3 -m unittest discover -s tests: Ran 58 tests, OK (about 60 s).
+
+**In progress**
+Nothing. Module, tests and both checks are complete.
+
+**Next step**
+Lead: review and commit fin/invoicing.py and tests/test_invoicing.py from /home/jaca/claude-team-a/bench/work/finance-team-2 when ready. No further action needed from invoicing.
+
+**Do not redo**
+- Two test expectations were wrong and were fixed in the test, not the module: Income:Sales after issuing three invoices is -30.00 (20+5+5), and at --at 2026-01-10 the not-yet-due invoice counts as "current" (24.00) while the 2025 invoice is in 61-90.
+- Self-review fixes already applied in fin/invoicing.py: removed unused _status; create_invoice resolves tax rates before insert; create_bill validates tax codes before insert.
+- Test helpers are named _book, _new_invoice, _new_bill; none use framework names.
+
+Assumptions:
+- Quantity is stored and shown as given (e.g. "1.5"); price is stored as given.
+- Invoice numbers are INV-YYYY-NNNN, sequential by count of existing numbers with that year prefix at issue time. Drafts have number null.
+- Bill ref is unique per vendor (duplicate ref is an error).
+- Invoice due = date + customer terms; bill due = date + vendor terms.
+- A blank tax code on a line means no tax (stored as null, skipped in report tax by_code).
+- Invoice payments post Account +amt / Assets:Receivable -amt; bill payments post Liabilities:Payable +amt / account -amt.
+- Working directory: the lead's path /home/jaca/claude-team-a/bench/work/finance-team-2 was edited in place. The environment reported a git worktree, but the path is not under .claude/worktrees/, so I did not call EnterWorktree. Check that this is the branch the lead intends before committing.

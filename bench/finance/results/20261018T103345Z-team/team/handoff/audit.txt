@@ -1,0 +1,43 @@
+**Done**
+Read-only audit. No files changed other than this handoff. Nothing committed.
+Read: .claude/team/spec.md (sections 1-17, focus 10, 11, 16 and audit lines), .claude/team/plan.md (Contract/Conventions), fin/core.py, fin/cli.py, fin/ledger.py, fin/banking.py, fin/invoicing.py, fin/statements.py, fin/loans.py, fin/api.py, tests/helpers.py, grep of tests/test_*.py for coverage.
+Audit action names and targets checked against spec section 11: init, user.add, account.add, txn.add, fx.add, rule.add, import, budget.set, recurring.add, recurring.run, period.close, tax.add, customer.add, vendor.add, invoice.create/issue/pay, bill.create/pay, reconcile. All names and targets match the code.
+Closed-period checks: txn add, import, recurring run, invoice issue, invoice pay, bill create, bill pay all go through core.add_transaction or the period check. Tests exist for txn add (test_ledger:43), import (test_banking:73), recurring run (test_banking:162), invoice (test_invoicing:134), bill (test_invoicing:204), API (test_api:140).
+Permissions: CLI viewer/editor/admin checks in cli.run; API 401/403 covered by test_api:96-101.
+
+Findings (most important first):
+
+1. fin/api.py `_role` and `_check_writer` (lines 106-123) duplicate the role lookup and viewer rule in fin/cli.py `run()` (lines 42-47: SELECT role FROM users, then `role == "viewer"`). Two copies of the same permission rule, and `_role` opens a separate DB connection per POST. Plan says NEVER reimplement; the rule should live in one place (e.g. cli.py helper used by both). Risk: the two can drift, e.g. the API allows an editor and the CLI does not for the same command. Note the API must keep 401 for unknown user before the CLI's own UserError (400), so the helper needs to return the role and let each caller map errors.
+
+2. fin/cli.py line 7 `ROLE_OK = {"admin": lambda a: True, "editor": lambda a: not a, "viewer": None}` is never used. Dead code that describes a permission policy the real check (fin/cli.py `run()`) does not read. Delete it, or make `run()` use it (the second copy is then gone, see finding 1).
+
+3. fin/api.py `Handler._serve` (lines 151-156): the `except Exception` branch returns HTTP 500 with `str(e)` in the body, so internal error text (SQL, paths) goes to the client. Not covered by any test (grep of tests/test_api.py shows no 500 case). Spec only says "anything else 500". Suggest a generic message and a test, or at least log the traceback to stderr.
+
+4. fin/cli.py `main()` (lines 74-83): only `UserError` is caught, so any other exception (e.g. unreadable --db path, sqlite error) exits 1 with a traceback. Spec requires exit 2 for user errors only, so this is not a spec break, but it is not documented. Low priority.
+
+5. fin/banking.py `cmd_import` (lines 69-82): the dedupe key is (account, date, description, amount) with no occurrence index. Two genuine identical bank rows on the same day (e.g. two identical card payments) are treated as already imported: the second is skipped, and it is also skipped on every later re-import. Spec says re-import must not duplicate; the edge case is a judgment call. It should be listed in README assumptions, and a test should pin the behaviour. I did not check README.md for this.
+
+6. fin/loans.py `cmd_reconcile` (line 57): `ctx.audit("reconcile", acc)` runs even when no `--clear` is given, so a command that changes nothing still writes an audit entry. Spec section 11: "every successful command that changes data appends one audit entry". Either audit only when clears were added, or accept this and document it. Test test_loans:98 only checks the editor entry.
+
+7. fin/invoicing.py `_pay` and `create_bill` (payment and bill account checks): the book-currency restriction on payment accounts is an assumption that is not in the spec text I read. Check that README.md lists it. I did not verify README.md against any of the findings here.
+
+8. fin/api.py `_txn_argv` (line 71) and the posting parser: an account name containing "=" cannot be expressed through the API, because `account=amount` is split on the first "=". Also `_invoice_argv` rejects ";" in fields (line 80-81). Both are API-only input limits that are not documented in the module docstring. Low priority.
+
+9. Test coverage gaps (verified by grep, not by running tests): tests/test_api.py covers GET /accounts, /transactions, /audit, /invoices and a few others (lines 50-62, 112-150). I did not confirm tests for GET /reports/balance-sheet, GET /reports/aging, GET /balances, GET /reports/income through the API. Spec section 10 lists all of them. Also no test for the 500 branch (finding 3).
+
+Not findings (checked, OK): fmt and rounding are not duplicated (core.fmt/round_cents used everywhere I looked); date helpers are not duplicated; statements.py and loans.py match the spec shapes I read; `period close` audits only when the month advances (intended).
+
+Tests were not run by me (task is read-only audit; lead runs the program). Command to run: `python3 -m unittest discover -s tests`.
+
+**In progress**
+Nothing. Audit finished; handoff written.
+
+**Next step**
+Lead: review findings 1 and 2 first (shared role rule, dead ROLE_OK). Then run `python3 -m unittest discover -s tests` from the worktree to confirm the suite passes, and decide on finding 5 (import dedupe) and finding 6 (reconcile audit) with the owning teammates (banking, loans).
+
+**Do not redo**
+- Audit action names and targets vs spec section 11: all match (checked list in Done). Do not re-check.
+- Closed-period coverage for the seven listed commands: all covered by tests (see Done). Do not re-check.
+- fmt/rounding/date helper duplication: grep showed none outside fin/core.py. Do not re-check.
+- api.py 401/403 mapping: matches spec section 10-11 (test_api:96-101).
+- Did not read README.md or the test files in full; only grep results for tests and api paths.

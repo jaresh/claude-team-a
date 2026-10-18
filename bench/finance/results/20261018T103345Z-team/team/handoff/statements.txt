@@ -1,0 +1,26 @@
+Done
+- fin/statements.py: report income, report balance-sheet, report networth, report trial-balance, report ledger (spec sections 8 and 17). Registered via register(root, report).
+- tests/test_statements.py: 10 tests, all pass (`python3 -m unittest tests.test_statements`).
+- `python3 -m unittest discover -s tests`: 40 tests, OK on the last run. An earlier run failed 2 tests in tests/test_banking.py (recurring leap-day/weekly counts: got 218 created, expected 6). Those are the banking teammate's files, not mine. Re-run after banking finishes.
+- changes.md: no shared files edited.
+
+Assumptions (for README)
+- Reports convert each (account, currency) sum at the report date (--to for income, --at for balance-sheet and trial-balance, each month's last day for networth) with core.convert, sum unrounded, then fmt once.
+- Income report: accounts are listed by the name their postings are on, only if they have postings in [--from, --to]. Income is the negated raw sum, expenses the raw sum. net = total_income - total_expenses.
+- Balance-sheet: assets as raw sums; liabilities and equity negated; retained_earnings = -(raw income + raw expenses) up to --at; total_equity = equity + retained_earnings.
+- Networth: one row per month from --from to --to (inclusive), as of month end. networth = assets - liabilities. --from after --to is a user error (same for income and ledger).
+- --currency is accepted by income, balance-sheet and networth (section 8). trial-balance always uses the book currency (section 17 says so); ledger always uses the account's currency.
+- Trial-balance: rows are accounts with postings on or before --at (by posting name, sorted). Debit = positive balance, credit = negative balance as a positive number, other side "0.00". total_debit and total_credit are sums of unrounded balances, so they are equal in the book currency (individual rows are rounded and may differ from totals by a cent in multi-currency books).
+- Ledger: postings to the account and its descendants up to --to. Each posting is converted into the account's currency at its own date (identity when currencies match). opening = running balance before --from; rows are in-period postings with amount and running balance (raw signed sums, no sign flip); closing = last running balance.
+- --from and --to are required for income, networth and ledger; --at for balance-sheet and trial-balance.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: after banking finishes, run `python3 -m unittest discover -s tests` once more.
+
+Do not redo
+- Checked that every ledger/statement helper used is core.convert, core.account_sums, core.month_end, core.next_month, core.get_account, core.parse_* and core.fmt. No duplicates were written.
+- Checked the zero-sum case: an account whose postings net to zero shows "0.00" (tested in test_income_zero_sum_account_shows).
+- Checked the currency path with a USD account and a 1.1 EUR->USD rate, including the inverse-rate path (USD->EUR 1/1.1 = 100.00 from 110 USD), and a missing-rate user error (GBP).

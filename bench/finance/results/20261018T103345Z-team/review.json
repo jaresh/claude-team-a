@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/cli.py main/run only catches UserError, so sqlite3.Error or OSError (for example `--db` in a missing directory, or a locked database) ends in a traceback instead of exit 2, and core.open_db creates the database file and its schema even for failing or read-only commands such as `loan schedule`, so a failed command still leaves something on disk.",
+    "fin/api.py turns HTTP requests into CLI argv strings and calls cli.execute, which couples the HTTP layer to argparse syntax; it breaks on values containing '=' or ';', rebuilds the whole parser on every request, and _check_writer repeats the role check that cli.run already does.",
+    "fin/api.py Handler._body uses json.loads without parse_float=Decimal, so a JSON number amount passes through float before it becomes a string, which can lose precision against the Decimal-only rule.",
+    "fin/statements.py cmd_trial_balance and cmd_balance_sheet round each row on its own but compute the totals from unrounded sums, so after currency conversion the shown rows may not add up to the shown totals, and total_assets may differ from total_liabilities + total_equity by a cent.",
+    "Modules don't line up with responsibilities: reconciliation lives in fin/loans.py, reports in statements.py, and convert in ledger.py; subtree matching is done three ways (core.in_tree, a substr() SQL test in cmd_ledger, Python filtering in cmd_txn_list); and invoicing builds SQL table names with f-strings from KINDS, which is safe but a fragile pattern.",
+    "tests/helpers.py BookCase.bad checks only the exit code and empty stdout, not that state is unchanged (only a few tests check that), and tests/test_ledger.py packs sections 1-4, 11 and 12 into three long tests, so a failure is hard to locate and edge cases such as month-end recurrence and multi-currency balances get thin coverage."
+  ],
+  "strengths": [
+    "Every command runs in a single transaction in cli.run, which commits on success and rolls back on any exception, so imports, recurring runs and invoice and bill postings are atomic, including the all-or-nothing closed-period behaviour.",
+    "Money handling is careful throughout: Decimal is stored as text, rounding half up happens in one place (core.round_cents/fmt, with the -0.00 case handled), conversions stay unrounded until output, and all SQL values are passed as parameters.",
+    "Shared domain helpers in core (add_transaction, resolve_postings, check_open, ensure_account, get_rate) and the KINDS-driven code that handles both invoices and bills keep duplication low, and the tests check observable CLI and HTTP behaviour through subprocesses using fresh temporary databases."
+  ],
+  "review_cost": 0.7901
+}

@@ -1,0 +1,25 @@
+**Done**
+- fin/loans.py: `loan schedule PRINCIPAL RATE MONTHS --start DATE` (read-only) and `reconcile ACCOUNT --date --balance [--clear ID ...]` (write=True, audit `reconcile` with target the account). Module-level SCHEMA creates table `cleared(txn_id, account)` with PK (txn_id, account). register(root, report) adds both.
+- tests/test_loans.py: 12 tests (schedule: annuity values, zero rate with last-row remainder, month-end date clamping, pure-function call, error cases; reconcile: difference, marks kept across runs, uncleared ignores later txns, bad --clear (future date, wrong account, unknown id) changes nothing, unknown account / missing args / no user / viewer -> exit 2, editor allowed and audited).
+- Checks: `python3 -m unittest tests.test_loans` -> 12 OK. `python3 -m unittest discover -s tests` -> 15 OK (includes ledger's 3 tests).
+- No shared files edited; changes.md untouched. Nothing committed.
+
+Assumptions (for README):
+- `loan schedule` sets nobook=True, so it works without `init` (pure calculation, no ./fin.db needed beyond the file open).
+- Principal must be > 0, rate >= 0, months >= 1 (integer); otherwise user error.
+- Row n date = start + n months (spec 9 literal); payment computed in a Decimal context with prec 50, rounded to cents.
+- reconcile: cleared_balance and uncleared use the exact account name (not descendants); a transaction is cleared per (txn, account), so all its postings to ACCOUNT count.
+- reconcile audits on every successful run, even with no --clear (it's a write command; target = account name).
+- --clear validation: a posting to ACCOUNT on or before --date must exist, checked before any mark; any failure rolls back.
+- reconcile does not check closed periods (it posts nothing).
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for loans. Lead: optionally add the README assumptions above; run `python3 -m unittest discover -s tests` again after merging the other modules.
+
+**Do not redo**
+- Read spec sections 9 and 16, core.py, cli.py, helpers.py, test_ledger.py. The cli already rolls back on UserError, so no manual rollback was added.
+- Verified argparse `type=int` errors route through core.Parser.error -> UserError (exit 2) by the bad() tests passing.
+- Did not call EnterWorktree: cwd is already the lead-provided worktree and I made edits only in fin/loans.py and tests/test_loans.py (new file).
