@@ -69,8 +69,7 @@
       "error_handling": 8,
       "data_safety": 9,
       "tests": 7,
-      "consistency": 7,
-      "overall": 7
+      "consistency": 7
     },
     "issues": [
       "fin/importer.py `_checked_postings` re-implements the posting validation in `core.post_transaction`, even though core.py's docstring says not to; the two copies can drift apart, so a recurring template that passes the check could still be rejected (or accepted differently) when it runs.",
@@ -85,11 +84,12 @@
       "Money is handled carefully: Decimal is used everywhere and stored as text, `money.fmt` and `round2` are the single place for half-up rounding and the '0.00' rule, and every SQL value is passed as a parameter.",
       "The modules have a clean registration pattern (`register(sub)` with `leaf(..., access)`) that keeps permissions declarative, and most tests run the real CLI as a subprocess and check full JSON documents, including error paths."
     ],
-    "review_cost": 0.8984
+    "review_cost": 0.8984,
+    "overall": 7
   },
   "reviews": [
     {
-      "overall": null,
+      "overall": 7,
       "scores": {
         "structure": 7,
         "readability": 8,
@@ -97,8 +97,7 @@
         "error_handling": 8,
         "data_safety": 9,
         "tests": 7,
-        "consistency": 7,
-        "overall": 7
+        "consistency": 7
       },
       "review_cost": 0.8984
     }

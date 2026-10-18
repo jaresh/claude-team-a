@@ -1,0 +1,11 @@
+.........../usr/lib/python3.14/unittest/case.py:704: ResourceWarning: unclosed file <_io.TextIOWrapper name=5 encoding='UTF-8'>
+  function, args, kwargs = self._cleanups.pop()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.14/unittest/case.py:704: ResourceWarning: unclosed file <_io.TextIOWrapper name=3 encoding='UTF-8'>
+  function, args, kwargs = self._cleanups.pop()
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+.................................................................
+----------------------------------------------------------------------
+Ran 76 tests in 86.719s
+
+OK

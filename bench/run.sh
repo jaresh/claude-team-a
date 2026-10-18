@@ -116,6 +116,8 @@ def load(i):
         raw = json.load(open(f"{out}/review-raw-{i}.json"))
         text = raw.get("result", "")
         review = json.loads(text[text.index("{"):text.rindex("}") + 1])
+        if "overall" not in review and "overall" in review.get("scores", {}):   # misplaced by the reviewer
+            review["overall"] = review["scores"].pop("overall")
         review["review_cost"] = round(raw.get("total_cost_usd") or 0, 4)
     except (ValueError, OSError) as e:
         review = {"error": f"no review: {e}"}
