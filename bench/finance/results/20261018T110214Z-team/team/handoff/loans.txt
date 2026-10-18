@@ -1,0 +1,22 @@
+**Done**
+- Files changed (owned): fin/loans.py (new), tests/test_loans.py (new).
+- fin/loans.py: `register(sub)` adds group "loan" with `schedule PRINCIPAL RATE MONTHS --start DATE` (write=False, no user needed, no audit).
+  Service fn: `schedule(principal, rate, months, start)` -> `{"payment", "total_interest", "rows": [{n, date, payment, interest, principal, balance}]}`. Handler: `cmd_loan_schedule(ctx, a)`.
+  Uses decimal localcontext prec 50. r = RATE/1200; payment = q2(P*r/(1-(1+r)^-n)); RATE 0 -> q2(P/n). interest = q2(balance*r); last row pays remaining balance + its interest; final balance "0.00".
+- Validation (UserError): principal must parse, be > 0, and have at most 2 decimals; rate >= 0; months integer >= 1; start valid date.
+- Test check: `python3 -m unittest tests.test_loans` -> 7 tests, OK.
+
+**Assumptions (decisions made, for README)**
+- Row n is dated start + n months (literal spec wording), so the first payment is one month after start.
+- Principal with more than 2 decimals is rejected (not silently rounded).
+- No cap on the number of months.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for this task. The lead may wire the README assumptions above. The CLI group "loan" is picked up automatically because "loans" is already in cli.MODULES.
+
+**Do not redo**
+- Checked the payment and final rows against an independent Decimal calculation: 1000 at 6% for 12 months gives payment 86.07, last payment 86.03, total interest 32.80 (11*86.07 + 86.03 - 1000). The test expectations were corrected to these values after my first guess (32.84) was wrong.
+- Running `python3 -m fin --json loan schedule ...` without an existing ./fin.db prints "database not found" (books' db.connect behaviour, not a loans issue).

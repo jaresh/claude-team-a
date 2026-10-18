@@ -1,0 +1,28 @@
+**Done**
+Files (all owned by budgetsrecur, no shared files edited, changes.md untouched):
+- fin/budgets.py: `budget set` (group "budget"), `report budget MONTH` (registered via group "report", write=False).
+  Service fns: set_budget(ctx, account, month, amount) -> dict; budget_report(conn, month) -> list of dicts.
+- fin/recurring.py: `recurring add` and `recurring run --until` (group "recurring").
+  Service fns: add_recurring(ctx, name, every, start, posting_specs) -> dict (posting_specs are 'ACCOUNT=AMOUNT' strings);
+  run_recurring(ctx, until) -> {"created": N}. Helpers: check_postings(conn, specs), nth_occurrence, occurrences_until.
+- tests/test_budgets.py (4 tests), tests/test_recurring.py (6 tests).
+Check: `python3 -m unittest tests.test_budgets tests.test_recurring` -> 12 tests, OK.
+
+Assumptions (also fine to copy to README):
+- budget amount must be >= 0 (negative is a user error); stored as q2.
+- budget actual is summed in the budget account's currency; postings in another currency (descendants) are converted at the month's last day via core.convert (no rate -> user error). Not tested with a fx rate, since fin/fx.py does not exist yet.
+- recurring add validates postings by running core.add_txn inside a SAVEPOINT (check_period=False) and rolling back, so accounts, balance and blank-rule checks match txn add; a rule may start in a closed period (only run is blocked).
+- recurring run checks every pending occurrence against the closed period before creating anything; creates via core.add_txn (no txn.add audit).
+- recurring.run audit entry is written every successful run, even when created is 0.
+- recurring add: --every is restricted by argparse choices; empty name is a user error; duplicate names allowed.
+- Recurring rows stored as JSON list of [account, amount-or-null] in recurring.postings; done occurrences in recurring_done(rec_id, date).
+
+**In progress**
+Nothing. Task complete.
+
+**Next step**
+None for this task. The lead should run `python3 -m unittest discover -s tests` once all teammates are merged, and make sure fin/cli.py MODULES still lists "budgets" and "recurring" (it does now).
+
+**Do not redo**
+- Test-helper pitfalls already fixed: closing a month also blocks earlier months, so a run from January fails after closing February (tests reflect that); a weekly rule keeps generating occurrences up to the until date, so tests account for it.
+- No need to rework the posting validation: it reuses core.add_txn, so no duplicate balance logic exists.

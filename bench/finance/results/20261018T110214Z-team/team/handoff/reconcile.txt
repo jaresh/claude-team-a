@@ -1,0 +1,26 @@
+**Done**
+- Files created: fin/reconcile.py, tests/test_reconcile.py. No shared files edited, so changes.md not touched.
+- fin/reconcile.py:
+  - Service fn `reconcile(ctx, account, date, balance, clear_ids)` returns the spec sec 16 dict (account, date, statement_balance, cleared_balance, difference, uncleared). Takes ctx, so the API can call it directly.
+  - Handler `cmd_reconcile(ctx, a)`; `register(sub)` adds the top-level command `reconcile ACCOUNT --date --balance [--clear ID ...]`, with set_defaults(write=True, admin=False).
+  - Helper `_parse_ids` (private) validates --clear values as integers and dedupes them.
+- Behaviour:
+  - Account must exist; date, balance and ids are validated.
+  - Every --clear id is checked (posting to exact account on or before DATE) before anything is written. Any failure is a UserError and nothing is marked.
+  - Marks go into `cleared` with INSERT OR IGNORE.
+  - Audit `reconcile` (target = account) is written inside the service fn, only when clear_ids is non-empty. The API therefore gets it too.
+  - cleared_balance = sum of cleared postings to ACCOUNT dated on or before DATE. uncleared = ascending distinct txn ids with uncleared postings to ACCOUNT on or before DATE.
+- Check: `python3 -m unittest tests.test_reconcile` gives 5 tests, OK. `py_compile` passes.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for this task. The lead should confirm `reconcile` is in cli.MODULES (it already is: "reconcile" is listed) and run the full suite with `python3 -m unittest discover -s tests` when all teammates are done.
+
+**Do not redo**
+- Decision: `write=True` for `reconcile`, even when no --clear is given. A viewer is therefore denied a pure report. This follows the contract that "write=True for anything changing data"; the command can change data, so I did not split it. If the lead wants a viewer-readable report, the handler needs a separate read path. That is a design call, not a bug.
+- Decision: no audit entry when clear_ids is empty, because nothing changed.
+- Verified: a `--clear` on a txn that only posts to a child account (Assets:Bank:Sub) is rejected, because the account match is exact.
+- Verified: duplicate --clear ids are harmless (deduped).
+- Verified: ids marked earlier stay marked in later runs, and cleared_balance respects the --date cutoff.

@@ -1,0 +1,21 @@
+**Done**
+- Files changed (both new, owned by api): fin/api.py, tests/test_api.py. No shared files edited; changes.md not touched.
+- fin/api.py: GET routes /accounts, /transactions (account, from, to filters), /balances, /reports/income, /reports/balance-sheet, /reports/aging (payables flag), /invoices (status filter), /invoices/ID, /audit. POST routes /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200). POSTs need X-User; viewer 403; no user or unknown user 401; unknown path 404 (checked before auth). UserError 400; any other exception 500. Each request: own db.connect, BEGIN/COMMIT, ROLLBACK on error. Invoice lines are converted to the "DESC;QTY;PRICE;TAX" strings; ';' is rejected in quantity, price and tax_code.
+- Command: `serve --port N` (write=False, no auth). Port validated 0..65535; bind failure becomes a user error. make_server(db_path, port) returns a ThreadingHTTPServer on 127.0.0.1.
+- tests/test_api.py: 13 tests (reads without user, transaction filters, reports and aging, 404 and 400 cases, POST auth 401/403, 201 with audit, user errors 400 leaving nothing changed, closed period 400, blank posting filled, invoice lifecycle draft -> issued -> paid, invoice errors, serve parser registered with --port).
+- Checks: `python3 -m unittest tests.test_api` -> Ran 13, OK. `python3 -m unittest discover -s tests` -> Ran 97, OK.
+- Smoke test of the real command on a scratch book (.claude/team/scratch/api/s2.db, admin + editor ed + Assets:Bank), `python3 -m fin --db ... serve --port 8767`: GET /accounts 200; POST /transactions with no user 401 "a user is required (--user)"; with unknown user 401 "unknown user: nobody"; POST /nope 404; admin POST /transactions 201 with the two postings in EUR. The server stopped on timeout and the background job completed with no traceback in its output.
+- The earlier "this command changes data: send the X-User header" message was not reproduced: a repo-wide grep of fin/ and tests/ finds nothing, and the rerun on a fresh server gave the messages above. Its source is unknown (likely a stale process from an earlier session).
+
+**In progress**
+- Nothing open. The api task is complete and both checks pass.
+
+**Next step**
+- Lead: review fin/api.py and tests/test_api.py, then run `python3 -m unittest discover -s tests` once more with the other teammates' work merged. Optional: `python3 -m fin --db <db> serve --port <free>` to try it by hand.
+
+**Do not redo**
+- The 401 "changes data" text: grepped `changes data` across fin/ and tests/ (no matches); the server I ran returns "a user is required (--user)" for the same request. Not a code path of this task.
+- Smoke-test failures from earlier were my own mistakes: `account add` without `--user admin`, and a backgrounded server that exited before the curl calls (the second run had a 90 s timeout and answered correctly).
+- Test expectation fix already applied: a 130.00 payment (not 120.00) for the 130.00 invoice.
+- ResourceWarning from HTTPError was fixed by `with e:` around e.read() in the test client.
+- No commit made. No git stash used.

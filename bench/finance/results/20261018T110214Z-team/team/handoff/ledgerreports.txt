@@ -1,0 +1,21 @@
+**Done**
+- Files changed: fin/reports.py (new), tests/test_reports.py (new). No shared files edited, so no changes.md rows.
+- Commands registered via cli.group(sub, "report"): income, balance-sheet, networth, trial-balance, ledger (all write=False, no user needed).
+- Service functions (take conn): income_report(conn, frm, to, currency=None), balance_sheet(conn, at, currency=None), networth(conn, frm, to, currency=None) (frm/to are YYYY-MM), trial_balance(conn, at, currency=None), ledger(conn, account, frm, to). Handlers: cmd_report_income, cmd_report_balance_sheet, cmd_report_networth, cmd_report_trial_balance, cmd_report_ledger.
+- Check: `python3 -m unittest tests.test_reports` -> Ran 14 tests, OK.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: add the other wave-1 modules as they land; nothing further for ledgerreports. Optional: `python3 -m unittest discover -s tests` once other tasks are in.
+
+**Do not redo**
+- Assumptions (put in README by lead if wanted):
+  - Conversion: each account's per-currency balance converted at the report date (--to for income/ledger, --at for balance-sheet/trial-balance, month end for networth), summed unrounded, rounded once per account.
+  - Retained earnings = rounded income total minus rounded expense total up to the date; total_equity = equity total + retained earnings. total_assets = total_liabilities + total_equity holds exactly except possibly by a cent when many accounts round differently (multi-currency or sub-cent amounts).
+  - Ledger converts all rows (and opening) to ACCOUNT's currency at --to; running balance adds rounded row amounts so the column adds up. --currency is not offered on ledger (spec says ACCOUNT's currency).
+  - Trial balance accepts optional --currency (spec only says book currency); rows only for accounts with postings up to the date.
+  - from > to (income, ledger, networth) is a user error.
+- Tests insert fx rows straight into the fx table with sqlite3 (the fx command is another task's), so the test does not depend on fx add.
+- Note: tests/test_reports.py was modified on disk after I wrote it (base class change, I think); the file as it now stands passes all 14 tests, so I left it alone.

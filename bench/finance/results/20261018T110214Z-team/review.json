@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 6,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "fin/cli.py main: for `init`, db.create writes the schema to disk before the transaction starts and before cmd_init checks the currency, so a failed `init` (for example `--currency EURO`) leaves a database file behind and every later `init` is refused with 'database already exists'.",
+    "Domain modules (books, reports, invoicing, bills, fx, ...) each import `fin.cli.group` and mix argparse registration with business logic, so the HTTP API (api.py imports books/invoicing/reports) depends on the CLI layer and there is a circular import between cli and the command modules.",
+    "Logic is duplicated across invoicing.py and bills.py: tax-rate lookup (invoicing.tax_rate vs bills._tax_rate), customer vs vendor add with different validation helpers, list/show/status handling, and invoicing.aging also handles bills through parallel SQL strings instead of each module owning its own aging.",
+    "Validation is inconsistent: invoicing.pay_invoice rejects amounts with more than two decimals but bills.pay_bill silently rounds them, `customer add --terms` is `type=int` while `vendor add --terms` is not, invoice ids are parsed by argparse while bill ids are parsed by hand, and `bill list --status` has no choices while `invoice list --status` does.",
+    "core.add_txn stores posting amounts unrounded (`str(amt)`, e.g. 10.005) and invoicing.issue_invoice rebuilds Decimals from formatted strings (`Decimal(inv['total'])`), so ledger data can hold sub-cent values that reports later round differently; invoice numbering via COUNT(*) per year is also fragile.",
+    "Tests are dense multi-assertion scenarios (e.g. test_books.py has only 3 tests covering sections 1, 2, 3, 11 and 12), Env.fail never checks that nothing changed, and test_invoicing seeds bills and payments with raw SQL, which couples the tests to the schema rather than to behaviour."
+  ],
+  "strengths": [
+    "Each CLI command and each API request runs in one explicit BEGIN/COMMIT/ROLLBACK transaction, with UserError/PermissionDenied mapped cleanly to exit code 2 or 400/401/403, so failed writes are atomic and never print a traceback.",
+    "Money handling is careful: Decimal everywhere, one shared q2/fmt helper for half-up rounding and avoiding '-0.00', amounts stored as TEXT, and every SQL statement uses parameters.",
+    "Date logic is clear and correct: core.add_months clamps to the month's last day, and recurring.nth_occurrence computes each date from the start rather than from the previous occurrence, avoiding Jan 31 \u2192 Feb 28 \u2192 Mar 28 drift."
+  ],
+  "review_cost": 0.8818
+}

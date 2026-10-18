@@ -1,0 +1,31 @@
+**Done**
+- Files: fin/importer.py (new), tests/test_importer.py (new). No shared files edited, so no changes.md rows.
+- Check: `python3 -m unittest tests.test_importer` -> Ran 15 tests, OK. py_compile clean.
+- Commands: `rule add PATTERN ACCOUNT`, `rule list`, `import FILE --account ACCOUNT [--date-col N] [--desc-col N] [--amount-col N] [--skip-header]`.
+- Service fns (take ctx, plain args; they do their own ctx.audit, so the API gets audit for free):
+  - add_rule(ctx, pattern, account) -> {"pattern","account"}; audit rule.add (pattern)
+  - list_rules(conn) -> [{"pattern","account"}] in order added
+  - read_csv(path, date_col=0, desc_col=1, amount_col=2, skip_header=False) -> [(date, desc, Decimal)]
+  - import_csv(ctx, path, account, date_col, desc_col, amount_col, skip_header) -> {"imported","skipped"}
+  - import_rows(ctx, account, rows) -> {"imported","skipped"}; rows = [(date str, desc, Decimal)]; audit import (account), exactly once per call
+- Validation: rule pattern must be non-empty and compile as re (IGNORECASE); rule account must exist. Import account must exist; column indexes must be non-negative ints; every row needs a valid date and amount; missing file or undecodable file is a UserError. All rows' dates are checked against closed periods before any insert (any row in a closed month fails the import).
+- Posting: core.add_txn per row, no txn.add audit. Category account via core.ensure_account (book currency), created only when a row needs it.
+- Dedup: `imported` rows keyed by (account, date, description, fmt(amount)). A row whose key is already in the table, or was already seen earlier in the same file, is skipped.
+
+**Decisions and deviations (lead should check)**
+1. Dedup `n` column: the plan's occurrence-index scheme would import the second of two identical rows in one file, which contradicts spec sec 5 ("including repeats within one file"). I followed the spec: one stored row per key, `n` always stored as 1. The column is unused.
+2. Zero-amount rows go to Income:Uncategorized (spec only covers negative and positive). Negative goes to Expenses:Uncategorized.
+3. Empty rule pattern is rejected (spec silent).
+4. An import is always audited, even when imported = 0 (one `import` entry per successful call).
+5. If the rule account (or the account being imported into) has a different currency than the other side, add_txn fails with "does not balance" and the whole import rolls back. This is a UserError, not a bug in this module, but the message is unclear.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: nothing needed from importer. Optional: `python3 -m unittest discover -s tests` once the other modules are in, to confirm no cross-module conflicts (none expected: importer only touches tables rules, imported, accounts, txns, postings, audit).
+
+**Do not redo**
+- Checked the spec sec 5 and 12 and the plan's importer section; the plan's n-index dedup was ruled out by the spec's "repeats within one file" rule (see deviation 1).
+- Used cli.group(sub, "rule") and sub.add_parser("import") as the contract requires; no own helper duplicated from core (uses core.get_account, core.date_str, core.parse_date, core.parse_amount, core.q2, core.fmt, core.check_open, core.add_txn, core.ensure_account).
+- Test helper names: none named like unittest methods; tests use FinCase and Env from tests/helpers.py.

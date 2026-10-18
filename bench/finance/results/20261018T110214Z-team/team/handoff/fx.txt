@@ -1,0 +1,17 @@
+**Done**
+- Files changed: fin/fx.py (new), tests/test_fx.py (new). No shared files edited, so no changes.md line.
+- fin/fx.py: `register(sub)` adds group "fx" with `add DATE FROM TO RATE` (write=True) and top-level `convert AMOUNT FROM TO --at DATE` (write=False).
+- Service fns: `add_rate(ctx, date, frm, to, rate)` -> {"date","from","to","rate"}, audits `fx.add` target "FROM/TO"; `convert_cmd(conn, amount, frm, to, at)` -> {"amount": fmt, "currency": TO}.
+- Validation: currency codes via core.parse_currency (3 letters, upper-cased); FROM == TO rejected for fx add (UserError); rate via core.parse_amount, must be > 0 (NaN/inf rejected); dates via core.parse_date. convert uses core.convert (direct rate, else 1/inverse, latest on or before --at; same currency 1:1; missing rate -> UserError).
+- Check: `python3 -m unittest tests.test_fx` -> 6 tests, OK. tests.test_books still OK.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for fx. Lead may run `python3 -m unittest discover -s tests` at integration time.
+
+**Do not redo**
+- Assumption, not in spec: fx add rejects FROM == TO and non-positive rates; duplicate rates on the same date are allowed (core.get_rate takes the latest rowid, so the newest add wins).
+- Assumption: any 3-letter code is accepted; no check that a currency is used by an account.
+- Tests use Env/FinCase from tests/helpers.py; audit count checked as init + one valid fx add.

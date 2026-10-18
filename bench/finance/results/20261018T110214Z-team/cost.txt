@@ -1,0 +1,16 @@
+agent               model       effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:fc65a3af       sonnet-5-5            24     24     64    65350  1336530   24952        0     75074          0            0  0.7784
+budgetsrecur task   haiku-5-5             17     19     34    45051   461654   11057       12     45053          0            0  0.0158
+fx task             haiku-5-5             13     13     26    33559   263395    7112        9     33561          0            0  0.0104
+importer task       haiku-5-5             15     17     30    46226   382038   17105        9     46228          0            0  0.0182
+reconcile task      haiku-5-5             12     20     24    36278   236373    5509        8     36280          0            0  0.0097
+loans task          haiku-5-5             14     14     28    29181   249673    6571       10     29183          0            0  0.0094
+bills task          haiku-5-5             12     15     24    52942   299198   25119        8     52944          0            0  0.0222
+invoicing task      haiku-5-5             17     20     34    60602   519054   16290       12     60604          0            0  0.0209
+ledgerreports task  haiku-5-5             13     14     26    45937   299499   21410        7     45939          0            0  0.0194
+api task            haiku-5-5             27     32     54    86731   883459   21248       23     65924          0            1  0.0303
+TOTAL               sonnet-5-5            24     24     64    65350  1336530   24952        0     75074          0            0  0.7784
+TOTAL               haiku-5-5            140    164    280   436507  3594343  131421       98     65924          0            1  0.1562
+total $0.9346
+cold start $0.9715: the lead's first message read a prefix another session had cached; written by this run it would cost $0.0369 more.
+out_est: responses whose output was estimated from visible content (3.5 chars/token); hidden thinking is not counted.

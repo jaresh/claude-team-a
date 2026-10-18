@@ -1,0 +1,40 @@
+## Done
+Files changed (only my own):
+- fin/bills.py (new): vendor add/list, bill create/pay/show/list, register(sub) with groups "vendor" and "bill".
+- tests/test_bills.py (new): 13 tests (12 CLI-level in class Bills, 1 unit test for parse_line). No edits to shared files, so no changes.md rows.
+Check: `python3 -m unittest tests.test_bills` -> Ran 13 tests, OK.
+
+Service functions (take ctx, plain args; return JSON-able dicts; no transaction handling, caller owns it):
+- add_vendor(ctx, name, terms=30) -> {"name", "terms"}; audit vendor.add NAME
+- list_vendors(conn) -> [{"name","terms"}]
+- create_bill(ctx, vendor, ref, date, lines) -> bill dict; lines = list of (description, net, account, tax_code) where net is str|Decimal and tax_code is str|None (empty/None = no tax). Audit bill.create ID.
+- pay_bill(ctx, id, amount, date, account) -> bill dict; amount str|Decimal. Audit bill.pay ID.
+- show_bill(conn, id) -> bill dict
+- list_bills(conn, status=None) -> [bill dict]
+- check_lines(conn, lines) helper (validation + rounding), parse_line(spec) for "DESC;AMOUNT;ACCOUNT;TAXCODE".
+
+Bill dict shape: {"id","vendor","ref","date","due","status","lines":[{"description","account","tax_code","net","tax"}],"net","tax","total","paid","balance"}, all money as 2-decimal strings.
+
+Storage (matches db.py): bills.status, bill_lines.net/tax as fmt strings, bill_payments.amount as fmt string; bill total = sum(net)+sum(tax), paid = sum(bill_payments.amount). Invoicing's aging --payables can rely on these.
+
+Postings: bill create -> each line account +net, Assets:TaxReceivable +tax (only if tax != 0), Liabilities:Payable -total; description "Bill REF". bill pay -> Liabilities:Payable +AMOUNT, ACCOUNT -AMOUNT; description "Payment REF". Both go through core.add_txn (closed-period check included). Accounts ensured with core.ensure_account.
+
+Assumptions I decided (not in spec, listed for README):
+- Bill status is "open" on creation, or "paid" if the total is zero.
+- Bill line net may not be negative; payments must be > 0 (rounded to cents) and at most the balance; paying a paid bill is an error.
+- Bill line accounts must be expense or asset accounts in the book currency; the payment account must be an asset account in the book currency; else user error.
+- A bill line spec must have exactly 4 ';'-separated parts, so ';' cannot appear in a description.
+- Tax code lookup reads table `taxes` (rate parsed as Decimal); unknown code is a user error.
+- Bill due = bill date + vendor terms days.
+- `bill list --status` accepts open, partial, paid only.
+
+## In progress
+Nothing. Task complete.
+
+## Next step
+Nothing for bills. The lead can run `python3 -m unittest tests.test_bills` again after merging, or `python3 -m unittest discover -s tests` for the full suite (other tasks' tests may still be missing).
+
+## Do not redo
+- Did not register `report aging` (invoicing owns it) and did not write the tax module (invoicing owns fin/tax.py). Tests insert into `taxes` directly with sqlite3, so they don't depend on `tax add`.
+- The first test draft checked txn list[0] in the rounding test; fixed to check the last txn (bill C, no tax). Not a code problem.
+- No edits to core.py, cli.py, books.py, ctx.py, db.py, helpers.py. No bug found in them while using them.
