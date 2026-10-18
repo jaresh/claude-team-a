@@ -14,7 +14,12 @@ def done_check(plan, task):
     m = re.search(rf"^##+ *`?{re.escape(task)}`?\\b[^\\n]*\\n(.*?)(?=^##+ |\\Z)", open(plan).read(),
                   re.M | re.S)
     c = re.search(r"[Dd]one[^`\\n]*`([^`]+)`", m.group(1)) if m else None
-    return c.group(1) if c else None
+    cmd = c.group(1).strip() if c else ""
+    if not re.match(r"(python3?|pytest|npm|npx|node|make|go|cargo|bash|sh|\\./)\\b", cmd):
+        return None   # not a command: the lead's wording, not a check
+    if re.match(r"python\\b", cmd) and not shutil.which("python"):
+        cmd = "python3" + cmd[len("python"):]   # the teammates run python3 where python is absent
+    return cmd
 
 
 def hook_gate(d):
@@ -40,7 +45,9 @@ def hook_gate(d):
         if check:
             r = subprocess.run(check, shell=True, cwd=root, capture_output=True, text=True,
                                timeout=170)
-            if r.returncode != 0:
+            if r.returncode == 127:   # the check itself can't run: not the teammate's fault
+                check += " (can't run: not checked)"
+            elif r.returncode != 0:
                 problem = (f"Your done check `{check}` fails:\\n{(r.stdout + r.stderr)[-1500:]}\\n"
                            "Fix it and update your handoff before you finish.")
     log_hook({"hook": "gate", "teammate": name, "check": check, "blocked": bool(problem),
