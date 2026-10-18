@@ -15,6 +15,13 @@ The session you start is the lead. Type `/team <task>` (or ask for "the team") a
 
 A spec file in the prompt (`/team follow docs/spec.md`) replaces the planning step.
 
+**Parallel or one at a time: you choose in the prompt.** "Work with team on it." runs the
+tasks in parallel. "Work with team on it, one teammate at a time." runs them one after another,
+each building on the code before it. On the finance benchmark (4 runs each, kit 3.11) one at a
+time gave more consistent code (review consistency 8 vs 6, overall 7.5 vs 7) at about the same
+cost ($0.77 vs $0.83), but took twice as long (28 vs 14 minutes) and missed one more spec detail
+(hidden tests 41 vs 42). Use it when code quality matters more than waiting.
+
 Recommended start: `python3 .claude/skills/team/team_kit.py lead "<task>"` (`-- --model sonnet`
 and other claude flags after `--`). It opens the same session without the tools a lead never
 uses (artifacts, feedback reports, outside messages, Gmail), so the start-up prompt the lead
@@ -36,7 +43,7 @@ hides them from git through `.git/info/exclude`, and leaves tracked files, `.git
 | Path | What |
 |---|---|
 | `.claude/skills/team/SKILL.md` | the lead's playbook, loaded only when the team is asked for |
-| `.claude/skills/team/team_kit.py` | a copy of the script (cost, status, uninstall) |
+| `.claude/skills/team/team_kit.py` | a copy of the script (request, cost, status, uninstall) |
 | `.claude/agents/team-dev.md` | the teammate, with its rules (scope, budget, handoff) |
 | `.claude/settings.local.json` | merged in: agent teams on, Haiku auto-compact at 100K |
 | `.claude/team/` | working files: plan, status, change log, handoffs, scratch |

@@ -217,3 +217,28 @@ as is `bench/finance-solo`, pushed by the 09:22 run). Team leads never used eith
 - **Adopted** (quality first): kit 3.11 is the current kit.
 - `run 20261018T034038Z-team`: the reviewer put `overall` inside `scores` (7); the runner now
   accepts both places, and this run's record was corrected.
+
+## One teammate at a time (arm team1, kit 3.11), 4 runs on v2.1
+
+The same kit; the prompt says "Work with team on it, one teammate at a time." In every run the
+lead ran its tasks in order, one teammate each (5-8 teammates, none overlapping).
+
+| Metric | One at a time (n=4) | Parallel, kit 3.11 (n=4) | Solo (n=4) |
+|---|---|---|---|
+| Hidden tests passed | 41 (41-42) | 42 (41-42) | 42 (42-42) |
+| Review overall | 7.5 (7-8) | 7 (7-7) | 7 (6-7) |
+| Review consistency | **8** (7-8) | 6 (6-7) | 7 (7-8) |
+| Review tests | 8 (8-8) | 7 (7-8) | 6.5 (6-7) |
+| Cost $, cold start | 0.773 (0.722-0.921) | 0.832 (0.654-0.866) | 1.154 (1.098-1.319) |
+| Wall minutes | 28 (28-29) | 14 (11-17) | 7 (7-8) |
+
+- Against parallel (leave-one-out): consistency better (stable, above the floor), review overall
+  and tests tie, cost 7% lower (stable, under a 10% minimum effect), hidden tests one lower
+  (stable), wall time twice as long.
+- The hidden-test miss is the same in 3 of 4 runs: `recurring add` with a start in a closed
+  month is rejected, because the teammate validated the template through the shared posting
+  function, which also checks closed periods (the spec checks only the posting rules when a
+  schedule is added). Building on existing code made that reuse likelier (parallel: 1 of 4).
+- Against solo: ties on review, consistency and structure; cheaper (-33%); one hidden test lower.
+- Offered as a choice in the prompt (README); kit 3.12 documents it in the skill, with a line on
+  reuse that adds checks the spec doesn't ask for. Not re-measured.

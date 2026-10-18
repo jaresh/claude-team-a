@@ -47,7 +47,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.11"
+KIT_VERSION = "3.12"
 
 SKILL = """\
 ---
@@ -136,6 +136,11 @@ plan, later waves included as `waiting`: name, task, model, state, handoff path)
 > Write .claude/team/handoff/<task>.txt before your final message.
 
 Then end the turn. Completion notices wake you: don't poll, sleep, or check on teammates.
+
+If the user asks for one teammate at a time, every wave has one task, in an order where each
+task builds on the code before it. It takes about twice as long and gives more consistent
+code. A task that reuses earlier code must still follow the spec where that code does more than
+the task needs: reusing it unchanged can add a check the spec doesn't ask for.
 
 ## 3. Merge and check
 
