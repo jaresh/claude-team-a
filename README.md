@@ -44,8 +44,8 @@ hides them from git through `.git/info/exclude`, and leaves tracked files, `.git
 |---|---|
 | `.claude/skills/team/SKILL.md` | the lead's playbook, loaded only when the team is asked for |
 | `.claude/skills/team/team_kit.py` | a copy of the script (request, cost, status, uninstall) |
-| `.claude/agents/team-dev.md` | the teammate, with its rules (scope, budget, handoff) |
-| `.claude/settings.local.json` | merged in: agent teams on, Haiku auto-compact at 100K |
+| `.claude/agents/team-dev.md` | the teammate, with its rules (scope, budget, handoff) and a 100K auto-compact window |
+| `.claude/settings.local.json` | merged in: agent teams on, and every subagent on Haiku (`CLAUDE_CODE_SUBAGENT_MODEL` with `_FORCE`; in that repo it applies to all subagents, not only the team's) |
 | `.claude/team/` | working files: plan, status, change log, handoffs, scratch |
 
 Restart sessions that were open during the install. Cost tips from the experiments: start a big

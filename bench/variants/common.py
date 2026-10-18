@@ -6,8 +6,9 @@ def rep(src, old, new):
     return src.replace(old, new)
 
 
-SETTINGS = '''SETTINGS_ADD = {"env": {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"},
-                "modelSettings": {"claude-haiku-5-5": {"autoCompactWindow": 100000}}}'''
+SETTINGS = '''SETTINGS_ADD = {"env": {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+                        "CLAUDE_CODE_SUBAGENT_MODEL": "haiku",
+                        "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1"}}'''
 
 # `team_kit.py hook NAME` reads a hook's JSON input on stdin and runs HOOKS[NAME]. A handler
 # returns None (let it through), a JSON object to print, or {"exit": 2, "stderr": ...}.

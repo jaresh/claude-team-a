@@ -61,8 +61,9 @@ review of 8 and 6 and cost $1.62 and $1.06. So:
 A kit change is judged the same way: 3 runs of the new kit against the current kit's runs.
 
 **Single-change variants** (`bench/variants/`): each file there is one change to `team_kit.py`
-(`apply(src)`), tested before it goes into the kit: `VARIANT=force-haiku bench/run.sh finance
-team` installs that variant, and its results carry the kit version `3.12+force-haiku`. Other
+(`apply(src)`), tested before it goes into the kit: `VARIANT=done-gate bench/run.sh finance
+team` installs that variant, and its results carry the kit version `3.13+done-gate`. Adopted
+variants move into `team_kit.py`; retired ones are listed in `ARCHIVE.md`. Other
 arms: `MODEL=haiku` (solo or lead on Haiku), `CLAUDE_ARGS="--advisor sonnet"`, `ARM=<name>`.
 One run each first; a variant that holds gets the full 4 runs before it is adopted.
 

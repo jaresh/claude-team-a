@@ -23,7 +23,7 @@ Installed files (all git-ignored):
   .claude/skills/team/team_kit.py  a copy of this file (request, cost, status, uninstall)
   .claude/agents/team-dev.md       the teammate: Haiku, effort medium, its rules in its body
   .claude/rules/team.md            three lines, always loaded: a team request loads the skill
-  .claude/settings.local.json      + agent teams on, Haiku auto-compact at 100K (merged)
+  .claude/settings.local.json      + agent teams on, every subagent on Haiku (merged)
   .claude/team/                    working files: plan, status, change log, handoffs, scratch
 
 Restart Claude Code sessions that are already open in the repo to pick up the settings.
@@ -47,7 +47,7 @@ import sys
 from collections import Counter
 from datetime import datetime
 
-KIT_VERSION = "3.12"
+KIT_VERSION = "3.13"
 
 SKILL = """\
 ---
@@ -203,6 +203,7 @@ description: Teammate for one bounded coding task from the team lead (the /team 
 tools: Read, Write, Edit, Bash, Glob, Grep
 model: haiku
 effort: medium
+autoCompactWindow: 100000
 ---
 
 You are a teammate on an agent team. The lead (the main session) gives you one bounded task: you
@@ -281,8 +282,11 @@ FILES = {".claude/skills/team/SKILL.md": SKILL, ".claude/agents/team-dev.md": AG
 WORK_FILES = {".claude/team/status.md": STATUS, ".claude/team/changes.md": CHANGES}
 SELF = ".claude/skills/team/team_kit.py"
 SETTINGS = ".claude/settings.local.json"
-SETTINGS_ADD = {"env": {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"},
-                "modelSettings": {"claude-haiku-5-5": {"autoCompactWindow": 100000}}}
+# Every subagent and teammate runs on Haiku whatever model the lead passes (Claude Code 2.1.257+);
+# the 100K auto-compact window is in the team-dev agent's own frontmatter (2.1.296+).
+SETTINGS_ADD = {"env": {"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+                        "CLAUDE_CODE_SUBAGENT_MODEL": "haiku",
+                        "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1"}}
 MANIFEST = ".claude/team/.kit.json"
 EXCLUDE = [".claude/skills/team/", ".claude/agents/team-dev.md", ".claude/rules/team.md",
            ".claude/team/", SETTINGS]
@@ -400,9 +404,20 @@ def install(repo, force=False):
     if man["settings_prior"] is None:   # values before the first install, restored by uninstall
         man["settings_text"] = open(spath).read() if os.path.exists(spath) else None
         man["settings_prior"] = []
-        for path, _ in leaves(SETTINGS_ADD):
+    # An update can add settings (keep what was there before them) or drop some an older kit
+    # version set (put back what was there before that version).
+    current = {tuple(p) for p, _ in leaves(SETTINGS_ADD)}
+    recorded = {tuple(p) for p, _, _ in man["settings_prior"]}
+    for path, _ in leaves(SETTINGS_ADD):
+        if tuple(path) not in recorded:
             value, found = get_path(settings, path)
             man["settings_prior"].append([list(path), found, value])
+    for path, found, value in man["settings_prior"]:
+        if tuple(path) not in current:
+            if found:
+                set_path(settings, path, value)
+            else:
+                del_path(settings, path)
     for path, value in leaves(SETTINGS_ADD):
         set_path(settings, path, value)
     write(spath, json.dumps(settings, indent=2) + "\n")

@@ -289,3 +289,9 @@ once to see whether it holds before any 4-run check. Baseline: kit 3.11, 4 runs:
 - Not run: item 4 (scout: finance starts empty) and the sequential benchmark (needs a prompt).
 - **Next:** 4-run checks of team-haiku-lead and solo-haiku (the second Haiku solo run's total
   failure says one good run is not enough). force-haiku can go into the kit as a safety change.
+
+**Decisions (2026-10-18):** force-haiku adopted as kit 3.13 (the subagent model forced by
+setting, the 100K auto-compact window in the team-dev agent, and settings that update cleanly
+from an older install). audit and advisor-haiku retired (`ARCHIVE.md`). intake-hook, done-gate
+and workflow stay as variants: the first two for a benchmark big enough to need them, workflow
+until dynamic workflows are enabled.
