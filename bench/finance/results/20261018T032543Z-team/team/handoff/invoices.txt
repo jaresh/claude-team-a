@@ -1,0 +1,35 @@
+Done
+- fin/invoices.py: customers, invoices, invoice_lines, invoice_payments tables (private, lazy via core.ensure).
+  Plain functions: add_customer, list_customers, create_invoice, issue_invoice, pay_invoice, show_invoice,
+  list_invoices, invoices_open(conn, at), invoice_tax_by_code(conn, frm, to), parse_line.
+  Commands: customer add NAME [--terms N], customer list, invoice create --customer --date --line (repeatable),
+  invoice issue ID, invoice pay ID AMOUNT --date --account, invoice show ID, invoice list [--status].
+  Audit: customer.add, invoice.create, invoice.issue, invoice.pay.
+- tests/test_invoices.py: 18 tests (customers, draft shape, create errors, issue postings and numbering,
+  closed-period issue/pay, pay partial/paid/overpay, pay errors, roles, list/filter, audit entries,
+  invoices_open, invoice_tax_by_code).
+- Check results:
+  - python3 -m unittest tests.test_invoices: 18 tests, OK
+  - python3 -m unittest discover -s tests: 37 tests, OK (includes other teammates' modules as they exist now)
+- No shared files edited (changes.md not touched). Nothing committed.
+
+Assumptions (for README)
+- Line tax = net * rate of tax_code, rounded half up to cents. Lines without tax_code carry no tax.
+- Issue posts Assets:Receivable +total, Income:Sales -net, and Liabilities:SalesTax -tax only when tax is nonzero.
+- Pay posts [(payment account, +amt), (Assets:Receivable, -amt)]. Amount must be > 0, at most 2 decimals, and at most the balance.
+- Payment account must be an existing account in the book currency (system accounts too).
+- Price and payment amounts with more than 2 decimals are rejected; quantity may have decimals and is shown as given.
+- Due date = invoice date + customer terms (days). Customer terms default 30, must be >= 0.
+- Invoice numbers: INV-YYYY-NNNN, sequence per invoice-date year over issued (non-draft) invoices, assigned at issue.
+- Drafts have number null and can be created by any editor; issue and pay are subject to closed-period checks via post_transaction.
+- Invoice and customer ids: invoices have their own AUTOINCREMENT id from 1; customers are keyed by name.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for this task. Lead runs: cd <worktree> && python3 -m unittest tests.test_invoices && python3 -m unittest discover -s tests
+
+Do not redo
+- Test expectations were corrected (not code): the second test invoice has no tax (total 100.00, not 120.00), and the balance check now runs before the 2027 invoice is issued. Code behaviour was not changed for these.
+- Ran full suite after my tests passed: no failures.

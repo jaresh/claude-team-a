@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 6,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "fin/cli.py main: the `--json` flag is parsed but never read, and commands whose handler returns None (account add, user add, fx add, tax add, budget set, customer/vendor add, rule add, recurring add, period close) print nothing, so `--json` does not always print exactly one JSON document.",
+    "fin/cli.py main only catches core.UserError, so sqlite3 errors (for example `--db` pointing at a file that is not a fin database) crash with a traceback; `args._created` is never set, so the cleanup branch is dead code and a failed `init` on a new path leaves an empty database file behind.",
+    "Amount validation differs between modules: invoices._money rejects amounts with more than two decimals, while core.post_transaction, bills._bill_line, bills.pay_bill and importing.import_csv silently round them with q2 (the tests even expect `10.005` to become `10.01`), so `invoice pay 1.005` fails but `bill pay 1.005` succeeds.",
+    "The schema is split across modules and created lazily with core.ensure, even in read-only paths (invoices.list_customers, taxes.get_tax_rate, invoices.invoices_open, bills.bills_open), so read commands run DDL and no single place defines the full database schema.",
+    "Invoice status is stored and updated in the invoices table (invoices.pay_invoice), while bill status is computed from payments (bills._status); customer terms are validated by argparse `type=int` but vendor terms by the regex in bills._days, so the two parallel features disagree on conventions.",
+    "fin/api.py: `_Handler._respond` calls `int(Content-Length)` outside its try block, and `handle` opens the database without checking that it exists, so a malformed header or a missing database gives a dropped connection or a generic 500 instead of a clear error."
+  ],
+  "strengths": [
+    "Every CLI command and API request runs in a single BEGIN IMMEDIATE transaction that is rolled back on any error, and all postings go through one shared core.post_transaction, so balancing, closed-period checks and failed imports or recurring runs stay atomic.",
+    "Money is handled as Decimal from end to end, stored as TEXT and formatted only by core.fmt (half-up rounding, no negative zero); every SQL statement uses parameters.",
+    "The tests are behavioural and isolated (a temporary database per test, run in-process through main): they check exit codes, empty stdout on errors, that failures leave the database unchanged, and edge cases such as month-end and leap-day recurrence, duplicates within one import file, and API status codes 401/403/404 against the matching CLI output."
+  ],
+  "review_cost": 0.8825
+}

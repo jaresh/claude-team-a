@@ -1,0 +1,26 @@
+**Done**
+- fin/loans.py: `loan_schedule(ctx, principal, rate, months, start)` plain function and `loan schedule PRINCIPAL RATE MONTHS --start DATE` (read-only, write=False). Payment = q2(P·r/(1-(1+r)^-n)) computed at 40-digit precision; RATE 0 gives q2(P/n); last row repays the remaining balance plus its interest.
+- fin/reconcile.py: `reconcile_account(ctx, account, date, balance, clear=())` plain function and `reconcile ACCOUNT --date --balance [--clear ID ...]` (write=True, admin_only=False). Validates every --clear before writing; marks go into the existing `cleared` table from core.SCHEMA (no ensure call needed).
+- tests/test_loans.py (4 tests), tests/test_reconcile.py (4 tests).
+- Checks: `python3 -m unittest tests.test_loans tests.test_reconcile` → 8 tests OK. `python3 -m unittest discover -s tests` → 12 tests OK.
+- Loan figures were cross-checked against an exact Fraction calculation (scratch: .claude/team/scratch/loansrecon/check.py). 1000 at 12% over 12 months: payment 88.85, total interest 66.19, last payment 88.84.
+- No shared files edited; no changes.md lines needed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for this task. Lead: run `python3 -m unittest discover -s tests` after the other modules merge, and confirm `fin/cli.py` MODULES still lists "loans" and "reconcile" (it does: "reconcile" and "loans" are both already in MODULES; the module names are `loans`, not `loan`).
+- Note for README (assumptions):
+  - loan schedule: principal is rounded to cents (1000.005 → 1000.01) and must be > 0; RATE must be >= 0 (percent); MONTHS must be a whole number >= 1, no upper limit; start date is a plain date; row n is dated start + n months (keeping the day, clamped to month end). Stateless: writes nothing, no audit entry, runs without --user. It still needs an existing database file, because the CLI opens `--db` for every command.
+  - reconcile is a write command: editors and admins may run it, viewers may not, and it needs --user. It is audited as `reconcile ACCOUNT` on every successful run, including runs with no --clear, since the command is registered as a write.
+  - A --clear must name a transaction with a posting to exactly ACCOUNT (not to its child accounts) dated on or before --date. cleared_balance, uncleared and the clear check all use exact-account matching.
+  - Clearing a transaction that is already cleared for that account is a no-op. Cleared marks persist across runs, so a later run's cleared_balance includes earlier clears.
+  - Amounts go through core.fmt (half-up to cents) for output.
+
+**Do not redo**
+- Checked that core.SCHEMA already creates the `cleared(account, txn_id)` table; no core change needed.
+- Checked that no bugs were found in core.py, cli.py, base_cmds.py or helpers.py while using them; I did not edit any of them.
+- Checked loan numbers against an exact Fraction-based calculation; matches the implementation (see above). No need to re-derive.
+- Considered making reconcile without --clear a read-only command so viewers could run it. Not possible without changing cli.py, which the contract forbids for this task, so it stays write=True.
+- Considered making loan schedule work without a database. Setting needs_db=False would make core.connect create ./fin.db as a side effect, so I kept the default.

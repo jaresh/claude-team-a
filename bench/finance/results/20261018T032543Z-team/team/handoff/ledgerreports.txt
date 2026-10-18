@@ -1,0 +1,36 @@
+DONE
+- fin/reports.py (new): plain functions income_statement, balance_sheet, networth, trial_balance, ledger;
+  register() adds `report income`, `report balance-sheet`, `report networth`, `report trial-balance`, `report ledger`.
+  Helpers: _target, _values (per-account convert at date then q2), _total, _rows, _check_range.
+- tests/test_reports.py (new): 7 tests, all pass. Covers income (EUR, USD, empty period, from>to, bad date, unknown currency),
+  balance-sheet (EUR, USD, pre-book date, bad --at, missing --at), networth (EUR, single month, USD, from>to, bad month "2026-1"),
+  trial-balance (rows, zero row, totals, missing --at, bad date), ledger (opening, running balance, parent account "Expenses",
+  empty period, unknown account, missing --to), read-only (no audit entries from any report), viewer role may read.
+- Check: `python3 -m unittest tests.test_reports` -> OK (7 tests).
+  `python3 -m unittest discover -s tests` -> OK (37 tests).
+- No shared files edited (changes.md untouched). Nothing committed.
+
+IN PROGRESS
+- Nothing open. Task complete.
+
+NEXT STEP
+- None required for this task. Lead may run: cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_reports && python3 -m unittest discover -s tests
+
+DO NOT REDO
+- Verified by running: all 7 report tests and the full 37-test suite pass.
+- Test expectation for trial balance at 2026-01-31 was first written as 3950.00; the module output 4050.00 is correct
+  (Assets:USD 100 USD and Income:Bonus -100 USD each convert to 50.00 EUR at rate 2; debits 3100+50+900 = 4050).
+  Test corrected to 4050.00. Do not change the module for this.
+- No bugs found in core.py, cli.py, base_cmds.py or tests/helpers.py while using them. Not modified.
+
+ASSUMPTIONS (for README)
+- Reports convert each account's total at the report date (balance-sheet, trial-balance, networth at the month end; income over the period end date), then round per account, so rows and totals add up.
+- Income and liability and equity are shown as negated raw balances (positive = normal balance).
+- retained_earnings = income minus expenses to date; total_equity = equity + retained_earnings.
+- networth `--from`/`--to` are YYYY-MM months, inclusive; each month is valued at its last day.
+- trial-balance and ledger use book currency only; ledger rows are converted to the account's currency at the period end.
+- Income statement lists every income/expense account with postings in the period, including zero totals (e.g. Expenses:Gifts reversed to 0.00).
+
+KNOWN LIMITATION
+- In multi-currency books, per-account rounding can make total_assets differ from total_liabilities + total_equity by 0.01,
+  and trial-balance total_debit and total_credit can differ by 0.01. Single-currency books are exact.

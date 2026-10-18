@@ -1,0 +1,27 @@
+{
+  "app_files": 16,
+  "app_lines": 1512,
+  "test_files": 11,
+  "test_lines": 1112,
+  "test_functions": 105,
+  "test_to_app_ratio": 0.74,
+  "functions": 146,
+  "mean_function_lines": 9.3,
+  "max_function_lines": 51,
+  "functions_over_50_lines": 1,
+  "mean_complexity": 3.1,
+  "max_complexity": 14,
+  "functions_complexity_over_10": 3,
+  "most_complex": [
+    "fin/core.py:post_transaction (14)",
+    "fin/cli.py:main (13)",
+    "fin/invoices.py:create_invoice (12)"
+  ],
+  "docstring_coverage": 0.27,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 0,
+  "bare_except": 0,
+  "broad_except": 2,
+  "parse_errors": []
+}

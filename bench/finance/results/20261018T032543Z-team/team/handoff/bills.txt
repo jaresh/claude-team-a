@@ -1,0 +1,34 @@
+Done
+- fin/bills.py (new): vendor add / vendor list, bill create / pay / show / list, all wired in register(top, report).
+  Plain functions for the contract: create_bill(ctx, vendor, ref, date, lines), pay_bill(ctx, id, amount, date, account),
+  show_bill(ctx, id), list_bills(ctx, status=None), bills_open(conn, at) -> [(due, Decimal balance)],
+  bill_tax_by_code(conn, frm, to) -> {code: Decimal tax}. Extra helpers: add_vendor, list_vendors, parse_line.
+  Private tables vendors, bills, bill_lines, bill_payments created with core.ensure at the start of every function.
+  Audits: vendor.add (name), bill.create (id), bill.pay (id).
+- tests/test_bills.py (new): 24 tests (vendors, create, pay, show/list, bills_open and bill_tax_by_code, audit, viewer role, closed period).
+- Checks: `python3 -m unittest tests.test_bills` -> 24 tests OK. `python3 -m unittest discover -s tests` -> 86 tests OK.
+- No shared files edited; .claude/team/changes.md untouched. Nothing committed.
+
+In progress
+- Nothing. Task complete except for the lead's review.
+
+Next step
+- Lead: review fin/bills.py and tests/test_bills.py. Then run `python3 -m unittest tests.test_bills && python3 -m unittest discover -s tests`.
+- For the aging teammate: use bills.bills_open(conn, at) for `report aging --payables` (due date, balance Decimal).
+  Dates are YYYY-MM-DD strings; balance is the bill total minus payments dated on or before `at`.
+
+Do not redo
+- Checked core.py helpers (ensure, get_account, base_currency, ensure_account, create_account, check_open, post_transaction, parse_dec, q2, fmt, date_str) and taxes.get_tax_rate; all are used with their existing signatures.
+- Checked spec section 14 line format "DESCRIPTION;AMOUNT;ACCOUNT;TAXCODE" and the bill postings; implemented as written.
+- The earlier 11 discover errors came from a syntax error in my own test file (a comprehension inside a starred list). Fixed; the full suite passes.
+
+Assumptions (for README.md)
+- vendor terms default 30 days; due = bill date + terms.
+- Bill status: open (no payments), partial, paid. Same status names as invoices.
+- bill create: line account must be an existing expense or asset account in the book currency; a negative line amount is rejected; a line with an empty tax code has no tax.
+- Tax per line = round half up(net x rate / 100), summed per bill.
+- Liabilities:Payable and Assets:TaxReceivable are created in the book currency if missing (only when needed for the posting).
+- Duplicate bill ref per vendor is rejected; the same ref may be used by different vendors.
+- bill pay: payment account must be an existing asset account in the book currency; amount must be positive and at most the balance; a paid bill cannot be paid again.
+- Closed periods are enforced by core.post_transaction for both bill create and bill pay.
+- bills_open and bill_tax_by_code consider bills dated on or before `at` (or in [frm, to] for tax); bill_tax_by_code uses the bill date, not the payment date.

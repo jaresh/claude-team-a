@@ -1,0 +1,34 @@
+**Done**
+- Files: fin/api.py (new), tests/test_api.py (new). No shared files edited, changes.md untouched, nothing committed.
+- Checks: `python3 -m unittest tests.test_api` -> 9 tests OK. `python3 -m unittest discover -s tests` -> 105 tests OK (run after fin/aging.py was present).
+- fin/api.py contents:
+  - ROUTES table: GET /accounts, /transactions (?account &from &to), /balances (?at), /reports/income (from, to required, ?currency), /reports/balance-sheet (at required, ?currency), /reports/aging (at required, ?payables=1), /invoices (?status), /invoices/{id}, /audit (?by). POST /transactions (201), /invoices (201), /invoices/{id}/issue (200), /invoices/{id}/payments (200).
+  - Plain functions reused: base_cmds (balances, list_accounts, list_txns, add_txn, list_audit), invoices (create_invoice, issue_invoice, pay_invoice, show_invoice, list_invoices), reports (income_statement, balance_sheet), aging (aging).
+  - handle(db, method, path, query, user, raw) -> (status, payload): one sqlite connection and transaction per request (BEGIN IMMEDIATE for writes, BEGIN for reads), ctx.authorize(write), COMMIT, rollback on any error. Unknown path -> 404.
+  - make_server(db, port, host="127.0.0.1") -> ThreadingHTTPServer (server.db holds the path).
+  - serve(ctx, db, port): runs make_server(...).serve_forever().
+  - register(top, report): `serve --port N` (write=False, admin_only=False).
+- Test coverage: reads match CLI output; txn filters; POST auth (401 no user / unknown user, 403 viewer, 201 editor) and audit entry; failed POSTs change nothing; invalid JSON, body not an object, unknown paths -> 404; reports incl. missing params -> 400; invoice create/issue/pay flow with status checks; invoice errors; serve command via mocked make_server (returns 0, no output, make_server called with (db, 8123)).
+
+**In progress**
+- Nothing. Not run live: I did not launch `python -m fin serve` (lead does that). The live server path is only covered by tests that call handle() and by the mocked serve test.
+
+**Next step**
+- Lead: optionally smoke-test live: `python -m fin --db fin.db serve --port 8000`, then `curl -H 'X-User: admin' -d '{...}' http://127.0.0.1:8000/transactions` while it runs. Expect 201 and the write visible to `python -m fin --db fin.db --json txn list`.
+- Then, for the README assumptions below.
+
+**Do not redo**
+- Lock: main() in cli.py starts BEGIN IMMEDIATE before the handler runs. If serve kept that transaction, per-request writers would hit "database is locked". serve therefore COMMITs main's transaction before serving and runs BEGIN again in its finally so main() can COMMIT. This is the only place that reaches into cli's transaction; cli.py is unchanged.
+- The mocked serve test covers the COMMIT/BEGIN path (serve_forever returns at once, main exits 0).
+- The 500 path (generic Exception -> {"error": "internal error"}) is not separately tested.
+
+**Assumptions for README (api)**
+- `serve --port` defaults to 8000 (spec says `--port N`, no default given). Binds 127.0.0.1 only. Nothing is printed while serving (modules never print); request logging is off.
+- Missing required query params (from, to, at) and missing body fields -> 400 `{"error": "missing ..."}`.
+- Body: empty body means {} (only the issue endpoint needs none); non-JSON or non-object -> 400.
+- Auth checked before the body is parsed; POST to an unknown path is 404 before auth.
+- Wrong method on a known path (e.g. PUT /accounts, POST /accounts) -> 404, not 405.
+- `payables` is true unless the value is "0" or empty (so `payables=1` and `payables=true` both work).
+- Extra filters beyond the spec: /transactions filters, /audit?by=, /invoices?status=, /reports/income|balance-sheet ?currency=. Bills endpoints are not exposed (spec lists none).
+- Amounts in POST bodies are passed to parse_dec as strings (JSON numbers are converted with str()).
+- Unexpected server errors answer 500 with a generic message; no traceback is returned or printed.

@@ -1,0 +1,16 @@
+**Done**
+- Added fin/aging.py: `bucket(days)`, `aging(ctx, at, payables=False)`, `tax_report(ctx, frm, to)` (plain functions), and `register` wiring `report aging --at DATE [--payables]` and `report tax --from DATE --to DATE` (both read-only).
+- Added tests/test_aging.py: 10 tests (receivable buckets at boundaries 0/1/30/31/60/61/90/91 days, payments dated after the report date ignored, drafts and later invoices excluded, fully paid left out, payables buckets with bills, empty results, tax report by code incl. a zero-rate code and a bill-only code, empty period, viewer and no-user reads, reads add no audit entries, bad dates and missing args are rejected via fail_cmd).
+- Checks: `python3 -m unittest tests.test_aging` -> Ran 10 tests, OK. `python3 -m unittest discover -s tests` -> Ran 96 tests, OK.
+- No shared files edited (no changes.md rows). No commit.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for this task. Any API caller can reuse `from fin.aging import aging, tax_report`; call `aging(ctx, at, payables=bool)` and `tax_report(ctx, frm, to)`.
+
+**Do not redo**
+- Checked fin/invoices.py `invoices_open`, `invoice_tax_by_code` and fin/bills.py `bills_open`, `bill_tax_by_code`: they already filter drafts (invoices), payments dated <= at, balance > 0, and tax-coded lines only. No changes needed; aging and tax_report rely on them.
+- Checked fin/core.py `parse_date`/`date_str`/`fmt`: reused, no reimplementation.
+- Assumptions (for README): aging amounts are in the book currency (invoices and bills are in book currency); `report tax` with --from after --to gives zeros/empty by_code rather than an error; by_code lists every code that appears on a tax-coded line in the period, including zero-rate codes; bucket boundaries are 1-30, 31-60, 61-90, 90+ by days past due.

@@ -1,0 +1,25 @@
+**Done**
+- Created fin/importing.py: `import FILE --account` (bank CSV, rules, dedupe on imported_rows, closed-period whole-command failure), `rule add PATTERN ACCOUNT`, `rule list`.
+- Created fin/budgets.py: `budget set ACCOUNT MONTH AMOUNT`, `report budget MONTH` (actual includes descendants, converted to account currency at month end).
+- Created fin/recurring.py: `recurring add NAME --every --start --posting`, `recurring run --until` (occurrences computed from start, dedupe via recurring_runs(recurring_id, date)).
+- Created tests/test_automation.py: 25 tests covering spec 5, 6, 7, 12 (closed periods for import and recurring run), and audit entries.
+- Checks: `python3 -m unittest tests.test_automation` -> 25 tests OK. `python3 -m unittest discover -s tests` -> 86 tests OK.
+- No shared files edited (changes.md untouched). Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for automation. The lead can run: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_automation && python3 -m unittest discover -s tests`
+
+**Do not redo**
+- Savepoint name `check` is a reserved word in SQLite; renamed to `recurring_check` in recurring.py.
+- Leap-year yearly test: 2028 is a leap year, so the expected sequence ends 2028-02-29 (not 2028-02-28).
+- Tests query private tables (imported_rows, recurring_runs) that may not exist yet; the test helper `row_count` returns 0 when the table is missing. Do not query them directly.
+
+**Assumptions to list in README**
+- `import` audits an entry even when every row is skipped (imported 0).
+- Zero-amount rows go to Income:Uncategorized (amount is not negative).
+- `rule add` requires the rule's account to exist; a rule account in a different currency than the import account makes that row fail the balance check.
+- `budget set` only accepts expense accounts and non-negative amounts; `budget set` and `recurring add` print nothing (like `fx add`).
+- `recurring add` checks postings with the closed-period check off (spec applies closed periods only to `recurring run`); a past start date is accepted.
