@@ -1,0 +1,16 @@
+**Done**
+- Files changed: fin/cmd_books.py (new), tests/test_books.py (new). No shared files edited, changes.md untouched.
+- fin/cmd_books.py: account add/list, txn add/list, balance (ancestor roll-up, --at), fx add, convert. Local helpers parse_posting (rpartition on "=") and under (prefix match).
+- Check: `python3 -m unittest tests.test_books tests.test_core_admin` -> Ran 12 tests, OK.
+- Spec interpretation: balance is in books (the plan's books section lists sections 1-4 incl. balance; the reports line "Section 3 balance is NOT yours" was read as "reports must not implement it").
+- Decisions not in spec: `fx add` rejects same-currency pairs and non-positive rates; `account add` checks existence before ensure_account (returns the account dict); `txn list --from/--to` validated with check_date.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: review fin/cmd_books.py, then run `python3 -m unittest discover -s tests` once the other wave-1 modules exist.
+
+**Do not redo**
+- Verified by test: multi-currency balance keeps per-currency keys, parents show subtree sums, balance --at excludes later postings, closed-period txn add fails, viewer/no-user writes fail with empty stdout, audit entries for account.add/txn.add/fx.add.
+- Convert inverse-rate path checked: 1 USD -> EUR on 2026-01-15 with only EUR->USD 1.10 gives 0.91; 10 USD -> EUR gives 9.09.

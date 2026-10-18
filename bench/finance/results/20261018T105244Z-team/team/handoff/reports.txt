@@ -1,0 +1,22 @@
+**Done**
+- Files: fin/cmd_reports.py (new), tests/test_reports.py (new). No shared files edited, so changes.md untouched.
+- Commands: report income, balance-sheet, networth, trial-balance, ledger (spec sections 8 and 17). All perm="read".
+- Extra: every report takes an optional --currency CUR (default: book currency); ledger always uses ACCOUNT's currency.
+- Check: `python3 -m unittest tests.test_reports` -> Ran 11 tests, OK.
+- Test setup: tests seed data in-process with core.Ctx (ensure_account, post) and a direct INSERT into fx, because books (cmd_books.py) is not written yet. Once books lands, the seed could switch to `account add`/`txn add`/`fx add` CLI calls if the lead wants the plan's CLI-based setup; the tests don't depend on it either way.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: run `python3 -m unittest discover -s tests` once all teammates finish.
+
+**Do not redo**
+- Assumptions, to list in README.md:
+  - Income/liability/equity show as negated raw balances; expenses and assets as raw.
+  - Conversion: each account's per-currency sum is converted at the report date and rounded, then summed (per spec 8).
+  - networth = assets - liabilities (liabilities positive), per month at month-end.
+  - ledger converts every row at the --to date; opening is converted at --to too, so the running balance is in ACCOUNT's currency.
+  - retained_earnings = income - expenses as shown; balance-sheet and trial-balance totals are sums of per-account rounded values.
+- Known caveat: with several currencies, rounding each account separately can leave a cent-level gap in the balance-sheet identity (total_assets vs total_liabilities + total_equity) or the trial balance (total_debit vs total_credit). The single-currency case is exact. The tests check equality only for the mixed-currency data they use, where it holds. If the lead wants exact equality in all cases, a decision is needed on where the rounding residual goes.
+- Checked: all five commands return the expected numbers in the seeded EUR/USD book, including the USD conversion (income 3333.33, rent 1000.00, food 55.56 at 0.90), zero-sum account showing "0.00", ledger opening and descendant rows, and exit 2 with empty stdout for bad dates, reversed periods, unknown account, missing rate, bad currency and bad month. A viewer and a no-user call can run reports.

@@ -1,0 +1,17 @@
+Done
+- Files: fin/cmd_loan.py (new: `loan schedule PRINCIPAL RATE MONTHS --start DATE`, perm read), tests/test_loans.py (new, 8 tests).
+- Check: `python3 -m unittest tests.test_loans` -> Ran 8 tests, OK.
+- Decimal work runs under localcontext prec 50. Payment, interest and principal rounded half up to cents via core.q; rows formatted with core.fmt; dates via core.add_months(start, n).
+- Input validation beyond the spec (all user errors, exit 2): principal must be > 0, rate must be >= 0, months >= 1 (argparse rejects non-integer months), start must be a valid YYYY-MM-DD date. Spec did not state these; they are my choice.
+- Principal is rounded with core.q if it has more than two decimals (not rejected).
+- Test expectations cross-checked: 1000 / 6% / 12 -> payment 86.07, total interest 32.80 (verified with exact fractions).
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review the validation choices above if stricter or looser rules are wanted; then run `python3 -m unittest discover -s tests` once all teammates finish.
+
+Do not redo
+- Checked that fin/cli.py gives read-perm commands without --user, so the loan command works with no user and with viewer users; the audit test confirms no entry is written.
+- Scratch dir .claude/team/scratch/loans/ was created empty, nothing written to it.

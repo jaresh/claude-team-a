@@ -1,0 +1,28 @@
+Done
+- Files changed: fin/cmd_bills.py (new), tests/test_bills.py (new). No shared files edited; changes.md untouched.
+- Commands: vendor add NAME [--terms DAYS] (perm write), vendor list (read), bill create --vendor --ref --date --line... (write), bill pay ID AMOUNT --date --account (write), bill show ID (read), bill list [--status] (read). Exposes register(sub, report_sub); imports only fin.core.
+- Posting: each line ACCOUNT +net, Assets:TaxReceivable +tax (only if tax nonzero), Liabilities:Payable -total; description "Bill REF". Pay: Liabilities:Payable +AMOUNT, ACCOUNT -AMOUNT, description "Payment REF"; doc_payments row kind 'bill'. Control accounts created via ctx.ensure_account. Posting goes through ctx.post, so closed periods and balance checks come from core.
+- Bill row: number NULL, party = vendor, ref, due = date + vendor terms, lines = JSON of the printed line dicts, net/tax/total/paid as fmt strings. Output keys follow spec 14 (vendor, ref, date, due, status, lines, net, tax, total, paid, balance).
+- Audit: vendor.add (name), bill.create (id), bill.pay (id).
+- Check: `python3 -m unittest tests.test_bills` -> Ran 23 tests, OK (about 13 s).
+- Tests set up accounts (Expenses:Office, Assets:Bank, Liabilities:Card) and tax VAT20 by direct sqlite3 insert in setUp, so they don't depend on `account add` or `tax add`. Users ed (editor) and vic (viewer) are added via the CLI `user add`.
+
+Assumptions (where spec 14 is silent)
+- Line TAXCODE may be empty, meaning no tax (mirrors invoices, tax_code null). A non-empty unknown code is a user error.
+- Line AMOUNT must be positive; DESCRIPTION and ACCOUNT are required; a line must have exactly 4 ';'-separated fields.
+- Line ACCOUNT must be expense or asset (liability/equity/income are user errors).
+- bill pay ACCOUNT only has to exist (spec doesn't say asset, unlike invoice pay).
+- Pay amount must be positive and not exceed the balance; paying a paid bill is a user error.
+- `vendor add --terms` must be >= 0.
+- Bill ref blank is a user error; duplicate ref for the same vendor is a user error.
+- bill list --status must be open, partial or paid.
+
+In progress
+- Nothing. Work complete; not committed (per team rules).
+
+Next step
+- Lead: the commit is yours to make. Run `python3 -m unittest tests.test_bills` from the worktree root to recheck. Once the invoicing teammate adds `tax add`, the tests still work because they insert the tax row directly.
+
+Do not redo
+- Ran the full module test: 23 tests, all passing. The first run had two failures, both mistakes in my test code (missing Office Ltd bill in the same-ref test; a pay amount of 100.01 against a 170.00 balance). Fixed in tests, not in cmd_bills.py.
+- I did not check the full suite (`python3 -m unittest discover -s tests`) because other modules are still being written by teammates.

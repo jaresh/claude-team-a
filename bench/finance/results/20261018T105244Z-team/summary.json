@@ -1,0 +1,111 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "arm": "team",
+  "claude_args": "",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.12+advisor-haiku",
+  "started": "2026-10-18T10:52:44Z",
+  "ended": "2026-10-18T11:05:25Z",
+  "accept_passed": 40,
+  "accept_total": 42,
+  "own_passed": 124,
+  "own_total": 124,
+  "python_lines": 3010,
+  "cost": 0.7081,
+  "cost_cold": 0.745,
+  "lead_cost": 0.5544,
+  "team_cost": 0.1537,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [
+    "imports",
+    "books",
+    "taxrecon",
+    "invoicing",
+    "loans",
+    "bills",
+    "reports",
+    "api"
+  ],
+  "lead_messages": 19,
+  "lead_peak_ctx": 57790,
+  "lead_compactions": 0,
+  "team_peak_ctx": 63444,
+  "coverage": 0.963,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/cli.py (89%)"
+  ],
+  "quality": {
+    "app_files": 13,
+    "app_lines": 1274,
+    "test_files": 11,
+    "test_lines": 1233,
+    "test_functions": 124,
+    "test_to_app_ratio": 0.97,
+    "functions": 122,
+    "mean_function_lines": 9.5,
+    "max_function_lines": 34,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 3.3,
+    "max_complexity": 13,
+    "functions_complexity_over_10": 2,
+    "most_complex": [
+      "fin/cli.py:main (13)",
+      "fin/core.py:post (11)",
+      "fin/cmd_bills.py:parse_line (9)"
+    ],
+    "docstring_coverage": 0.23,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 8,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 6,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 6,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "fin/cmd_bills.py bill_pay never checks the type of --account (invoice_pay in fin/cmd_invoicing.py requires an asset account), and neither command checks the currency of --account or of an existing Assets:Receivable / Liabilities:Payable, so a currency mismatch fails with a misleading 'transaction does not balance' error from Ctx.post.",
+      "Logic is duplicated across modules: parse_posting appears in both fin/cmd_books.py and fin/cmd_import.py; the tax-rate lookup appears in cmd_invoicing.tax_rate and cmd_bills.parse_line; the subtree test is written three ways (cmd_books.under, an inline startswith in cmd_import.report_budget, and a substr() SQL clause in cmd_reports.ledger); and the role rules exist in both cli.check_permission and api.authorize.",
+      "fin/cmd_reports.py trial_balance and balance_sheet convert and round each account separately before summing, so with several currencies total_debit can differ from total_credit, and total_assets from total_liabilities + total_equity, by a few cents, even though the spec requires them to be equal.",
+      "fin/api.py turns each request into CLI argv strings and re-parses them with argparse, so input is validated indirectly: a posting account containing '=' is split in the wrong place, a negative payment amount becomes an argparse 'unrecognized option' error, and any sqlite3.OperationalError (for example 'database is locked' under ThreadingHTTPServer) returns a generic 500.",
+      "fin/cmd_import.py recurring_add validates by posting a trial transaction dated on the start date, so adding a recurring entry whose start falls in a closed period fails even though recurring add creates no transaction, and validation depends on side effects inside a savepoint.",
+      "The tests seed data by writing straight to SQL (tests/test_taxrecon.py make_doc/make_txn, tests/test_bills.py setUp), which ties them to the schema; the tax report is tested only on hand-made rows, not on real invoices and bills; and tests/test_core_admin.py checks users, audit and periods in a single combined test."
+    ],
+    "strengths": [
+      "fin/core.py gives one Ctx with a single validated post() path, the fmt/q money helpers and the fx rate lookup, and cli.run wraps every command in BEGIN/COMMIT/ROLLBACK, so failures are atomic and init removes the half-created database file.",
+      "Money is handled as Decimal from parsing to storage (stored as TEXT strings), and every SQL statement uses parameters; the only f-string SQL interpolates fixed table names and column constants.",
+      "The command modules are small and follow one shared register/set_defaults(func, perm) pattern, and functions are short with clear names (for example category_for, occurrence, bucket, _balance_sheet_at)."
+    ],
+    "review_cost": 0.6154
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 6,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 6,
+        "consistency": 6
+      },
+      "review_cost": 0.6154
+    }
+  ]
+}

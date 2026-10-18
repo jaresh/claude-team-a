@@ -1,0 +1,19 @@
+Done
+- fin/api.py: `serve --port N` (register), make_server (127.0.0.1 only), ROUTES for spec section 10 (GET accounts, transactions, balances, reports income/balance-sheet/aging, invoices, invoices/N, audit; POST transactions 201, invoices 201, invoices/N/issue 200, invoices/N/payments 200). Each route builds CLI argv and runs through cli.build().parse_args + cli.run, one connection per request.
+- POST auth: authorize() runs before the body is read: no X-User or unknown user -> 401, role viewer -> 403. Argparse errors -> 400 with argparse's last line; UserError -> 400; unknown path -> 404; any other exception -> 500.
+- Empty POST body is treated as {} (so /invoices/N/issue works without a body).
+- tests/test_api.py: 17 tests (reads without user, balances/income/balance-sheet equal CLI --json output, 404, 400 for missing report param, audit entry, POST txn 201 + audit, unbalanced 400 with no change, bad body 400, 401 missing/unknown, 403 viewer with no change, editor may post, invoice create/issue/pay flow, invoice viewer 403, unknown invoice 400, subprocess `python -m fin --db X serve --port N` answers GET /accounts).
+- Check: `python3 -m unittest tests.test_api` -> Ran 17 tests, OK (about 18 s; the server logs each request to stderr, which is noisy but harmless).
+- No shared files edited; .claude/team/changes.md not touched. Nothing committed.
+
+In progress
+- Nothing. Work is complete for the task.
+
+Next step
+- Lead: `cd /home/jaca/claude-team-a/bench/work/finance-team-3 && python3 -m unittest tests.test_api`. Optional: `python3 -m unittest discover -s tests` for the full suite (not run by me; other teammates' modules are not mine to check).
+- Optional cleanup for the lead: Handler inherits BaseHTTPRequestHandler.log_message, so every request prints a line to stderr. Override log_message in fin/api.py if quiet serving is wanted.
+
+Do not redo
+- Argparse errors go through Parser.error, which writes to stderr and raises SystemExit; parse() captures stderr and converts to 400. Verified by test_bad_body_is_400 and test_missing_report_parameter_is_400.
+- Earlier failures were all in my own code or test, not in other modules: an unbalanced test that did not really unbalance (a posting with no amount auto-balances); invoice issue needed accounts Assets:Receivable and Income:Sales; empty POST body raised "body must be JSON" (fixed in _body); viewer POST with bad lines returned 400 instead of 403 (fixed: authorize runs before parse of the body).
+- Ruled out: circular import between fin.api and fin.cli (api imports cli at top; cli imports api only in build()).

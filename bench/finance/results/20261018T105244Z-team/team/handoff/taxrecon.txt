@@ -1,0 +1,21 @@
+Done
+- Created fin/cmd_taxrecon.py: `report tax --from --to` (perm read) and `reconcile ACCOUNT --date --balance [--clear ID ...]` (perm write, audit `reconcile` with the account as target, only when --clear is given).
+- Created tests/test_taxrecon.py: 3 tests (report tax totals/by_code/empty period/bad input; reconcile marks, all-or-nothing on bad --clear, unknown account, kept marks, audit; permissions: viewer and no-user refused).
+- Check: `python3 -m unittest tests.test_taxrecon` -> 3 tests OK. Full `python3 -m unittest discover -s tests` -> 23 tests OK at time of run.
+- No shared files edited; changes.md untouched.
+
+Decisions beyond the spec (lead may want to review)
+- report tax: invoices count when status != 'draft' (issued/partial/paid), by invoice date; bills count on any status, by bill date. collected/paid use the invoice/bill `tax` column; by_code sums per-line `tax` for lines with a non-null tax_code (so a code appears even with a 0.00 tax).
+- report tax with --from after --to is a user error (spec silent).
+- reconcile has perm 'write', so a viewer cannot run it even with no --clear (spec says viewers may run commands that change nothing). Making it 'read' would need the role check inside the handler, which I did not do.
+- reconcile: duplicate --clear ids are de-duplicated; the check for each id is "has a posting to ACCOUNT dated <= DATE" and any failure aborts before any mark is written.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review the two decisions above; then `python3 -m unittest tests.test_taxrecon` (should pass as is).
+
+Do not redo
+- Ran the module tests after writing; all 3 passed. Reran after adding the uncleared assertion after the failed reconcile calls; still passing. Full suite passed too.
+- Did not use txn add / account add CLI in tests (books module may not exist yet); the tests insert accounts, transactions, postings, invoices and bills with sqlite3 directly, per the plan.

@@ -1,0 +1,26 @@
+Done
+- fin/cmd_invoicing.py (new): tax add/list, customer add [--terms, default 30]/list, invoice create/issue/pay/show/list [--status], report aging --at DATE [--payables].
+- tests/test_invoicing.py (new): 14 tests, all passing.
+- Check: `python3 -m unittest tests.test_invoicing` -> Ran 14 tests, OK (about 12 s).
+- Syntax check: `python3 -m py_compile fin/cmd_invoicing.py` clean.
+- No shared files edited (cli.py, core.py, cmd_admin.py untouched). No line added to .claude/team/changes.md.
+- Nothing committed.
+
+Behaviour choices (not fixed by the spec; review if the spec says otherwise)
+- Negative tax rates and negative customer terms are rejected with exit 2.
+- Invoice numbers are INV-YEAR-NNNN, where NNNN is max existing suffix for that year + 1; the year is the invoice date's year.
+- Issue posts Assets:Receivable (total), Income:Sales (-net), and Liabilities:SalesTax (-tax) only when tax != 0. Description is "Invoice <number>".
+- Pay posts Account (+amount) and Assets:Receivable (-amount), description "Payment <number>". Pay rejects: draft, already paid, amount <= 0, amount > balance, non-asset account.
+- Aging counts documents with date <= AT and status != 'draft'. Bills have no draft status, so the filter does nothing for them. Balance = total minus doc_payments with date <= AT. Buckets use days past due (due date), with <= 0 as "current".
+- Invoice `lines` are stored as JSON of {description, quantity, price, tax_code, net, tax}, matching the contract.
+
+Do not redo
+- Ran tests.test_invoicing once: all 14 passed on the first run, so no fixes were needed.
+- Did not run `python3 -m unittest discover -s tests` (the whole suite); other teammates' modules are outside my scope.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/finance-team-3 && python3 -m unittest tests.test_invoicing` to confirm, then the full suite `python3 -m unittest discover -s tests` once all teammates are finished.
+- Bills teammate: `tax_rate` in fin/cmd_invoicing.py is a private helper; if the bills module needs tax lookup, it should write its own lookup against the `taxes` table (the contract says not to import other command modules).

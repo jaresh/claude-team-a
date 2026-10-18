@@ -1,0 +1,24 @@
+Done
+- Files: fin/cmd_import.py (rule add/list, import, budget set, report budget, recurring add/run), tests/test_imports.py (36 tests).
+- Check: `python3 -m unittest tests.test_imports` -> Ran 36 tests, OK (run after books module existed).
+- No shared files edited; changes.md untouched.
+- Decisions not in spec (for README assumptions):
+  - rule add requires an existing account and a non-empty regex that compiles.
+  - import: zero-amount rows are a user error; rows are read as UTF-8 (BOM ok); blank CSV lines are ignored; all rows checked for closed periods before posting.
+  - import category accounts (Expenses/Income:Uncategorized) are created in the book currency without an audit entry.
+  - budget set returns {"account","month","budget"}; negative budgets and non-expense accounts are user errors; budget set replaces an existing month.
+  - report budget: actual = that month's postings to the account and descendants, each converted to the book currency at month end (ctx.convert), summed.
+  - recurring add validates by running ctx.post inside a SAVEPOINT on the start date (same rules as txn add), then rolls back. Returns {"id","name","every","start"}.
+  - recurring run: always audits `recurring.run` (even when created is 0). recurring add/run audit as spec.
+  - Import into an account whose currency differs from the book currency will fail with "transaction does not balance" (post's behaviour); not tested.
+
+In progress
+- Nothing.
+
+Next step
+- Lead: `python3 -m unittest tests.test_imports` (already passing) and, after all tasks, `python3 -m unittest discover -s tests`.
+- Optional: move any helper into core if another teammate needs parse_posting (currently local to cmd_import.py; it duplicates the ACCOUNT=AMOUNT parse the books module does locally, if any).
+
+Do not redo
+- Read core.py, cli.py, cmd_admin.py, helpers.py, spec sections 1-4, 5-7, 11-12, plan.md.
+- Only failure seen was my own test (rule on a nonexistent account); fixed in tests/test_imports.py. Re-run passes.

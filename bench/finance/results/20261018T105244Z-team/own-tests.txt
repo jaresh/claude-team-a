@@ -1,0 +1,31 @@
+127.0.0.1 - - [18/Oct/2026 11:06:02] "POST /invoices HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 11:06:02] "GET /invoices/1 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 11:06:02] "POST /invoices/1/issue HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 11:06:02] "POST /invoices/1/payments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 11:06:02] "GET /invoices HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 11:06:02] "GET /reports/aging?at=2026-03-01 HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 11:06:03] "POST /invoices HTTP/1.1" 403 -
+.127.0.0.1 - - [18/Oct/2026 11:06:04] "POST /invoices/99/issue HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 11:06:05] "POST /transactions HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 11:06:05] "POST /transactions HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 11:06:06] "POST /transactions HTTP/1.1" 201 -
+.127.0.0.1 - - [18/Oct/2026 11:06:07] "POST /transactions HTTP/1.1" 401 -
+.127.0.0.1 - - [18/Oct/2026 11:06:08] "POST /transactions HTTP/1.1" 201 -
+.127.0.0.1 - - [18/Oct/2026 11:06:09] "POST /transactions HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 11:06:10] "POST /transactions HTTP/1.1" 401 -
+.127.0.0.1 - - [18/Oct/2026 11:06:11] "POST /transactions HTTP/1.1" 403 -
+.127.0.0.1 - - [18/Oct/2026 11:06:12] "POST /transactions HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 11:06:12] "GET /audit?by=admin HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 11:06:14] "GET /reports/balance-sheet?at=2026-12-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 11:06:14] "GET /transactions HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 11:06:15] "GET /balances?at=2026-12-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 11:06:15] "GET /reports/income?from=2026-01-01&to=2026-12-31 HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 11:06:16] "GET /reports/income?from=2026-01-01 HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 11:06:17] "GET /accounts HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 11:06:18] "GET /nope HTTP/1.1" 404 -
+127.0.0.1 - - [18/Oct/2026 11:06:18] "POST /accounts HTTP/1.1" 404 -
+.............................................................................................................
+----------------------------------------------------------------------
+Ran 124 tests in 96.430s
+
+OK
