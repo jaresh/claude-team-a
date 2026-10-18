@@ -295,3 +295,22 @@ setting, the 100K auto-compact window in the team-dev agent, and settings that u
 from an older install). audit and advisor-haiku retired (`ARCHIVE.md`). intake-hook, done-gate
 and workflow stay as variants: the first two for a benchmark big enough to need them, workflow
 until dynamic workflows are enabled.
+
+## Opus as lead, one run (kit 3.13, Haiku teammates, effort medium)
+
+| Lead | Runs | Hidden | Review (structure, consistency) | Cold $ | Lead output | Teammates |
+|---|---|---|---|---|---|---|
+| Haiku | 1 | 42/42 | 7 (7, 6) | 0.376 | 76K tokens | 13 |
+| Sonnet (kit 3.11) | 4 | 42 (41-42) | 7 (7, 6) | 0.832 | 17-24K | 5-8 |
+| **Opus** (20261018T124126Z-team) | 1 | 42/42 | **8** (8, 8) | **2.038** | 45K | 4 |
+
+- The first team run reviewed 8 with its consistency at 8 (solo Sonnet: 7, consistency 7-8). One
+  point above the others is at the noise floor (1), so it needs 4 runs to count; consistency 8
+  vs the team's usual 6 is above it.
+- Cost: 2.5x the Sonnet-lead team and 1.8x solo Sonnet. The lead was 94% of it ($1.92: output
+  $0.91 for 45K tokens, cache writes $0.68, cache reads $0.34).
+- Opus did more of the work itself: twice the Sonnet lead's output, and 4 teammates instead of
+  5-8. Part of the gain may be Opus writing code, not leading better.
+- The reviewer is also Opus 5.5 (blind, but the same model family as this lead).
+- For comparison, a Sonnet lead with one teammate at a time reached consistency 8 (4 runs) at
+  $0.773.
