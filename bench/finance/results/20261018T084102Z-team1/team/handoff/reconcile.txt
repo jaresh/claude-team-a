@@ -1,0 +1,20 @@
+Done
+- fin/reconcile.py: service function reconcile(book, account, when, balance, clear=None) (not in the contract's name list; the api task can call it if it needs a reconcile endpoint); register "reconcile ACCOUNT --date --balance [--clear ...]" (write=True). Validates all --clear ids (must have a posting to ACCOUNT dated on or before DATE) before marking anything, sets postings.cleared=1 for those transactions, audits "reconcile" with target = account, and returns account/date/statement_balance/cleared_balance/difference/uncleared.
+- tests/test_reconcile.py: 11 tests (report values and sign, uncleared list, marks kept across runs, date limits, duplicate ids, invalid/out-of-date ids, failed run marks nothing, bad arguments, viewer/missing/unknown user refused, editor allowed, audit entry).
+- Check: `python3 -m unittest discover -s tests` -> Ran 135 tests, OK.
+- Did not touch core/cli/admin, changes.md, or any other module. Nothing committed.
+
+In progress
+- Nothing.
+
+Next step
+- None for this task. Lead can run `python3 -m unittest discover -s tests` again or start the api task.
+
+Do not redo
+- Did not call EnterWorktree: the team's files (fin/, tests/) are untracked in this checkout, so a fresh worktree from HEAD would not contain them. Worked in place as the lead set up.
+
+Assumptions
+- `reconcile` is a write command even with no --clear, so viewers are refused and every run writes one audit entry (spec section 11 lists `reconcile` as an audited action, target = account). Read-only use is not allowed for viewers.
+- Cleared balance and uncleared list only count postings dated on or before DATE; marks on later transactions stay in place but are not counted.
+- Marking is per transaction: all postings of that transaction to ACCOUNT get cleared.
+- Reconcile does not run the closed-period check (it posts nothing).

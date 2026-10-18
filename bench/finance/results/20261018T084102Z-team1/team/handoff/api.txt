@@ -1,0 +1,24 @@
+Done
+- fin/api.py: HTTP API (spec section 10, auth per section 11). Stdlib http.server, one Book and one transaction per request. Routes: GET /accounts, /transactions, /balances, /reports/income, /reports/balance-sheet, /reports/aging (payables=1 for bills), /invoices, /invoices/ID, /audit (by=USER); POST /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200). Also make_server(db_path, port) and the `serve --port` command (read-only, registered via register()).
+- tests/test_api.py: 14 tests in class ApiTest (FinTestCase subclass). Covers routes, 201/200/400/401/403/404, X-User rules, closed period, filters, reports, invoice flow and errors, aging, audit.
+- Check: `python3 -m unittest discover -s tests` from the worktree root: Ran 149 tests, OK (33 s). test_api alone: 14 tests, OK.
+- No shared files edited, so changes.md not touched. Nothing committed.
+
+In progress
+- Nothing open in my section.
+
+Next step
+- Lead: run the real server once, outside my scope: `python3 -m fin ... serve --port 8080` (check the entry point name in fin/cli.py first), then curl GET /accounts. I did not start a server.
+
+Do not redo
+- The full suite passes; no failures to chase.
+- Assumptions to review:
+  1. Unknown method on a known path returns 404 (not 405).
+  2. Non-numeric invoice id (e.g. /invoices/abc) returns 404 from routing; unknown numeric id returns 400 from the service (UserError).
+  3. Auth order: 404 for unknown path first, then user check (401 unknown/missing user, 403 viewer), then body parse (400). So a bad body from a viewer gets 403.
+  4. GET needs no user; only POST uses X-User.
+  5. Audit reuses admin._audit_list (private helper) with a SimpleNamespace(by=...).
+  6. A null posting amount is treated as omitted (one posting may be blank).
+  7. An empty POST body is treated as {}.
+  8. payables=1 selects bills.aging; otherwise invoices.aging.
+- serve has only a registry-attribute test and a loopback-bind test. It is not run as a real process, and its lock handling (commit, then deferred BEGIN) is untested.

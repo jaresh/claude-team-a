@@ -1,0 +1,35 @@
+**Done**
+- Files changed (mine only): fin/reports.py (new), tests/test_reports.py (new, 23 tests).
+- No shared files edited; .claude/team/changes.md not touched.
+- Commands: `report income --from D --to D [--currency C]`, `report balance-sheet --at D [--currency C]`,
+  `report networth --from YYYY-MM --to YYYY-MM [--currency C]`, `report trial-balance --at D`,
+  `report ledger ACCOUNT --from D --to D`.
+- Service functions: income_report, balance_sheet, networth, trial_balance, ledger_report.
+- Checks: `python3 -m unittest tests.test_reports` -> 23 tests OK.
+  `python3 -m unittest discover -s tests` -> 63 tests OK (whole suite, includes other teammates' tests).
+- Not committed. Not launched via `python -m fin`.
+
+Assumptions (for README.md, lead to merge):
+- Income and expenses are converted per (account, currency) at the period end date (--to).
+- Balance sheet and trial balance convert at --at; networth converts at each month's last day.
+- Ledger converts to the account's own currency at --to (rows and opening alike); balances are in the account currency.
+- Networth = total assets - total liabilities (equity not included).
+- Income, liability and equity are shown as negated raw balances; assets and expenses as raw.
+- Retained earnings = income - expenses to date (all time, up to --at), added into total_equity.
+- Trial balance is always in book currency (no --currency, per spec section 17); debit/credit rows are the sign of each account's balance; zero balances show as 0.00 / 0.00.
+- --from after --to is a UserError (income, networth, ledger). Invalid dates/months/currencies are UserErrors.
+- Ledger includes descendant accounts (e.g. "Assets" includes "Assets:Bank").
+- Reports need no --user (read-only), and viewers can run them.
+
+**In progress**
+- Nothing in progress. Known caveat, not fixed (by design): each account's amounts are rounded to cents after conversion and then summed, so in a multi-currency book total_assets can differ from total_liabilities + total_equity, and trial-balance total_debit from total_credit, by one cent. Single-currency books are exact. Lead should decide whether to note this in README.md or change the rounding strategy in fin/reports.py (_converted helper).
+
+**Next step**
+- Lead: review the caveat above, then run `python3 -m unittest discover -s tests` (expect 63 OK) before committing.
+- If the rounding must be exact across accounts: change `_converted` in fin/reports.py, then rerun `python3 -m unittest tests.test_reports` and fix the expectations in test_balance_sheet_in_other_currency.
+
+**Do not redo**
+- Checked: the two first-run failures were bad expectations in my test file, not bugs in fin/reports.py. (1) Balance sheet in USD: 3100 EUR / 0.90 = 3444.44 USD, not 3500. (2) USD ledger opening is the 100 USD posting (not 90 EUR), so the USD sale row is 50.00 with balance 150.00. Both fixed in tests/test_reports.py; the suite now passes.
+- Read-only check: reports run without --user and as viewer; covered by test_reports_need_no_user_and_work_for_viewer.
+- Core helpers used as-is (no copies): core.q2, core.fmt, core.parse_date, parse_month, parse_currency, month_end, next_month, account_type, Book.raw_balances, Book.convert, Book.account. Nothing was written as a local helper that should be shared.
+- Ledger SQL (_subtree_postings) matches the descendant pattern used in ledger.py list_txns; not moved to core.

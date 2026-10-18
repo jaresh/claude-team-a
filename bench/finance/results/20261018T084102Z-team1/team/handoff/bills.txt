@@ -1,0 +1,32 @@
+Done
+- Created fin/bills.py: SCHEMA (vendors, bills, bill_lines, bill_payments); add_vendor, list_vendors, create_bill, pay_bill, get_bill, list_bills, aging(book, at), tax_report(book, frm, to); register() for "vendor add", "vendor list", "bill create", "bill pay", "bill show", "bill list", "report tax".
+- Created tests/test_bills.py: 30 tests covering every command, audit entries, the spec example, rounding, error cases (each checked to change nothing), closed periods, viewer/editor roles, the payables aging buckets and payment cut-off, and report tax by period, drafts and by_code.
+- Check: `python3 -m unittest discover -s tests` -> Ran 124 tests, OK (bills: 30 of them, all OK).
+- Shared files: none edited. changes.md not touched. Nothing committed.
+
+Assumptions
+- Bill line amount (net) must be > 0 with at most two decimals; a line description is required.
+- Bill ref is required (trimmed, non-empty) and unique per vendor.
+- Bill needs at least one line; line tax code optional (empty = no tax); unknown code is a UserError via invoices.tax_rate.
+- Payment amount must be > 0, at most two decimals, and no more than the balance; the payment account must be an asset (mirrors invoice pay).
+- Payment dates are checked against closed periods via book.post; bill create checks them the same way.
+- Bill status: open -> partial -> paid. A paid bill cannot be paid again.
+- report tax: from > to is a UserError; by_code includes every non-null tax code used by a line dated in the period, even with zero tax; codes with no lines in the period are omitted.
+- Draft invoices are excluded from collected tax (matches invoices aging); bills have no draft state.
+- Vendor terms: non-negative integer days, default 30; due = bill date + terms.
+- Line accounts must exist and be expense or asset. Bill posting is per currency (book.post), so a line account in another currency than the book makes the transaction fail as unbalanced; not handled specially.
+
+Duplicated private helpers (lead may move these to core)
+- fin/bills.py duplicates from fin/invoices.py: _day (date or parse_date), _money_sum, _id (digit-only id check), _bucket (aging bucket by days overdue). Also aging structure mirrors invoices.aging.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review fin/bills.py and tests/test_bills.py, then run `python3 -m unittest discover -s tests` (already passing as of this handoff). If the helpers are moved to core, change the import lines in fin/bills.py only.
+
+Do not redo
+- Ran the full suite (124 OK) and the bills test module alone (30 OK) after the last edit.
+- Test failure found and fixed: posting dict comparison collapsed two lines on the same account; test now compares the ordered posting list. The code was correct; the expected tax was 21.01, not 22.01.
+- Checked invoices.py schema (invoices.status/date, invoice_lines.tax_code/tax/invoice_id) and the invoice pay validation pattern before writing tax_report and pay_bill; both match.
+- Rounding: 10.05 at 10% gives 1.01 (ROUND_HALF_UP via q2).

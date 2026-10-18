@@ -1,0 +1,47 @@
+DONE
+- fin/invoices.py (new): SCHEMA with tables tax_codes, customers, invoices, invoice_lines, invoice_payments.
+  Service functions with the contract names: tax_rate, add_tax, list_tax, add_customer, list_customers,
+  create_invoice, issue_invoice, pay_invoice, get_invoice, list_invoices, aging.
+  Commands: tax add/list, customer add/list, invoice create/issue/pay/show/list, report aging (--at, --payables).
+  --payables lazily imports fin.bills and calls bills.aging(book, date). Audits: tax.add, customer.add,
+  invoice.create, invoice.issue, invoice.pay (target = invoice id).
+- tests/test_invoices.py (new): 18 tests covering every command, the error cases, closed-period checks,
+  viewer/no-user permission checks, numbering, posting shapes and aging buckets.
+- Checks: `python3 -m unittest tests.test_invoices` -> 18 OK.
+  `python3 -m unittest discover -s tests` -> 94 tests OK (ran at the end of this task).
+- No shared files edited; no entry added to .claude/team/changes.md. Nothing committed.
+
+IN PROGRESS
+- Nothing open. fin/bills.py does not exist yet, so `report aging --payables` is not tested here
+  (it would fail with ImportError until the bills teammate adds bills.aging). The bills teammate's
+  test should cover it.
+
+NEXT STEP
+- No action needed from invoices. When bills lands, run: python3 -m unittest discover -s tests
+  and confirm `report aging --payables --at 2026-03-31` returns the bills aging dict.
+
+DO NOT REDO
+- Full discover run already passes (94 OK); other modules' tests are green.
+- Aging bucket boundaries were checked by hand against due dates (0 days current, 1-30, 31-60, 61-90, 90+).
+- Numbering: the count of non-draft invoices per invoice-date year +1 (test_issue_numbers_and_posts).
+
+ASSUMPTIONS
+- Quantity must be > 0; price must be >= 0; a line needs a non-empty description and exactly four
+  ';'-separated fields (the tax code may be empty).
+- Tax rates are stored and returned as the given string (e.g. "20"); negative rates are rejected.
+- Tax amount = q2(net * rate / 100), ROUND_HALF_UP per line; totals are sums of line values.
+- Customer terms are a non-negative integer in days, default 30; due = invoice date + terms.
+- Invoice numbers are INV-YYYY-NNNN, counted per invoice-date year over issued (non-draft) invoices.
+  Issue order is what matters; drafts never take a number.
+- An invoice needs at least one line. A zero-total invoice can be issued.
+- Issue posts Assets:Receivable total, Income:Sales -net, and Liabilities:SalesTax -tax when tax != 0.
+  Receivable, Sales and SalesTax accounts are created in the book currency if missing.
+- Payment amount must be > 0 and have at most two decimals; it cannot exceed the current balance.
+  The payment account must be an existing asset account (unknown account is a user error).
+- Payment date is not checked against the invoice date; it must be a valid date and not in a closed period.
+- Payment posts account +amount and Assets:Receivable -amount; status becomes partial or paid.
+- Invoice ids must be digits; an unknown id is a user error.
+- `invoice list --status` accepts draft, issued, partial, paid; anything else is a user error.
+- Aging counts issued invoices dated on or before `at`, with only payments dated on or before `at`.
+  Balance <= 0 is skipped. Days overdue = at - due; bucket "current" when <= 0.
+- Aging with --payables is delegated to fin.bills.aging(book, date).

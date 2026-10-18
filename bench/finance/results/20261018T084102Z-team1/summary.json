@@ -1,0 +1,107 @@
+{
+  "bench": "finance",
+  "mode": "team1",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.11",
+  "started": "2026-10-18T08:41:02Z",
+  "ended": "2026-10-18T09:09:38Z",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 149,
+  "own_total": 149,
+  "python_lines": 3717,
+  "cost": 0.884,
+  "cost_cold": 0.9209,
+  "lead_cost": 0.7275,
+  "team_cost": 0.1565,
+  "teammates": [
+    "ledger",
+    "automation",
+    "reports",
+    "loans",
+    "invoices",
+    "bills",
+    "reconcile",
+    "api"
+  ],
+  "lead_messages": 24,
+  "lead_peak_ctx": 65931,
+  "lead_compactions": 0,
+  "team_peak_ctx": 64496,
+  "coverage": 0.968,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (0%)",
+    "fin/api.py (91%)"
+  ],
+  "quality": {
+    "app_files": 13,
+    "app_lines": 1587,
+    "test_files": 10,
+    "test_lines": 1481,
+    "test_functions": 149,
+    "test_to_app_ratio": 0.93,
+    "functions": 199,
+    "mean_function_lines": 7.2,
+    "max_function_lines": 32,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.7,
+    "max_complexity": 14,
+    "functions_complexity_over_10": 3,
+    "most_complex": [
+      "fin/core.py:post (14)",
+      "fin/bills.py:create_bill (12)",
+      "fin/bills.py:_line_values (11)"
+    ],
+    "docstring_coverage": 0.34,
+    "duplicate_share": 0.018,
+    "float_calls": 0,
+    "sql_built_from_strings": 3,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 6,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 8,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "fin/invoices.py and fin/bills.py duplicate much of their logic (_day, _money_sum, _id, _bucket, _totals, _paid, _view, aging, add_customer/add_vendor), and _day is also copied into ledger.py and reports.py, so a fix to aging or payment logic has to be made in two places.",
+      "fin/core.py MODULES and Book.__init__ make the storage core import every higher layer, including api, to collect SCHEMA, and invoices._report_aging lazily imports bills to work around a circular import, so the dependency direction is inverted.",
+      "fin/api.py _Handler._handle builds Book(self.server.db_path) outside the try block and never checks that the file exists; a missing database is silently created as an empty file, and the request then fails with a 500 instead of a clear user error.",
+      "fin/cli.py main treats every ValueError and decimal.InvalidOperation as a user error (exit 2), which hides programming bugs, while sqlite3.DatabaseError (for example, --db pointing at a non-SQLite file) and csv.Error in automation._read_rows still end in a traceback.",
+      "fin/invoices.py _line_values stores and shows the price rounded with fmt(price) but computes net from the unrounded price, so the displayed price \u00d7 quantity can disagree with net (quantity, by contrast, is shown as given).",
+      "fin/api.py reaches into the CLI handler admin._audit_list with a SimpleNamespace, and _serve commits and re-begins the transaction that cli.execute opened, a fragile workaround that couples the API layer to CLI internals."
+    ],
+    "strengths": [
+      "One Book.post path validates balancing, closed periods and per-currency sums for every module, and each command runs in one BEGIN IMMEDIATE transaction with rollback, so user errors leave nothing changed (bulk import and recurring run plan everything before writing anything).",
+      "Money is Decimal throughout and stored as text, with a single fmt/q2 pair for half-up rounding and the '0.00' rule, and all SQL is parameterised.",
+      "The tests run the real CLI in-process against a fresh temp database for each test, check behaviour (exact JSON documents, exit code 2 with empty stdout, nothing changed after errors, roles, closed periods) and include an API suite against a live server."
+    ],
+    "review_cost": 0.8952
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 9,
+        "tests": 8,
+        "consistency": 7
+      },
+      "review_cost": 0.8952
+    }
+  ]
+}

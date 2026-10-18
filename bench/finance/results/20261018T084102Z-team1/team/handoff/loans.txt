@@ -1,0 +1,20 @@
+Done
+- fin/loans.py: `schedule(principal, rate, months, start)` service function and `loan schedule PRINCIPAL RATE MONTHS --start DATE` (read-only, no audit, no --user needed). Registered via register(reg).
+- tests/test_loans.py: 13 tests (hand-computed values, zero rate, 12 and 360 month loans, last-row balance, row consistency, viewer role, no-user, missing book, user errors, missing --start, month-end dates, MAX_MONTHS, cent rounding of principal).
+- Check: `python3 -m unittest discover -s tests` -> Ran 76 tests, OK (full suite, includes other teammates' tests).
+- Not touched: changes.md (no shared-file edits).
+
+In progress
+- Nothing.
+
+Next step
+- None for loans. Lead may run: `python3 -m fin --db fin.db --json loan schedule 1000 6 3 --start 2026-01-31`.
+
+Do not redo
+- Verified by hand: 100 @12% over 2 months -> payment 50.75, interest 1.00/0.50; 1000 @6% over 3 months -> payment 336.67, last row 336.68, total interest 10.02.
+
+Assumptions (for README)
+- Principal is rounded to cents first (q2); must be > 0.
+- Rate is annual percent, must be >= 0.
+- Months must be an integer from 1 to 1200 (MAX_MONTHS); larger is a user error to keep output bounded.
+- Row dates use add_months from the start date (not chained), so month-end days follow section 7.

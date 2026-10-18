@@ -1,0 +1,43 @@
+Done
+----
+Files changed (only the two files I own):
+- fin/automation.py: rules (rule add, rule list), CSV import (import), budgets (budget set, report budget), recurring transactions (recurring add, recurring run). Registers all seven commands through register(reg). Tables: rules, imported_rows, budgets, recurring, recurring_runs.
+- tests/test_automation.py: 22 tests, all passing. Covers rule order and validation, import column mapping and header skip, rule matching (case-insensitive, first match wins), duplicate skipping (including repeats within one file), all-or-nothing failures, closed periods, currency match between category and account, budget set/replace/report, recurring monthly/weekly/yearly with month-end clamping, idempotent incremental runs, closed-period handling, viewer denial, and audit entries.
+
+Check results:
+- python3 -m py_compile fin/automation.py tests/test_automation.py: OK
+- python3 -m unittest tests.test_automation: 22 tests OK
+- python3 -m unittest discover -s tests: 40 tests OK, exit 0
+
+No shared files edited, so .claude/team/changes.md is unchanged. Nothing committed.
+
+In progress
+-----------
+Nothing. The task is complete.
+
+Next step
+---------
+None for automation. The lead can run: python3 -m unittest discover -s tests
+
+Assumptions to list in README (my design decisions):
+- A rule's account must exist when the rule is added (unknown account is a UserError).
+- A rule pattern is a Python regex, matched case-insensitively; the first matching rule (by id) wins; with no match, the row goes to Expenses:Uncategorized (negative amount) or Income:Uncategorized (positive).
+- A CSV row with a zero amount, a blank description, or a missing column makes the whole import fail, and nothing is posted.
+- The category account must have the same currency as the import ACCOUNT; otherwise the import fails.
+- Duplicate detection key: (account, date, description, amount). A repeat in the same file counts as a duplicate, so it is skipped.
+- Closed periods are checked on every CSV row (including duplicates) and every due occurrence before anything is posted, so a closed period fails the whole import or run.
+- Import and recurring run write one audit entry per command, even when nothing is created.
+- Budget amounts are in the account's own currency and must be non-negative. The account must be of type expense. Setting a budget again for the same account and month replaces it.
+- Budget actuals are the rolled-up balances for the month (child accounts included), converted into the budget account's currency at the month's end date.
+- Recurring occurrences are computed from the start date each time (not chained). Monthly on the 31st gives Jan 31, Feb 28/29, Mar 31, Apr 30. Yearly from Feb 29 gives Feb 28 in non-leap years.
+- A recurring start date in a closed period is rejected when the recurring transaction is added (dry run through Book.post).
+- Recurring postings may have one missing amount, which balances the transaction, as in txn add.
+- recurring run --until is inclusive.
+
+Do not redo
+-----------
+- Checked the audit command: `audit list --by <user>` exists and the tests use it, so no change is needed.
+- Account auto-creation: `Expenses:Food` is created automatically as the parent of `Expenses:Food:Groceries`, so a test must not call `account add` for it (that caused "account exists" and was removed from the tests).
+- A balancing posting with no amount takes the negated sum, so `Assets:Bank` with no amount on a 500 expense gives -500.00. This is correct behaviour and the test was corrected to match.
+- The last audit entry after `recurring run --until 2025-12-31` is that call, not the earlier 2026-02-15 call. This is correct and the test now expects 2025-12-31.
+- The `_category` helper has no book parameter (removed in self-review). Do not re-add it.

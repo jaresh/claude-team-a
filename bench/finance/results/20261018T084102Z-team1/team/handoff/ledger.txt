@@ -1,0 +1,27 @@
+Done
+- fin/ledger.py (new): account add/list, txn add/list, balance, fx add, convert. Service functions: list_accounts, add_account, add_txn, list_txns, balances, add_fx, convert. Handlers via register(reg); no SCHEMA (core tables suffice). Audits: account.add (name), txn.add (id), fx.add ("FROM/TO").
+- tests/test_ledger.py (new): 18 tests covering spec sections 1-4, error cases, viewer/no-user denial, closed period on txn add, audit entries, read commands without --user.
+- Check: `python3 -m unittest discover -s tests` -> Ran 18 tests, OK (full suite, includes test_core).
+- Shared files: none edited (changes.md untouched).
+- Not committed. Worked in place in the shared checkout (writes succeeded, no EnterWorktree call).
+
+In progress
+- Nothing.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` once more after the next teammate, then continue with the automation task. ledger exports for later tasks: fin.ledger.add_txn(book, date, desc, postings), list_txns, balances, add_fx, convert, add_account.
+
+Assumptions (unspecified details decided here)
+- txn add: a blank or whitespace-only --desc is a user error.
+- txn list: --from later than --to is not an error; it returns an empty list. --account matches the account and its descendants only ("Expenses:Food" does not match "Expenses:Foodstuff"). No check that the --account name exists.
+- balance: a currency that has postings and sums to zero shows "0.00"; keys sorted; accounts with no postings on or before --at are omitted.
+- account add: returns {name, type, currency} of the account named (not of the created parents). An empty --currency is treated as not given (book currency).
+- fx add: rejects non-positive rates and a pair with the same currency on both sides; stores the rate as a plain decimal string; returns {date, from, to, rate}.
+- convert: --at is required (argparse). Returns {amount, currency}; same currency returns the amount rounded to cents.
+
+Do not redo
+- Checked that Book.post in fin/core.py already handles the implicit posting, balancing per currency, the closed-period check, and ordering. Did not reimplement any of it.
+- Checked the rate lookup in Book.convert: direct FROM->TO rate wins over the inverse even if the inverse is more recent; test_fx_inverse_and_direct_precedence covers this.
+
+Observation for lead (core, not edited)
+- Book.post: an implicit posting whose currency has no other amounts becomes a "0.00" posting silently, e.g. `--posting Assets:Bank=10 --posting Expenses:Rent=-10 --posting Assets:USD` is accepted with a zero USD leg. Probably fine, but the spec does not say, so decide whether to reject it.

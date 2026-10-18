@@ -1,0 +1,9 @@
+| name | task | model | state | handoff |
+| ledger | ledger | haiku | done | handoff/ledger.txt |
+| automation | automation | haiku | done | handoff/automation.txt |
+| reports | reports | haiku | done | handoff/reports.txt |
+| loans | loans | haiku | done | handoff/loans.txt |
+| invoices | invoices | haiku | done | handoff/invoices.txt |
+| bills | bills | haiku | done | handoff/bills.txt |
+| reconcile | reconcile | haiku | done | handoff/reconcile.txt |
+| api | api | haiku | done | handoff/api.txt |

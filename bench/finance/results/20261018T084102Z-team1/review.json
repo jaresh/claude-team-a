@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 9,
+    "tests": 8,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/invoices.py and fin/bills.py duplicate much of their logic (_day, _money_sum, _id, _bucket, _totals, _paid, _view, aging, add_customer/add_vendor), and _day is also copied into ledger.py and reports.py, so a fix to aging or payment logic has to be made in two places.",
+    "fin/core.py MODULES and Book.__init__ make the storage core import every higher layer, including api, to collect SCHEMA, and invoices._report_aging lazily imports bills to work around a circular import, so the dependency direction is inverted.",
+    "fin/api.py _Handler._handle builds Book(self.server.db_path) outside the try block and never checks that the file exists; a missing database is silently created as an empty file, and the request then fails with a 500 instead of a clear user error.",
+    "fin/cli.py main treats every ValueError and decimal.InvalidOperation as a user error (exit 2), which hides programming bugs, while sqlite3.DatabaseError (for example, --db pointing at a non-SQLite file) and csv.Error in automation._read_rows still end in a traceback.",
+    "fin/invoices.py _line_values stores and shows the price rounded with fmt(price) but computes net from the unrounded price, so the displayed price \u00d7 quantity can disagree with net (quantity, by contrast, is shown as given).",
+    "fin/api.py reaches into the CLI handler admin._audit_list with a SimpleNamespace, and _serve commits and re-begins the transaction that cli.execute opened, a fragile workaround that couples the API layer to CLI internals."
+  ],
+  "strengths": [
+    "One Book.post path validates balancing, closed periods and per-currency sums for every module, and each command runs in one BEGIN IMMEDIATE transaction with rollback, so user errors leave nothing changed (bulk import and recurring run plan everything before writing anything).",
+    "Money is Decimal throughout and stored as text, with a single fmt/q2 pair for half-up rounding and the '0.00' rule, and all SQL is parameterised.",
+    "The tests run the real CLI in-process against a fresh temp database for each test, check behaviour (exact JSON documents, exit code 2 with empty stdout, nothing changed after errors, roles, closed periods) and include an API suite against a live server."
+  ],
+  "review_cost": 0.8952
+}
