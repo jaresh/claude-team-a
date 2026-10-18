@@ -1,0 +1,54 @@
+127.0.0.1 - - [18/Oct/2026 12:55:13] "POST /invoices HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 12:55:13] "POST /invoices/1/issue HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:13] "POST /invoices/1/payments HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:13] "GET /invoices/1 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:13] "GET /invoices HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:13] "GET /invoices/9 HTTP/1.1" 400 -
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+127.0.0.1 - - [18/Oct/2026 12:55:13] "POST /invoices/1/issue HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 12:55:13] "GET /reports/aging?at=2026-03-15 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:13] "GET /reports/aging?at=2026-03-15&payables=1 HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 12:55:14] "POST /transactions HTTP/1.1" 401 -
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 401: 'Unauthorized'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+127.0.0.1 - - [18/Oct/2026 12:55:14] "POST /transactions HTTP/1.1" 401 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "POST /transactions HTTP/1.1" 403 -
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 403: 'Forbidden'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+127.0.0.1 - - [18/Oct/2026 12:55:14] "POST /transactions HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "POST /transactions HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "GET /transactions HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "GET /accounts HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "GET /balances?at=2026-01-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "GET /balances HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "GET /reports/income?from=2026-01-01&to=2026-01-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "GET /reports/balance-sheet?at=2026-01-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:14] "GET /nope HTTP/1.1" 404 -
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 404: 'Not Found'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+127.0.0.1 - - [18/Oct/2026 12:55:14] "GET /audit HTTP/1.1" 200 -
+...............................127.0.0.1 - - [18/Oct/2026 12:55:20] "POST /invoices/1/issue HTTP/1.1" 401 -
+127.0.0.1 - - [18/Oct/2026 12:55:20] "POST /invoices/1/issue HTTP/1.1" 403 -
+.127.0.0.1 - - [18/Oct/2026 12:55:20] "POST /transactions HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 12:55:20] "POST /transactions HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 12:55:20] "POST /transactions HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 12:55:20] "POST /invoices HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 12:55:20] "POST /invoices HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 12:55:20] "GET /invoices HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 12:55:21] "GET /invoices?status=issued HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:21] "GET /invoices?status=paid HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:21] "GET /audit?by=alice HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 12:55:21] "GET /reports/aging?at=2026-03-15&payables=true HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 12:55:22] "GET /reports/income?to=2026-01-31 HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 12:55:22] "GET /reports/aging HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 12:55:22] "GET /reports/balance-sheet HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 12:55:22] "GET /nope HTTP/1.1" 404 -
+127.0.0.1 - - [18/Oct/2026 12:55:22] "POST /nope HTTP/1.1" 404 -
+127.0.0.1 - - [18/Oct/2026 12:55:22] "GET /invoices/abc HTTP/1.1" 404 -
+127.0.0.1 - - [18/Oct/2026 12:55:22] "GET /accounts/ HTTP/1.1" 200 -
+......................................
+----------------------------------------------------------------------
+Ran 75 tests in 13.212s
+
+OK

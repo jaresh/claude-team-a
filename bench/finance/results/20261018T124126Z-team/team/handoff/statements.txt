@@ -1,0 +1,28 @@
+Done
+- Files changed: fin/statements.py (new), tests/test_statements.py (new). No shared files edited; changes.md untouched. Nothing committed.
+- Commands: report income, report balance-sheet, report networth, report trial-balance, report ledger, loan schedule (all perm "read").
+- Check: python3 -m unittest tests.test_statements tests.test_accept_statements -> Ran 15 tests, OK (8 in tests.test_statements, 7 in tests.test_accept_statements).
+- Fixed in this pass: the zero-balance ledger test had a tautological assertion and wrong data; now posts Clear -3100 on 2026-01-06 and Small +5 on 2026-01-07 and checks balances 4000.00, 3100.00, 0.00, 5.00 with closing 5.00.
+- Fixed earlier: ledger running balance no longer resets to opening when it hits zero (in-period rows are collected first, then the balance is computed from the opening value).
+
+Behaviour and assumptions (for the lead to confirm)
+- --currency is accepted on income, balance-sheet, networth and trial-balance (not on ledger).
+- Each account's per-currency raw balance is converted with core.convert at the report date; converted values are rounded per currency and summed. Totals are sums of shown values.
+- A currency with no rate raises UserError even if its balance sums to zero (strict rate check).
+- from > to is a UserError for income, networth and ledger; trial-balance and balance-sheet take a single date.
+- ledger converts every posting to the account's currency at the --to date, so opening and running balances are sums of the shown values.
+- loan schedule: payment = P*r/(1-(1+r)^-n) rounded half up; zero rate uses P/n; last row pays the remaining balance plus its interest.
+
+Open issue (needs a lead decision)
+- In multi-currency books, trial-balance totals are sums of individually rounded per-account conversions, so debit and credit can differ by a cent or so even though each account is balanced in its own currency. The spec asks for totals to be equal. Options: (a) accept and document, (b) round at the total level by converting each currency's total once, or (c) put a rounding line on the trial balance. I did not change this.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review the trial-balance rounding choice above, then run the full check: python3 -m unittest discover -s tests
+
+Do not redo
+- Ran both test modules after the fixes: all 15 pass. Do not re-derive the ledger zero-balance case; it is covered by the test.
+- Checked tests/test_accept_statements.py: it passes unchanged with this implementation; it is lead-owned and was not edited.
+- Ruled out the "balance = balance or opening" ledger approach: it resets the running balance to opening when it reaches zero. Replaced it.

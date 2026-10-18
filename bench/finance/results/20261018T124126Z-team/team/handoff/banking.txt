@@ -1,0 +1,47 @@
+banking handoff
+
+**Done**
+- fin/banking.py: replaced the stub with the full banking module. register(sub, report) defines
+  rule add/list, import (--account, --date-col, --desc-col, --amount-col, --skip-header),
+  budget set, report budget, recurring add/run (--every, --start, --posting, --until),
+  reconcile (--date, --balance, --clear). Domain functions: add_rule, list_rules, import_csv,
+  set_budget, report_budget, add_recurring, run_recurring, reconcile. Each one that changes
+  data calls ctx.audit once. Money is Decimal throughout.
+- tests/test_banking.py: new, 21 tests, all passing (rules, import, budget, recurring,
+  reconcile, closed-period rollback).
+- No shared files edited. changes.md not touched. Nothing committed.
+- Check: `python3 -m unittest tests.test_banking tests.test_accept_banking` gives
+  Ran 27, FAILED (failures=2). Both failures are in tests/test_accept_banking.py, not in
+  banking.py:
+  1. Budget.test_budget_report, line 66: expects audit list[-1]["target"] == "Expenses:Rent 2026-01".
+     The test adds two txns after budget set (lines 56-57), and books.add_txn audits each as
+     txn.add, so the last audit row is "2" (the txn id). The assertion can't hold as written.
+     Fix: assert on the budget.set row (e.g. the last row with action == "budget.set"), or move
+     the audit check before the txn adds.
+  2. Recurring.test_weekly_yearly_closed, line 89: expects created 6, the code gives 5. The test's
+     own assertions on lines 90-93 show 5 transactions: weekly 2026-01-01, 01-08, 01-15 and
+     yearly 2024-02-29, 2025-02-28 (2026-02-28 is past the until date). Fix: expect {"created": 5}.
+  (Note: `python` is not on PATH in this environment; use `python3`.)
+
+**In progress**
+- Stopped after the check. The implementation and my tests are done. Only the two acceptance
+  expectations above remain, and they belong to the lead.
+
+**Next step**
+- Lead: correct the two expectations in tests/test_accept_banking.py as described above (the
+  owner of that file decides), then run:
+  cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_banking tests.test_accept_banking
+  Expect Ran 27, OK.
+- If the acceptance file stays as is, the banking check cannot pass without changing banking
+  behavior away from the spec, which I did not do.
+
+**Do not redo**
+- Checked core helper names and signatures before writing banking.py: Ctx.q/q1/x/meta/audit/run,
+  get_account, ensure_account, under, post_txn, parse_month, parse_date, money, fmt, add_days,
+  add_months, month_end all exist with the assumed signatures.
+- Ran the acceptance file before writing my tests: 6 tests, 4 pass; the 2 failures are the two
+  test-side issues above, not bugs in banking.py.
+- Import dedupe: two identical rows in one file import once and skip the second (imported 1,
+  skipped 1). This is intended (dedupe against the imported table, including within one file).
+- Rule accounts must already exist (unknown account gives exit 2). Import creates
+  Income:Uncategorized / Expenses:Uncategorized in the book currency when no rule matches.

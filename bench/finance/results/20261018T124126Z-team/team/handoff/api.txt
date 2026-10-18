@@ -1,0 +1,21 @@
+Done
+- fin/api.py: register() adds `serve --port N` (perm "read"; calls make_server(args.db, args.port) and serve_forever, returns None so nothing is printed; Ctrl-C stops it). make_server(db_path, port) returns an HTTPServer bound to 127.0.0.1 (port 0 = free port); db_path is stored on server.db_path.
+- Routes (ROUTES table): all spec section 10 paths. POST routes require X-User via ctx.require("write") before the body is parsed, then run inside ctx.run. Status: POST /transactions and POST /invoices 201, the rest 200.
+- Errors: UserError -> e.status (400; AuthError 401/403) with {"error": msg}; no route (method or path) -> 404; bad JSON / non-object body / missing field -> 400; uncaught exception -> 500 {"error": "internal error"} with traceback to stderr.
+- Each request opens its own sqlite connection (core.connect), because the server thread differs from the thread that created the server.
+- Extra query parameters the spec does not list but the domain functions support: GET /transactions (account, from, to), GET /balances (at optional), GET /reports/income (currency), GET /reports/balance-sheet (currency), GET /invoices (status), GET /audit (by). Required query params: from/to for income, at for balance-sheet and aging.
+- tests/test_api.py: 7 tests (ApiErrors: 6 covering 404s, bad bodies, auth order, missing params, rollback on failed write, filters/payables; ServeCommand: 1 covering serve parsing). With the 2 acceptance tests, 9 run.
+- Check: `python3 -m unittest tests.test_api tests.test_accept_api` -> Ran 9 tests, OK. (The environment has no `python`, only `python3`.)
+- Smoke test: `python3 -m fin --db .claude/team/scratch/api/smoke.db serve --port 8765`, then GET /accounts -> 200 [], POST /invoices with bad JSON -> 400. Server stopped.
+- No shared files edited; changes.md not touched.
+
+In progress
+- Nothing.
+
+Next step
+- Lead: `python3 -m unittest tests.test_api tests.test_accept_api` (or the full `python3 -m unittest discover -s tests`) to confirm. To run the server: `python3 -m fin --db ./fin.db serve --port 8080`.
+
+Do not redo
+- Checked: the acceptance test expectations match the domain functions (balances/income/balance-sheet/aging/audit/txn list/invoice show/list). Unknown invoice id raises UserError (_row), so it gives 400.
+- Assumption to note in README: the server binds 127.0.0.1 only (the spec does not say). Access log goes to stderr via BaseHTTPRequestHandler.
+- Assumption: a POST with an empty body counts as {} (needed for /issue). An invalid id in the path such as /invoices/abc gives 404 (not a valid route), while /invoices/9 gives 400.

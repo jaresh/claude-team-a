@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 8,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 9,
+    "tests": 7,
+    "consistency": 8
+  },
+  "overall": 8,
+  "issues": [
+    "banking.py `_checked_postings` repeats the balancing rules of `core.post_txn` (blank posting, per-currency sums, error message), so a change to one can silently leave `recurring add` and `txn add` disagreeing.",
+    "statements.py `_shown`/`trial_balance` converts and rounds each currency separately, so in a multi-currency book `total_debit` and `total_credit` can differ by a cent; `ledger` also converts every past posting at the `--to` date's rate, so `opening` changes depending on which period is asked for.",
+    "banking.py `report_budget` adds the raw amounts of all descendant postings regardless of their currency, so a child account in another currency gives a wrong `actual` instead of a conversion or an error.",
+    "cli.py `main` creates the database file before `init` checks its input, so `init --currency XX` exits 2 but leaves an empty fin.db behind; `core.connect` also runs CREATE TABLE on any existing file, and a file that isn't SQLite causes an uncaught traceback.",
+    "api.py `_Handler._serve` parses Content-Length outside the try block, and non-string JSON values (for example an account given as an object) reach sqlite unchecked, so bad requests can crash the handler or return 500 instead of 400.",
+    "core.py `money`/`post_txn` quietly rounds amounts with more than two decimals (\"10.005\" becomes 10.01) instead of rejecting them, and statements.py `loan_schedule` can show a negative balance before the last row when the principal is tiny and the term long (the rounded payment \u00d7 (n\u22121) is more than the principal)."
+  ],
+  "strengths": [
+    "Every data-changing command and API POST runs inside a single `BEGIN IMMEDIATE` transaction (`Ctx.run`) with a central permission check, and the test helper `fin_err` compares byte snapshots of the database to prove that a failed command changes nothing.",
+    "Money handling is careful throughout: Decimal with ROUND_HALF_UP in one `r2`/`fmt` pair that never outputs -0.00, floats rejected in `dec`, and all SQL values passed as parameters.",
+    "invoicing.py shares its payment, totals and aging logic between invoices and bills through the INVOICE/BILL descriptor tables, and the API is a short route table over the same domain functions the CLI uses, so the JSON shapes match."
+  ],
+  "review_cost": 0.7952
+}

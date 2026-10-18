@@ -1,0 +1,25 @@
+DONE
+- fin/invoicing.py: full implementation (replaces the stub). Covers tax codes (add/list), customers and vendors (add/list, --terms), invoices (create/issue/pay/show/list), bills (create/pay/show/list), `report aging [--at DATE] [--payables]`, and `report tax --from --to`. register(sub, report) wires all of these.
+- tests/test_invoicing.py: new, 7 unit tests (bucket edges, _line parsing, validation errors for tax, parties, invoices, bills, payment rules). Uses FinCase helpers only.
+- Check: `python3 -m unittest tests.test_invoicing tests.test_accept_invoicing` -> Ran 15 tests, OK. (The machine has no `python`, only `python3`.)
+- Shared files: none edited. No changes.md rows needed. No new shared helpers were added to core.py or any other lead-owned file.
+- Not committed.
+
+IN PROGRESS
+- Nothing open. The task is complete.
+
+NEXT STEP
+- Lead: review fin/invoicing.py and run the full suite, e.g. `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests -t .` (I did not run the full suite; only the two invoicing modules).
+
+DO NOT REDO
+- Acceptance tests in tests/test_accept_invoicing.py: all 8 pass against the current implementation. Aging buckets were checked against the hand-computed values in the test comments.
+- Assumptions made where the spec was silent (flag these if the lead wants different behaviour):
+  * Unit price is stored with core.money (rounded to cents). Line net = r2(quantity * price). Tax = r2(net * rate / 100) per line.
+  * Quantity must be > 0. Price must be >= 0. Bill line amount (net) must be >= 0. At least one line is required on invoices and bills.
+  * Bill line accounts must be expense or asset accounts. Payment accounts for both invoices and bills must be asset accounts.
+  * Bill ref is unique per vendor.
+  * Draft invoices are excluded from aging and from the tax report. Issued invoices get INV-YYYY-NNNN numbers by counting existing numbers with that year prefix, so the number is assigned at issue time, not create time.
+  * Tax report by_code includes a code if any line in the period uses it, even when that code's tax is zero for the period (the acceptance test needs VAT5 with paid 0.00).
+  * Tax-report amounts use `Decimal(r["tax"])` from the stored TEXT values.
+- Posting accounts used on issue: Assets:Receivable, Income:Sales, Liabilities:SalesTax. On bill create: the line accounts, Assets:TaxReceivable (only if tax is non-zero), Liabilities:Payable. The acceptance test expects these names.
+- Errors are raised as UserError with no DB change. This relies on Ctx.run wrapping write handlers in a transaction, as the lead's cli.py does.
