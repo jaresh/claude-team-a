@@ -1,0 +1,18 @@
+Done
+- fin/billing.py (new): SCHEMA with bil_taxes, bil_customers, bil_vendors, bil_invoices, bil_invoice_lines, bil_bills, bil_bill_lines, bil_payments. register(reg) adds 18 commands: tax add/list, customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list, report aging (--payables), report tax.
+- tests/test_billing.py (new): 10 tests covering tax and parties, viewer read-only, invoice lifecycle (rounding, due date, partial/paid), invoice pay rules, numbering and list filter, closed-period rollback on issue, bill lifecycle, aging for receivables and payables, tax report, bad lines and tax codes.
+- Check: `/usr/bin/python3 -m unittest tests.test_billing` -> Ran 10 tests, OK.
+- Import check: `/usr/bin/python3 -m fin --help` prints the global options with no traceback.
+- Note: `python` is not on PATH in this environment; `python3` (/usr/bin/python3, 3.14) works. Use that for the done check.
+- No shared files edited; changes.md not touched. Nothing committed.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/finance-team-2 && python3 -m unittest tests.test_billing` to confirm, and `python3 -m fin --help` for the import check.
+
+Do not redo
+- Confirmed `tests.test_billing` imports as a namespace package with no tests/__init__.py (the run passed without creating one).
+- Confirmed the fin package imports cleanly through cli.MODULES (billing is listed there).
+- Design choices to flag to the lead: aging buckets use days past due (due = date + terms); report tax by_code lists every code used by non-draft invoice or bill lines in range, with both collected and paid keys; invoice pay and bill pay require an asset account; issue posts Assets:Receivable, Income:Sales, and Liabilities:SalesTax (when tax > 0); bill create posts each line account, Assets:TaxReceivable (when tax > 0), and Liabilities:Payable.

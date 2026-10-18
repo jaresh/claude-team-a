@@ -1,0 +1,28 @@
+DONE
+- fin/automation.py (new): SCHEMA tables imp_rules, imp_rows, auto_budgets, auto_recurring, auto_occurrences. Commands: rule add, rule list, import, budget set, report budget, recurring add, recurring run. register(reg) covers all seven.
+- tests/test_automation.py (new): 25 tests, all passing.
+- Check: `python3 -m unittest tests.test_automation` -> Ran 25 tests, OK. `python3 -m fin --help` lists the automation commands (rule, import, budget, recurring).
+- Shared files: none edited. .claude/team/changes.md not touched. Nothing committed.
+
+IN PROGRESS
+- Nothing open. Module and tests are complete for the automation section.
+
+NEXT STEP
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/finance-team-2 && python3 -m unittest tests.test_automation` once more after merging, and check `python3 -m fin --help`. (The shell has no `python`, only `python3`.)
+- Lead to note for README assumptions (automation section):
+  1. Import is one transaction per file: any bad row or closed-period row fails the whole file.
+  2. Duplicate detection key is (account, date, description, amount); repeats inside one file are skipped too. Rows are tracked in imp_rows.
+  3. Uncategorized default is Expenses:Uncategorized for negative amounts and Income:Uncategorized for positive ones; these accounts are created with ensure_account.
+  4. The first matching rule wins (rules in insertion order, case-insensitive regex, pat.search on the description).
+  5. A rule's account must exist when the rule is added; its pattern must be a valid regex.
+  6. An import's category account must use the same currency as the import account.
+  7. Budgets: only accounts of type "expense"; amount >= 0; one row per (account, month); actual sums the month's postings to the account and its descendants, converted to book currency at month end.
+  8. Recurring: monthly/weekly/yearly; each occurrence is computed from the start date, so month ends clamp (Jan 31 -> Feb 28) and do not drift. Postings are validated at add by a dry post inside a SAVEPOINT, which also rejects a start in a closed period. Run is idempotent via auto_occurrences; a closed-period occurrence fails the whole run.
+  9. Audit: rule.add (pattern), import (account, only when rows were imported), budget.set ("ACCOUNT MONTH"), recurring.add (name), recurring.run (until date, only when something was created).
+- Core issue (not mine, for the lead or books owner): core.money() lets decimal.InvalidOperation escape for absurd values such as 1e999, instead of raising UserError. automation.py catches ArithmeticError on import rows, but parse_amount in budget set and recurring add would still leak the same error on such input. Suggested fix in core.parse_amount: wrap money(parse_decimal(s)) and convert ArithmeticError to UserError.
+
+DO NOT REDO
+- Running the tests: 25 pass after the fix. The only earlier failure was import of "1e999" (decimal overflow); fixed in _import_row by catching ArithmeticError and raising UserError.
+- A first draft of the budget test imported before the rules existed and had wrong expected totals; rewritten so rules come first (Food March 250.50 / 300, April 7.00 / 10). Not a code bug.
+- `python` is not on PATH in this environment; use `python3`.
+- `python3 -I -m fin` cannot find the package (the -I flag drops the cwd from sys.path); that is expected, not a bug.

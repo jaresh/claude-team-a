@@ -1,0 +1,22 @@
+Done
+- fin/reports.py (new): report income, report balance-sheet, report networth, report trial-balance, report ledger (all access "read"); reconcile (access "write"). Owns SCHEMA for table rec_cleared(account, txn_id).
+- fin/loan.py (new): loan schedule <principal> <rate> <months> --start DATE (access "read").
+- tests/test_reports.py (new): 28 tests covering income, balance sheet (incl. multi-currency and missing-rate error), networth (incl. from > to error), trial balance (equal totals with rounding), ledger (opening/closing, parent account, unknown account), reconcile (clearing, difference, persistence, bad clear rolls back, audit entry, viewer denied), loan schedule (reference values, zero rate, validation errors), JSON output via --json.
+- Check results: `python3 -m unittest tests.test_reports` -> Ran 28 tests, OK. `python3 -m fin --help` lists report, reconcile, loan. py_compile on the three files passes.
+- No shared files edited, so .claude/team/changes.md is untouched. Nothing committed.
+- Note: the sandbox has no `python` on PATH, only `python3` (3.14). Use python3.
+
+In progress
+- Nothing open. The task is complete.
+
+Next step
+- Lead: run `python3 -m unittest tests.test_reports` once more after merging, then run the full suite with `python3 -m unittest discover -s tests`.
+- Known issue outside my files (fin/cli.py, not changed): cli.run requires an initialised database (currency meta) for every command, including `loan schedule`, which has no database dependency. Either let loan skip the currency check in cli.py or accept that loan needs an init'd DB. The loan tests run through the DB because of this (they call init in setUp).
+- The tests build data with cli.open_db + Ctx directly (account add, txn add, fx insert), since those commands belong to the books task. If books lands the CLI commands, the helpers in tests/test_reports.py could switch to them, but this is optional.
+
+Do not redo
+- Retained earnings: taken as the balancing figure (total_assets - total_liabilities - equity) so the identity holds exactly under conversion rounding. This is intentional. In single-currency books it equals income minus expenses.
+- Trial balance: per-account rounding residual goes to the largest-absolute row. Totals were checked equal in the multi-currency test.
+- Loan dates: row n uses add_months(start, n), not cumulative from the previous row. From 2026-01-31, row 1 is 2026-02-28 and row 2 is 2026-03-31. This is intentional and tested.
+- Loan reference values verified by hand: 1000 at 6% over 3 months -> payment 336.67, interest 5.00/3.34/1.68, total interest 10.02, final payment 336.68.
+- Reconcile bad clear id: a clear id with no posting to the account on or before DATE raises UserError before any write, so rec_cleared is unchanged (tested).

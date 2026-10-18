@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 6,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 6,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "billing.py `_line` rounds the unit price to cents with `parse_amount` before multiplying by quantity, so `2 \u00d7 10.005` gives net 20.02 instead of round(20.01) = 20.01, which breaks the spec's net = round(quantity \u00d7 price); test_billing.py `test_invoice_lifecycle` locks in the wrong value.",
+    "core.py `parse_amount`, used by `post_txn`, `_pay`, `_budget_set` and the import, silently rounds amounts with more than two decimals (12.555 \u2192 12.56) instead of rejecting them, so money input can change without the user knowing.",
+    "reports.py `_balance_sheet` computes `retained_earnings` as a plug (assets \u2212 liabilities \u2212 equity) rather than income \u2212 expenses, and `_trial_balance` moves any rounding residual onto the largest row; both hide real imbalances or conversion differences instead of reporting them.",
+    "api.py `respond` calls `cli.execute`, which rebuilds the whole argparse tree and re-imports every module (clearing the global `COMMANDS` dict) on every request, so a global `_LOCK` is needed; and `_serve` runs the server inside a command handler that commits and re-opens `run()`'s transaction by hand, which is fragile and couples the layers.",
+    "cli.py `run`/`main` only catch `UserError`, so a `sqlite3.DatabaseError` (e.g. `--db` pointing at a file that is not a database) or loan.py `_schedule` with a huge MONTHS (`add_months` raises a ValueError about the year, or the loop runs for a very long time) ends in a traceback rather than exit code 2; read-only commands also take a `BEGIN IMMEDIATE` write lock.",
+    "core.py `add_account` and `ensure_account` duplicate the parent-creation loop, and `add_account` uses an expression statement (`self.audit(...) if not exist_ok else None`) for a side effect; the posting parsers `books._postings` and `automation._parse_posting` are also duplicated with slightly different stripping."
+  ],
+  "strengths": [
+    "One command registry (`reg(path, setup, handler, access)`) with role checks and a single commit/rollback in `cli.run` makes every command atomic, and the HTTP API reuses exactly the same validation, permissions and audit path.",
+    "Money is handled as Decimal throughout (stored as TEXT, `fmt` normalises -0.00, the API rejects JSON floats), and all values in SQL are passed as parameters; f-string SQL only interpolates table names from internal constants.",
+    "The tests go through the real CLI/HTTP entry points, check exit codes and error messages, and cover edge cases such as closed periods, month-end recurrence, viewers and partial payments, using a temp DB per test (except the API class, whose tests share one DB)."
+  ],
+  "review_cost": 0.7177
+}

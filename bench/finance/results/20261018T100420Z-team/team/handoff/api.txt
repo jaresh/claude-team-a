@@ -1,0 +1,17 @@
+Done
+- fin/api.py (new): HTTP JSON API on 127.0.0.1 (stdlib ThreadingHTTPServer). Each request becomes argv and runs through cli.execute under a lock, so roles, validation and audit are the CLI's. Routes per spec 10: GET /accounts, /transactions, /balances?at=, /reports/income?from&to, /reports/balance-sheet?at, /reports/aging?at&payables=1, /invoices, /invoices/ID, /audit?by=; POST /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200). POST needs X-User (401 if missing or unknown; 403 for viewers). Unknown path gives 404. Errors: UserError gives 400, AuthError gives its status, other exceptions give 500 "internal error". Money must be a JSON string or int (floats give 400).
+- Registers the `serve --port N` command via register(reg). "api" was already in cli.MODULES, which I did not touch.
+- tests/test_api.py (new): 10 unittest cases. A server runs on a free port in a thread, against a temp DB.
+- Checks: `python3 -m unittest tests.test_api` gives OK, 10 tests, about 1.1 s. Also OK with `-W error::ResourceWarning`. `python3 -m fin --help` runs and lists `serve`.
+- Shared files: none edited. No changes.md line needed. Nothing committed.
+
+In progress
+- Nothing open in my task. The `serve` command itself is not exercised: the tests only check that `serve --port` parses. I did not launch it, per my instructions.
+
+Next step
+- Lead: run `python3 -m fin --db <path> serve --port 8080` yourself, then from another shell `curl -H 'X-User: <user>' http://127.0.0.1:8080/accounts` and `curl -X POST -H 'X-User: <editor>' -d '{...}' .../transactions`. This checks the COMMIT and BEGIN IMMEDIATE handling in `_serve` (fin/api.py, around line 226), which no test covers.
+
+Do not redo
+- Invoice `number` is NULL on a draft and only set on issue. show, issue and pay all key on the internal `id`, so the API and tests use `id`. This was a test bug I fixed, not an API bug.
+- Known ordering note (not fixed): respond() builds argv (body validation) before the CLI's unknown-user check. So a POST with an unknown X-User and an invalid body gives 400, not 401. A valid body gives the expected 401. Fixing it needs a user lookup before build; say if you want that.
+- Lint-level test fixes were done: no helper is named after a unittest method, and HTTPError bodies are closed.

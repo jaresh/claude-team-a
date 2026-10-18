@@ -1,0 +1,15 @@
+Done
+- fin/books.py (new): account add/list, txn add/list, balance, fx add, convert, user add/list, audit list, period close/status. register(reg) only; no SCHEMA (uses core tables fx, users, audit, meta).
+- tests/test_books.py (new): 23 tests, all pass: `python3 -m unittest tests.test_books` (about 1s). `python3 -m fin --help` imports cleanly.
+- Assumptions added beyond spec: txn/description must be non-blank; fx add rejects same-currency pairs and rate <= 0; convert --at is required; account add returns {name,type,currency}; period close returns {closed_through}; closing an already-covered month is a no-op with no audit entry.
+- Note: python is not on PATH here, use python3 (3.14).
+
+In progress
+- Nothing.
+
+Next step
+- Lead: run `python3 -m unittest tests.test_books` and `python3 -m fin --help`. Add the README assumptions listed above.
+
+Do not redo
+- Checked cli.py run(): write commands need --user (401 otherwise), viewer gets 403, admin-only checked. Books relies on that; no extra auth code in books.
+- No changes to core.py or cli.py; changes.md untouched.

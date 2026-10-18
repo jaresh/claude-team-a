@@ -1,0 +1,108 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "arm": "team",
+  "claude_args": "",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.12+intake-hook",
+  "started": "2026-10-18T10:04:21Z",
+  "ended": "2026-10-18T10:15:01Z",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 96,
+  "own_total": 96,
+  "python_lines": 3148,
+  "cost": 0.6079,
+  "cost_cold": 0.6449,
+  "lead_cost": 0.5029,
+  "team_cost": 0.105,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [
+    "reports",
+    "automation",
+    "billing",
+    "books",
+    "api"
+  ],
+  "lead_messages": 16,
+  "lead_peak_ctx": 54737,
+  "lead_compactions": 0,
+  "team_peak_ctx": 63051,
+  "coverage": 0.944,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (0%)",
+    "fin/api.py (84%)"
+  ],
+  "quality": {
+    "app_files": 10,
+    "app_lines": 1451,
+    "test_files": 5,
+    "test_lines": 1134,
+    "test_functions": 96,
+    "test_to_app_ratio": 0.78,
+    "functions": 168,
+    "mean_function_lines": 7.9,
+    "max_function_lines": 49,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.9,
+    "max_complexity": 22,
+    "functions_complexity_over_10": 4,
+    "most_complex": [
+      "fin/cli.py:run (22)",
+      "fin/core.py:post_txn (14)",
+      "fin/automation.py:_import (12)"
+    ],
+    "docstring_coverage": 0.4,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 10,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 6,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 6,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "billing.py `_line` rounds the unit price to cents with `parse_amount` before multiplying by quantity, so `2 \u00d7 10.005` gives net 20.02 instead of round(20.01) = 20.01, which breaks the spec's net = round(quantity \u00d7 price); test_billing.py `test_invoice_lifecycle` locks in the wrong value.",
+      "core.py `parse_amount`, used by `post_txn`, `_pay`, `_budget_set` and the import, silently rounds amounts with more than two decimals (12.555 \u2192 12.56) instead of rejecting them, so money input can change without the user knowing.",
+      "reports.py `_balance_sheet` computes `retained_earnings` as a plug (assets \u2212 liabilities \u2212 equity) rather than income \u2212 expenses, and `_trial_balance` moves any rounding residual onto the largest row; both hide real imbalances or conversion differences instead of reporting them.",
+      "api.py `respond` calls `cli.execute`, which rebuilds the whole argparse tree and re-imports every module (clearing the global `COMMANDS` dict) on every request, so a global `_LOCK` is needed; and `_serve` runs the server inside a command handler that commits and re-opens `run()`'s transaction by hand, which is fragile and couples the layers.",
+      "cli.py `run`/`main` only catch `UserError`, so a `sqlite3.DatabaseError` (e.g. `--db` pointing at a file that is not a database) or loan.py `_schedule` with a huge MONTHS (`add_months` raises a ValueError about the year, or the loop runs for a very long time) ends in a traceback rather than exit code 2; read-only commands also take a `BEGIN IMMEDIATE` write lock.",
+      "core.py `add_account` and `ensure_account` duplicate the parent-creation loop, and `add_account` uses an expression statement (`self.audit(...) if not exist_ok else None`) for a side effect; the posting parsers `books._postings` and `automation._parse_posting` are also duplicated with slightly different stripping."
+    ],
+    "strengths": [
+      "One command registry (`reg(path, setup, handler, access)`) with role checks and a single commit/rollback in `cli.run` makes every command atomic, and the HTTP API reuses exactly the same validation, permissions and audit path.",
+      "Money is handled as Decimal throughout (stored as TEXT, `fmt` normalises -0.00, the API rejects JSON floats), and all values in SQL are passed as parameters; f-string SQL only interpolates table names from internal constants.",
+      "The tests go through the real CLI/HTTP entry points, check exit codes and error messages, and cover edge cases such as closed periods, month-end recurrence, viewers and partial payments, using a temp DB per test (except the API class, whose tests share one DB)."
+    ],
+    "review_cost": 0.7177
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 6,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 6,
+        "consistency": 7
+      },
+      "review_cost": 0.7177
+    }
+  ]
+}
