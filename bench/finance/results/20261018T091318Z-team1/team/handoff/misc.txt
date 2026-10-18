@@ -1,0 +1,19 @@
+**Done**
+- Created fin/misc.py: `reconcile ACCOUNT --date DATE --balance AMOUNT [--clear ID ...]` (perm="write"), spec §16. No SCHEMA (uses existing postings.cleared).
+- Created tests/test_misc.py: 21 tests (report shape, zero difference, cleared marks kept across runs, sorted/deduped clear ids, postings after the date ignored, clear after date / to a non-account txn / unknown id / non-numeric id -> exit 2 and nothing marked, unknown account, bad date/balance, half-up rounding, "0.00" never "-0.00", exact-account matching, viewer denied, editor allowed, missing/unknown user denied, audit entry `reconcile`/account, no audit on error).
+- Check: `python3 -m unittest tests.test_misc` -> 21 OK. `python3 -m unittest discover -s tests` -> Ran 180, OK (skipped=1; the skipped test is not in my files).
+- No shared files edited, so changes.md is untouched. Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for misc. Lead to decide the README assumptions below.
+
+**Do not redo**
+- Assumptions to record in README (spec says to list them):
+  - `reconcile` is perm="write", so viewers cannot run it even without `--clear`. Every successful run writes a `reconcile` audit entry, including runs with no `--clear`.
+  - Only postings to the exact ACCOUNT count. Postings to child accounts (e.g. Assets:Bank:Checking) are ignored.
+  - `--clear` ids are integers. Duplicates are collapsed. Marking a transaction marks all of its postings to ACCOUNT.
+  - A `--clear` id is valid only if it has a posting to ACCOUNT dated on or before DATE. Validation runs before any marking.
+- The arithmetic check I ran in tests was my own mistake, not a code issue; the suite is green now.

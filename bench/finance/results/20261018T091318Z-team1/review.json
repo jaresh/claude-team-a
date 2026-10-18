@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 8,
+    "error_handling": 7,
+    "data_safety": 9,
+    "tests": 8,
+    "consistency": 8
+  },
+  "overall": 8,
+  "issues": [
+    "fin/sales.py and fin/purchases.py each define their own copies of _sum, _load, _net_tax, _paid and the aging-bucket loop (report_aging vs aging_payables), and sales.report_aging imports purchases lazily to get around a circular import with purchases, which imports from sales.",
+    "fin/cli.py execute only catches UserError, so sqlite3 errors such as a locked database or a file that is not a database end in a traceback, and fin/api.py Handler.do_POST crashes on a non-numeric Content-Length instead of answering 400.",
+    "The 'account or one of its descendants' test is written three different ways (ledger._under, a SQL substr in automation.report_budget, startswith in reports.ledger), and reports.ledger loads every posting in the book and filters in Python.",
+    "fin/api.py _check_writer repeats the role rules from cli.execute (viewer is hard-coded) and runs an extra 'user list' command for every POST, and _payment passes the amount as a positional argument, so a negative amount becomes a confusing argparse error.",
+    "fin/cli.py cmd_period_close writes a period.close audit entry even when closing an earlier month changes nothing, Ctx.entries is never used, and fin/reports.py registers the loan commands from fin/loans.py, which ties two unrelated modules together.",
+    "tests/test_core.py test_users_audit_period slices the expected list with [:len(a)], so the audit assertion still passes if entries are missing, and test_sales.test_aging_buckets_follow_days_past_due adds amounts as floats; test_aging_payables_delegates_to_purchases mocks a module and so tests how the code is wired rather than what it does."
+  ],
+  "strengths": [
+    "Every command runs inside a single BEGIN/COMMIT in cli.execute, with rollback and removal of a half-created database on failure, so user errors leave nothing changed; the API reuses execute(), so CLI and HTTP output are identical.",
+    "Money is handled carefully throughout: Decimal stored as text, a single q()/fmt() pair for half-up rounding and the '0.00' rule, all SQL parameterised, and one post_txn function used by every feature that posts a transaction, which checks balance and closed periods.",
+    "Tests are thorough and independent, with a fresh temp database per test through FinTest. They check exact JSON output, rounding edge cases, closed periods, permissions, and that the audit log does not grow on errors."
+  ],
+  "review_cost": 0.8331
+}

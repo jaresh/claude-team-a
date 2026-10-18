@@ -1,0 +1,27 @@
+Done
+- Files changed: fin/automation.py (new), tests/test_automation.py (new). No other files edited; changes.md not touched (no shared files changed). Nothing committed.
+- Implemented spec §5-7: `rule add`, `rule list`, `import FILE --account ACC [--date-col/--desc-col/--amount-col N] [--skip-header]`, `budget set ACC MONTH AMOUNT`, `report budget MONTH`, `recurring add NAME --every monthly|weekly|yearly --start DATE [--posting ACC[=AMT]]...`, `recurring run --until DATE`.
+- Tables (CREATE IF NOT EXISTS): rules, imports (dedupe key account+date+description+amount), budgets (PK account,month), recurring (name UNIQUE), recurring_postings, recurring_occurrences (PK recurring_id,n).
+- Check: `python3 -m unittest discover -s tests` -> Ran 83 tests, OK.
+- Fixes made this session: savepoint renamed from "check" (SQLite keyword, caused syntax error in recurring add) to "trial"; import wraps money() errors so InvalidOperation from "1e999" becomes UserError (exit 2) instead of a crash.
+
+Assumptions (for README, lead to add):
+- Import: zero-amount and blank-description rows are user errors; a bad row rolls back the whole file. Header skipped only with --skip-header. Blank rows are ignored.
+- Import: Expenses:Uncategorized / Income:Uncategorized are created only when a row needs them. Audit "import" is written on every successful run, even when nothing was imported.
+- Rules: patterns are case-insensitive regex searches; first matching rule (lowest id) wins; rule accounts must already exist.
+- Budgets: only expense accounts; amount must be >= 0; actual = postings to the account or its descendants within the month, converted to the account's currency at month end.
+- Recurring: names are unique; postings checked with core.post_txn inside a SAVEPOINT (same rules as `txn add`) then rolled back; occurrences are counted from the start date (month-end clamping does not drift); `recurring run` is idempotent and catches up incrementally; if any occurrence falls in a closed period the whole run fails and nothing changes.
+
+Issue for the lead (core.py, not edited by me)
+- fin/core.py money()/q(): Decimal(d).quantize raises decimal.InvalidOperation for huge exponents such as "1e999" instead of UserError. Affects `txn add`, `balance`, `budget set`, `fx add`, etc. Suggested fix in core.q or dec(): guard the quantize, e.g. `try: return Decimal(d).quantize(...) except InvalidOperation: raise UserError("amount out of range")`, or check d.adjusted() in dec().
+
+In progress
+- Nothing. Work is complete for the automation section.
+
+Next step
+- Lead: optionally apply the core.py fix above, then run `cd <repo> && python3 -m unittest discover -s tests`. Add the assumptions above to README.md.
+
+Do not redo
+- Ran the full suite: 83 tests, all pass after the two fixes (savepoint name, InvalidOperation guard).
+- Did not touch fin/core.py or fin/cli.py.
+- Test-side CSV uses comma delimiter; the balance check after recurring add is 1100.00 in Assets:Bank for 2026-01-31 (salary 2000 minus rent 900).

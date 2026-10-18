@@ -1,0 +1,21 @@
+**Done**
+- fin/api.py (new): `register(reg)` adds `serve [--host 127.0.0.1] [--port 8000]`; `make_server(db, port, host)`; `handle(db, method, target, user, body=b"") -> (status, obj)` (socket-free core); `Handler` (http.server) on top of it. Routes table `ROUTES` covers all §10 endpoints plus `GET /audit`. Every route runs one CLI command through `fin.cli.execute()` with `--json`, so response bodies are the commands' --json output.
+- Status codes: 201 for POST /transactions and POST /invoices, 200 for issue/payments and all GETs. Error bodies are `{"error": msg}`: user errors (incl. unknown invoice id) -> 400; malformed JSON or non-object body -> 400; missing/unknown X-User on POST -> 401; viewer on POST -> 403; unknown path -> 404.
+- Writer check: `X-User` is checked against `user list` (read via execute) before parsing the body. The command then runs with `--user NAME`, so audit entries carry the API user.
+- `serve`: runs in execute()'s transaction, so the handler COMMITs first (the schema is in place) and reopens a BEGIN on exit so execute() can commit. Ctrl-C stops it cleanly; it returns `{"served": "http://HOST:PORT"}`. Verified by hand: serve starts, GET /accounts returns 200, POST /transactions with X-User root and body {} returns 400 {"error": "missing date"}, and the DB is intact after stop.
+- Tests: tests/test_api.py, 15 tests, real HTTP on port 0 (ProxyHandler({}) so no env proxy is used): GET parity with CLI output, no-user GET, missing query param 400, POST txn 201 + audit under the API user, balanced-amount inference, unbalanced 400 with nothing changed, 401 (no user / unknown), 403 viewer, malformed body 400, 404 paths, full invoice flow (create/show/issue/pay/list?status/aging), invoice error cases, payment 403 for viewer, socket-free handle().
+- Full suite: `python3 -m unittest discover -s tests` -> Ran 195 tests, OK (skipped=1; that skip is not in test_api.py).
+- No shared files edited (cli.py already lists "api" in MODULES); changes.md untouched. Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None required for api. Lead may optionally run `python3 -m fin --db ./fin.db --json serve --port 8000` and exercise it manually.
+
+**Do not redo**
+- Full suite already run after the final edit: 195 OK.
+- Manual serve smoke test already done with port 18765 (stopped via SIGINT, exit 0, audit intact).
+- Design decisions for the lead to know: non-numeric invoice ids (e.g. /invoices/abc) -> 404 (not a route), not 400. Methods other than GET/POST get BaseHTTPRequestHandler's default 501. Access logging is silenced (log_message no-op) so the test output stays clean.
+- `POST /transactions` body `amount` may be a JSON string or integer; floats and booleans -> 400 ("must be a string").
+- Invoice line fields containing ';' -> 400 (the CLI line format can't carry them).

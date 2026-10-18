@@ -1,0 +1,21 @@
+**Done**
+- fin/ledger.py (new): `register(reg)` with `account add` (write), `account list`, `txn add` (write), `txn list`, `balance`, `fx add` (write), `convert`. No SCHEMA (uses core tables). Handlers: account_add, account_list, txn_add, txn_list, balance, fx_add, convert_cmd.
+- tests/test_ledger.py (new): 49 tests covering spec sections 1-4: account creation/parents/currency/types/sorting, errors (bad type, existing account, bad dates/amounts), txn add (blank posting, rounding, zero format, unbalanced, one/zero/two blank postings, unknown account, per-currency balance, closed period, blank description), txn list (order, inclusive range, account prefix vs descendants), balance (ancestors, --at, zero sums, per-currency, empty), fx and convert (direct, inverse, direct-over-inverse, latest rate, no rate, same currency, no user), audit entries, viewer forbidden.
+- Check: `python3 -m unittest discover -s tests` -> Ran 51 tests, OK (includes test_core). Note: the container has no `python` binary, only `python3` (3.14.4); the plan's command needs `python` on PATH for the lead's run.
+- Shared files: none edited (changes.md untouched). No commit made.
+
+**In progress**
+- Nothing.
+
+**Next step**
+- None for ledger. Lead: `python3 -m unittest discover -s tests` is green as of this handoff.
+
+**Do not redo**
+- Checked: account add on an auto-created parent (e.g. Expenses:Food after Expenses:Food:Groceries) is a user error ("account exists") by design; the test was adjusted, not the code.
+- Assumptions for README (lead to add):
+  - Blank (whitespace-only) transaction description is a user error.
+  - `fx add` rejects same-currency pairs and rates <= 0.
+  - `account add` output is the new account `{name,type,currency}`; `txn add` output is the transaction shape from spec §2; `fx add` output `{date,from,to,rate}`.
+  - Balance keys each account (and ancestor) by per-currency sums of postings to it and its descendants; ancestors with a different currency than their children show the posting currencies.
+  - `txn list --account` matches exact name or `NAME:` descendants (not raw string prefix).
+  - `--from`/`--to` on `txn list` are dests `start`/`end` internally; `--posting` values are rounded to cents via core.money.

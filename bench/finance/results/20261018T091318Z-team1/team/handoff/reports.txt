@@ -1,0 +1,53 @@
+Done
+- fin/reports.py (new): report income, report balance-sheet, report networth, report trial-balance,
+  report ledger ACCOUNT. All perm read (viewers and no --user allowed). register() also calls
+  register_loans(reg).
+- fin/loans.py (new): loan schedule PRINCIPAL RATE MONTHS --start DATE (spec section 9).
+- tests/test_reports.py (new): 14 tests over FinTest covering income ranges, zero-sum accounts,
+  --currency conversion, missing rate, bad range, balance-sheet signs and identity, networth months,
+  trial-balance rows and totals, ledger opening/rows/closing/descendants/cross-currency/unknown
+  account, viewer and no-user read access, reports leave the audit list unchanged.
+- tests/test_loans.py (new): 8 tests covering the 1000 @ 12% / 12 months schedule (payment 88.85,
+  total interest 66.19), invariants (final balance 0.00, principal sums to the loan, interest sums
+  to total, balances step down by principal), zero rate, rounding absorbed by the last payment,
+  month-end date clamping, and user errors (bad principal, rate, months, start date).
+- Check: `python3 -m unittest discover -s tests` -> Ran 105 tests, OK (whole suite, including the
+  other teammates' tests at the time of this run).
+- No shared files edited (changes.md, core.py, cli.py untouched). Nothing committed.
+
+In progress
+- Nothing in progress. Both modules are complete and green.
+
+Next step
+- Lead: review, then commit with the rest of the team's work if wanted. The README assumptions
+  listed below still need to go into README.md (not my file). Command to re-check:
+  cd /home/jaca/claude-team-a/bench/work/finance-team1-2 && python3 -m unittest discover -s tests
+
+Assumptions to list in README.md
+- Rounding: every amount goes through core.q (ROUND_HALF_UP to cents) and fmt; no float anywhere.
+- Currency: with --currency, or for postings in a foreign-currency account, each account's sum is
+  converted once at the report end date via core.convert, which rounds per account. For this reason
+  the balance-sheet identity (assets = liabilities + equity) and trial-balance debit = credit can
+  differ by a cent on books with foreign-currency accounts. Single-currency books are exact.
+- Zero amounts in a foreign currency need no rate. Missing rate raises UserError.
+- Report accounts appear only if postings sit on that exact account name. Parent totals appear only
+  where a parent account itself has postings.
+- Balance sheet: retained earnings = income - expenses through the report date; the sign is
+  applied so that assets are positive and liabilities/equity are shown as positive credits.
+- Networth: month-end balances; --from/--to are YYYY-MM; from must not be after to.
+- Ledger: includes descendant accounts; postings in other currencies are converted into the
+  account's currency at each transaction's date; opening is the balance before --from.
+- Loan schedule: principal must be positive, rate must not be negative (0 gives equal payments),
+  months must be at least 1; the last payment absorbs the rounding residue; dates are the start
+  date plus n months, clamped to month end.
+
+Do not redo
+- Verified by hand against the spec: the loan figures above; the balance sheet at 2026-02-28
+  (assets 8100.00 = liabilities 5000.00 + equity 3100.00 incl. retained 2100.00); trial balance
+  totals 9000.00 = 9000.00; networth Jan/Feb/Mar; EUR <-> USD conversion through the inverse rate
+  (3000 / 0.9 = 3333.33).
+- The zero-sum income test had a bad date range on the first draft (range excluded the original
+  rent posting). Fixed to 2026-01-06..2026-01-15. Not a code bug.
+- Read commands run without --user and as viewer (cli.py only enforces users for write/admin).
+  Verified by the access test, not by changing cli.py.
+- Smoke DB at .claude/team/scratch/reports/smoke.db is scratch only, not a deliverable.

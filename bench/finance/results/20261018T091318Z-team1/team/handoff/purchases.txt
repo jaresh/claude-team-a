@@ -1,0 +1,32 @@
+Done
+- fin/purchases.py: SCHEMA (vendors, bills, bill_lines, bill_payments); commands vendor add/list, bill create/pay/show/list, report tax; aging_payables(conn, at) for `report aging --payables`.
+- tests/test_purchases.py: 25 tests, all pass (vendors, bill create incl. rounding and untaxed bills, user errors change nothing, same ref across vendors, permissions, closed period, bill pay partial/full and errors, show/list, payables aging boundaries and payments-by-date, report tax by code, drafts excluded, date range, zero-rate code, bad range).
+- Full suite: `python3 -m unittest discover -s tests` -> 159 tests, OK, 1 skipped (test_sales.py:348, the no-purchases test, skips by design now that fin.purchases exists).
+- Shared files: none edited. changes.md not touched. Nothing committed.
+
+Cross-module note for the lead
+- fin/purchases.py imports `_bucket` and `BUCKETS` from fin/sales.py (both private/module-level there). Works now. If sales renames or moves them, purchases breaks at import. Suggest exporting them from core or making them public in sales.
+
+Assumptions (for README, which I do not own)
+- Bill line AMOUNT >= 0 (zero allowed); line format DESCRIPTION;AMOUNT;ACCOUNT;TAXCODE, empty TAXCODE means no tax.
+- Line account must be an expense or asset account; accounts must exist.
+- Tax per line = round half up(net * rate / 100) to cents; total = sum of line net + sum of line tax.
+- Bill ref is unique per vendor (UNIQUE(vendor, ref)), blank ref refused.
+- Bill due = bill date + vendor terms (default 30 days).
+- Bill create posts: each line account +net, Assets:TaxReceivable +tax (only if tax != 0), Liabilities:Payable -total. Description "Bill REF".
+- Bill pay account must be an asset; amount > 0 and <= balance; posts Payable +amount and account -amount, description "Payment REF". Status becomes paid when balance hits zero, else partial.
+- Paying a bill that is paid is refused. Closed periods block create and pay (via core.post_txn).
+- Payables aging: bills dated on or before --at; balance = total minus payments dated on or before --at; bucket by days past due (due to --at), same buckets as receivables; zero or negative balances are left out.
+- report tax --from/--to inclusive: collected = tax on issued (numbered) invoice lines with a tax code, dated in range (drafts excluded); paid = tax on bill lines dated in range. by_code lists every code used, including zero-rate ones. net = collected - paid. --from after --to is refused.
+- Audit: vendor.add (name), bill.create (bill id), bill.pay (bill id).
+
+In progress
+- Nothing open.
+
+Next step
+- Lead: confirm `python3 -m unittest discover -s tests` once more after merging, and copy the assumptions above into README.md. No command needed from me.
+
+Do not redo
+- Test-side mistakes fixed already (not code bugs): garbled tax_code assertion; second bill reused ref A-17; audit check assumed the last two rows were vendor.add (user.add rows also appear).
+- Aging boundary dates (due 2026-02-09) covered by test_payables_aging_buckets_follow_days_past_due: offsets 0,1,30,31,60,61,90,91 -> current, 1-30, 1-30, 31-60, 31-60, 61-90, 61-90, 90+ (dates 02-09, 02-10, 03-11, 03-12, 04-10, 04-11, 05-10, 05-11).
+- Unused `dec` import removed from purchases.py.
