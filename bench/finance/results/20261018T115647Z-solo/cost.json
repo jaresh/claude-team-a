@@ -1,0 +1,56 @@
+{
+  "label": "bench finance solo model=haiku effort=medium prompt=87a9b86a9023",
+  "since": null,
+  "until": "2026-10-18T12:15:21Z",
+  "session": "26b3e581",
+  "total_cost": 0.33210976999999997,
+  "cold_start_cost": 0.33368638999999994,
+  "by_model": {
+    "claude-haiku-5-5": {
+      "msgs": 30,
+      "tools": 53,
+      "input": 62,
+      "cache_w": 244508,
+      "cache_r": 1265587,
+      "output": 192573,
+      "out_est": 0,
+      "peak_ctx": 79626,
+      "over_100k": 0,
+      "compactions": 4,
+      "cost": 0.33210976999999997
+    }
+  },
+  "agents": [
+    {
+      "agent": "lead:26b3e581",
+      "role": "lead",
+      "effort": "",
+      "file": "/root/.claude/projects/-home-jaca-claude-team-a-bench-work-finance-solo/26b3e581-ddf8-4d29-8078-62de5913aecc.jsonl",
+      "session": "26b3e581-ddf8-4d29-8078-62de5913aecc",
+      "started": "2026-10-18T11:56:51.112000+00:00",
+      "model": "claude-haiku-5-5",
+      "msgs": 30,
+      "tools": 53,
+      "input": 62,
+      "cache_w": 244508,
+      "cache_r": 1265587,
+      "output": 192573,
+      "peak_ctx": 79626,
+      "over_100k": 0,
+      "compactions": 4,
+      "cost": 0.33210976999999997,
+      "unpriced": 0,
+      "out_est": 0,
+      "advisor_calls": 1,
+      "cost_adv": 0.178726,
+      "cost_in": 6.2e-06,
+      "cost_cr": 0.01265587,
+      "cost_cw": 0.04443520000000001,
+      "cost_out": 0.0962865,
+      "first": "2026-10-18T11:56:51.112000+00:00",
+      "last": "2026-10-18T12:15:20.663000+00:00",
+      "startup_ctx": 26229,
+      "cold_extra": 0.0015766200000000001
+    }
+  ]
+}

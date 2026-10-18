@@ -1,0 +1,741 @@
+test_account_currency (test_fin.TestAccounts.test_account_currency) ... FAIL
+test_bad_root_and_duplicate_are_user_errors (test_fin.TestAccounts.test_bad_root_and_duplicate_are_user_errors) ... FAIL
+test_init_twice_is_a_user_error (test_fin.TestAccounts.test_init_twice_is_a_user_error) ... FAIL
+test_parents_are_created_and_listed_sorted (test_fin.TestAccounts.test_parents_are_created_and_listed_sorted) ... FAIL
+test_post_transactions_and_errors (test_fin.TestApi.test_post_transactions_and_errors) ... FAIL
+test_reads_match_the_command_line (test_fin.TestApi.test_reads_match_the_command_line) ... FAIL
+test_invoice_flow_and_reports (test_fin.TestApiV2.test_invoice_flow_and_reports) ... FAIL
+test_users_on_writes (test_fin.TestApiV2.test_users_on_writes) ... FAIL
+test_rollup_and_as_of_date (test_fin.TestBalances.test_rollup_and_as_of_date) ... FAIL
+test_bill_amounts_and_posting (test_fin.TestBills.test_bill_amounts_and_posting) ... FAIL
+test_payments_and_payables_aging (test_fin.TestBills.test_payments_and_payables_aging) ... FAIL
+test_budget_vs_actual (test_fin.TestBudgets.test_budget_vs_actual) ... FAIL
+test_direct_inverse_latest_and_rounding (test_fin.TestFx.test_direct_inverse_latest_and_rounding) ... FAIL
+test_column_options (test_fin.TestImport.test_column_options) ... FAIL
+test_rules_categories_and_duplicates (test_fin.TestImport.test_rules_categories_and_duplicates) ... FAIL
+test_aging (test_fin.TestInvoices.test_aging) ... FAIL
+test_draft_amounts (test_fin.TestInvoices.test_draft_amounts) ... FAIL
+test_issue_numbers_and_posting (test_fin.TestInvoices.test_issue_numbers_and_posting) ... FAIL
+test_payments_and_status (test_fin.TestInvoices.test_payments_and_status) ... FAIL
+test_tax_codes_and_customers (test_fin.TestInvoices.test_tax_codes_and_customers) ... FAIL
+test_account_ledger (test_fin.TestLedgerReports.test_account_ledger) ... FAIL
+test_trial_balance (test_fin.TestLedgerReports.test_trial_balance) ... FAIL
+test_annuity_schedule (test_fin.TestLoans.test_annuity_schedule) ... FAIL
+test_fractional_rate_and_month_ends (test_fin.TestLoans.test_fractional_rate_and_month_ends) ... FAIL
+test_zero_rate (test_fin.TestLoans.test_zero_rate) ... FAIL
+test_close_blocks_postings (test_fin.TestPeriods.test_close_blocks_postings) ... FAIL
+test_import_and_recurring_fail_whole (test_fin.TestPeriods.test_import_and_recurring_fail_whole) ... FAIL
+test_clearing_across_statements (test_fin.TestReconcile.test_clearing_across_statements) ... FAIL
+test_monthly_month_ends_and_idempotent (test_fin.TestRecurring.test_monthly_month_ends_and_idempotent) ... FAIL
+test_unbalanced_recurring_is_a_user_error (test_fin.TestRecurring.test_unbalanced_recurring_is_a_user_error) ... FAIL
+test_weekly_and_yearly (test_fin.TestRecurring.test_weekly_and_yearly) ... FAIL
+test_conversion_in_reports (test_fin.TestReportCurrency.test_conversion_in_reports) ... FAIL
+test_balance_sheet (test_fin.TestReports.test_balance_sheet) ... FAIL
+test_income_statement (test_fin.TestReports.test_income_statement) ... FAIL
+test_networth (test_fin.TestReports.test_networth) ... FAIL
+test_collected_and_paid_by_code (test_fin.TestTaxReport.test_collected_and_paid_by_code) ... FAIL
+test_add_with_balancing_posting (test_fin.TestTransactions.test_add_with_balancing_posting) ... FAIL
+test_each_currency_must_balance (test_fin.TestTransactions.test_each_currency_must_balance) ... FAIL
+test_invalid_transactions_are_rejected_and_not_stored (test_fin.TestTransactions.test_invalid_transactions_are_rejected_and_not_stored) ... FAIL
+test_list_order_and_filters (test_fin.TestTransactions.test_list_order_and_filters) ... FAIL
+test_audit_log (test_fin.TestUsers.test_audit_log) ... FAIL
+test_roles (test_fin.TestUsers.test_roles) ... FAIL
+
+======================================================================
+FAIL: test_account_currency (test_fin.TestAccounts.test_account_currency)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 96, in test_account_currency
+    self.accounts("Assets:Bank", "Liabilities:Card")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_bad_root_and_duplicate_are_user_errors (test_fin.TestAccounts.test_bad_root_and_duplicate_are_user_errors)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 92, in test_bad_root_and_duplicate_are_user_errors
+    self.accounts("Assets:Bank")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_init_twice_is_a_user_error (test_fin.TestAccounts.test_init_twice_is_a_user_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 78, in test_init_twice_is_a_user_error
+    self.user_error("init", "--currency", "EUR", "--admin", "alice", user=None)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 53, in user_error
+    self.assertEqual(r.returncode, 2, f"{args}: expected exit 2, got {r.returncode}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 2 : ('init', '--currency', 'EUR', '--admin', 'alice'): expected exit 2, got 1
+
+======================================================================
+FAIL: test_parents_are_created_and_listed_sorted (test_fin.TestAccounts.test_parents_are_created_and_listed_sorted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 81, in test_parents_are_created_and_listed_sorted
+    self.accounts("Assets:Bank:Checking", "Expenses:Food")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank:Checking'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank:Checking
+
+
+======================================================================
+FAIL: test_post_transactions_and_errors (test_fin.TestApi.test_post_transactions_and_errors)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 334, in setUp
+    super().setUp()
+    ~~~~~~~~~~~~~^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_reads_match_the_command_line (test_fin.TestApi.test_reads_match_the_command_line)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 334, in setUp
+    super().setUp()
+    ~~~~~~~~~~~~~^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_invoice_flow_and_reports (test_fin.TestApiV2.test_invoice_flow_and_reports)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 697, in setUp
+    super().setUp()
+    ~~~~~~~~~~~~~^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 334, in setUp
+    super().setUp()
+    ~~~~~~~~~~~~~^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_users_on_writes (test_fin.TestApiV2.test_users_on_writes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 697, in setUp
+    super().setUp()
+    ~~~~~~~~~~~~~^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 334, in setUp
+    super().setUp()
+    ~~~~~~~~~~~~~^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_rollup_and_as_of_date (test_fin.TestBalances.test_rollup_and_as_of_date)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 145, in test_rollup_and_as_of_date
+    self.accounts("Assets:Bank:Checking", "Assets:Bank:Savings", "Income:Salary")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank:Checking'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank:Checking
+
+
+======================================================================
+FAIL: test_bill_amounts_and_posting (test_fin.TestBills.test_bill_amounts_and_posting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 565, in setUp
+    self.ok("tax", "add", "VAT20", "20")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('tax', 'add', 'VAT20', '20'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: VAT20 20
+
+
+======================================================================
+FAIL: test_payments_and_payables_aging (test_fin.TestBills.test_payments_and_payables_aging)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 565, in setUp
+    self.ok("tax", "add", "VAT20", "20")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('tax', 'add', 'VAT20', '20'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: VAT20 20
+
+
+======================================================================
+FAIL: test_budget_vs_actual (test_fin.TestBudgets.test_budget_vs_actual)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 208, in test_budget_vs_actual
+    self.accounts("Assets:Bank", "Expenses:Food:Restaurants", "Expenses:Rent")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_direct_inverse_latest_and_rounding (test_fin.TestFx.test_direct_inverse_latest_and_rounding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 160, in test_direct_inverse_latest_and_rounding
+    self.ok("fx", "add", "2026-01-01", "USD", "EUR", "0.9")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('fx', 'add', '2026-01-01', 'USD', 'EUR', '0.9'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: 2026-01-01 USD EUR 0.9
+
+
+======================================================================
+FAIL: test_column_options (test_fin.TestImport.test_column_options)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 197, in test_column_options
+    self.accounts("Assets:Bank")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_rules_categories_and_duplicates (test_fin.TestImport.test_rules_categories_and_duplicates)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 182, in test_rules_categories_and_duplicates
+    self.accounts("Assets:Bank", "Expenses:Food")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_aging (test_fin.TestInvoices.test_aging)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 477, in setUp
+    self.ok("tax", "add", "VAT20", "20")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('tax', 'add', 'VAT20', '20'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: VAT20 20
+
+
+======================================================================
+FAIL: test_draft_amounts (test_fin.TestInvoices.test_draft_amounts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 477, in setUp
+    self.ok("tax", "add", "VAT20", "20")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('tax', 'add', 'VAT20', '20'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: VAT20 20
+
+
+======================================================================
+FAIL: test_issue_numbers_and_posting (test_fin.TestInvoices.test_issue_numbers_and_posting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 477, in setUp
+    self.ok("tax", "add", "VAT20", "20")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('tax', 'add', 'VAT20', '20'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: VAT20 20
+
+
+======================================================================
+FAIL: test_payments_and_status (test_fin.TestInvoices.test_payments_and_status)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 477, in setUp
+    self.ok("tax", "add", "VAT20", "20")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('tax', 'add', 'VAT20', '20'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: VAT20 20
+
+
+======================================================================
+FAIL: test_tax_codes_and_customers (test_fin.TestInvoices.test_tax_codes_and_customers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 477, in setUp
+    self.ok("tax", "add", "VAT20", "20")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('tax', 'add', 'VAT20', '20'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: VAT20 20
+
+
+======================================================================
+FAIL: test_account_ledger (test_fin.TestLedgerReports.test_account_ledger)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_trial_balance (test_fin.TestLedgerReports.test_trial_balance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_annuity_schedule (test_fin.TestLoans.test_annuity_schedule)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 310, in test_annuity_schedule
+    s = self.js("loan", "schedule", "10000", "6", "12", "--start", "2026-01-15")
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 48, in js
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('loan', 'schedule', '10000', '6', '12', '--start', '2026-01-15'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: 10000 6 12
+
+
+======================================================================
+FAIL: test_fractional_rate_and_month_ends (test_fin.TestLoans.test_fractional_rate_and_month_ends)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 318, in test_fractional_rate_and_month_ends
+    s = self.js("loan", "schedule", "5000", "7.5", "6", "--start", "2026-01-31")
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 48, in js
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('loan', 'schedule', '5000', '7.5', '6', '--start', '2026-01-31'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: 5000 7.5 6
+
+
+======================================================================
+FAIL: test_zero_rate (test_fin.TestLoans.test_zero_rate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 324, in test_zero_rate
+    s = self.js("loan", "schedule", "1200", "0", "12", "--start", "2026-01-01")
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 48, in js
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('loan', 'schedule', '1200', '0', '12', '--start', '2026-01-01'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: 1200 0 12
+
+
+======================================================================
+FAIL: test_close_blocks_postings (test_fin.TestPeriods.test_close_blocks_postings)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 447, in setUp
+    self.ok("user", "add", "bob", "--role", "editor")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('user', 'add', 'bob', '--role', 'editor'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: bob
+
+
+======================================================================
+FAIL: test_import_and_recurring_fail_whole (test_fin.TestPeriods.test_import_and_recurring_fail_whole)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 447, in setUp
+    self.ok("user", "add", "bob", "--role", "editor")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('user', 'add', 'bob', '--role', 'editor'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: bob
+
+
+======================================================================
+FAIL: test_clearing_across_statements (test_fin.TestReconcile.test_clearing_across_statements)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 647, in test_clearing_across_statements
+    self.accounts("Assets:Bank", "Income:Salary", "Expenses:Rent", "Expenses:Food", "Liabilities:Card")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_monthly_month_ends_and_idempotent (test_fin.TestRecurring.test_monthly_month_ends_and_idempotent)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 224, in setUp
+    self.accounts("Assets:Bank", "Expenses:Rent", "Expenses:Gym", "Expenses:Insurance")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_unbalanced_recurring_is_a_user_error (test_fin.TestRecurring.test_unbalanced_recurring_is_a_user_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 224, in setUp
+    self.accounts("Assets:Bank", "Expenses:Rent", "Expenses:Gym", "Expenses:Insurance")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_weekly_and_yearly (test_fin.TestRecurring.test_weekly_and_yearly)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 224, in setUp
+    self.accounts("Assets:Bank", "Expenses:Rent", "Expenses:Gym", "Expenses:Insurance")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_conversion_in_reports (test_fin.TestReportCurrency.test_conversion_in_reports)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 297, in test_conversion_in_reports
+    self.accounts("Assets:Dollars", "Equity:OpeningUSD", currency="USD")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Dollars', '--currency', 'USD'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Dollars
+
+
+======================================================================
+FAIL: test_balance_sheet (test_fin.TestReports.test_balance_sheet)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_income_statement (test_fin.TestReports.test_income_statement)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_networth (test_fin.TestReports.test_networth)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 257, in setUp
+    self.accounts("Assets:Bank", "Assets:Cash", "Liabilities:Card", "Equity:Opening",
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                  "Income:Salary", "Expenses:Rent", "Expenses:Food")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_collected_and_paid_by_code (test_fin.TestTaxReport.test_collected_and_paid_by_code)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 623, in test_collected_and_paid_by_code
+    self.ok("tax", "add", "VAT20", "20")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('tax', 'add', 'VAT20', '20'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: VAT20 20
+
+
+======================================================================
+FAIL: test_add_with_balancing_posting (test_fin.TestTransactions.test_add_with_balancing_posting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 106, in test_add_with_balancing_posting
+    self.accounts("Assets:Bank", "Expenses:Rent")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_each_currency_must_balance (test_fin.TestTransactions.test_each_currency_must_balance)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 122, in test_each_currency_must_balance
+    self.accounts("Assets:Bank", "Equity:Exchange")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_invalid_transactions_are_rejected_and_not_stored (test_fin.TestTransactions.test_invalid_transactions_are_rejected_and_not_stored)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 113, in test_invalid_transactions_are_rejected_and_not_stored
+    self.accounts("Assets:Bank", "Expenses:Rent")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_list_order_and_filters (test_fin.TestTransactions.test_list_order_and_filters)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 131, in test_list_order_and_filters
+    self.accounts("Assets:Bank", "Expenses:Food", "Expenses:Rent", "Income:Salary")
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 59, in accounts
+    self.ok("account", "add", n, *(["--currency", currency] if currency else []))
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('account', 'add', 'Assets:Bank'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: Assets:Bank
+
+
+======================================================================
+FAIL: test_audit_log (test_fin.TestUsers.test_audit_log)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 404, in setUp
+    self.ok("user", "add", "bob", "--role", "editor")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('user', 'add', 'bob', '--role', 'editor'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: bob
+
+
+======================================================================
+FAIL: test_roles (test_fin.TestUsers.test_roles)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 404, in setUp
+    self.ok("user", "add", "bob", "--role", "editor")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jaca/claude-team-a/bench/finance/accept/test_fin.py", line 40, in ok
+    self.assertEqual(r.returncode, 0, f"{args}: exit {r.returncode}: {r.stderr[-500:]}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : ('user', 'add', 'bob', '--role', 'editor'): exit 2: usage: fin [-h] [--db DB] [--json] [--user USER] COMMAND ...
+fin: error: unrecognized arguments: bob
+
+
+----------------------------------------------------------------------
+Ran 42 tests in 6.478s
+
+FAILED (failures=42)

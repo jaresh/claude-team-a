@@ -1,0 +1,6 @@
+agent          model      effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:26b3e581  haiku-5-5            30     53     62   244508  1265587  192573        0     79626          0            4  0.3321
+TOTAL          haiku-5-5            30     53     62   244508  1265587  192573        0     79626          0            4  0.3321
+total $0.3321
+advisor: 1 calls, $0.1787 (included above)
+cold start $0.3337: the lead's first message read a prefix another session had cached; written by this run it would cost $0.0016 more.

@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 6,
+    "correctness_risks": 2,
+    "error_handling": 3,
+    "data_safety": 6,
+    "tests": 4,
+    "consistency": 3
+  },
+  "overall": 3,
+  "issues": [
+    "The code ignores the specified interface almost everywhere: in fin/cli.py the ARGS table uses flags like `account add --name` and `fx add --from/--to` instead of the positional arguments, and fin/api.py serves `/api/<group>/<action>` instead of `/accounts` and `/transactions`, so most of the specified commands and routes cannot be called as written.",
+    "fin/cli.py `_main` exits with code 1 on FinError instead of the required 2, and tests/test_cli.py asserts that wrong code, so the tests lock the bug in; any non-FinError exception (for example a KeyError on a missing arg, or sqlite errors) still escapes as a traceback.",
+    "In fin/api.py, `do_GET` dispatches any command, including writes, and accepts the user from a `user` query or body field as well as X-User, so a plain GET can change data; successful POSTs return 200 instead of 201.",
+    "fin/ops.py `run` writes audit actions as 'txn add' instead of 'txn.add', and its targets are JSON dumps of the whole args dict instead of the specified id or name; `reconcile` is registered as read-only but writes and audits on its own, and never checks the DATE limit.",
+    "Several functions in fin/ops.py do not follow the specified domain rules: `import_csv` matches rules by substring instead of case-insensitive regex, sends unmatched rows to Equity:Suspense and ignores column options; the control accounts are named Assets:Receivables, Liabilities:Sales Tax and Assets:Input Tax instead of the specified names; invoice lines need an account field; bills have no unique --ref; and aging uses a '61+' bucket.",
+    "The JSON shapes don't match the spec and differ from one another: `balance`, `report_income`, `report_networth`, `report_tax`, `report_ledger` and `loan_schedule` (which uses 'number' instead of 'n') all return their own shapes, and `_doc_view` uses party/outstanding instead of customer/vendor and balance; `report_*` also ignore `--currency` and convert at each posting's date instead of the report date."
+  ],
+  "strengths": [
+    "Storage is clean: every query is parameterized, money is stored as strings and handled as Decimal, `rnd` rounds half up and never returns -0.00, and the `transaction()` context manager makes each command all-or-nothing.",
+    "The single COMMANDS table, with one `run` wrapper that handles authorization, the transaction and the audit entry, gives the CLI and API one shared path and keeps permission logic in one place.",
+    "Date helpers (`add_months` clamping to the month's last day, occurrences always counted from the original start) and the strict input parsers (`parse_date`, `parse_money`, `parse_month`) are small, correct and reusable."
+  ],
+  "review_cost": 0.7117
+}
