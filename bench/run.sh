@@ -2,10 +2,11 @@
 # Benchmark run: one fixed prompt, built by the team or by a single model session in a fresh
 # empty repo, then scored with hidden acceptance tests, measured, recorded, and deleted.
 #
-#   bench/run.sh <bench> team|solo      e.g. bench/run.sh finance team
+#   bench/run.sh <bench> team|team1|solo      e.g. bench/run.sh finance team
 #
 # team: team_kit.py is installed in the workspace and the session starts as `team_kit.py lead`
 #       does; the prompt says "Work with team on it."
+# team1: the same as team, but the prompt says "Work with team on it, one teammate at a time."
 # solo: no kit, no subagents (the Agent tool is removed too); the prompt says to do the work
 #       alone. Otherwise the same tools as team mode.
 # Both: the same model (MODEL=sonnet), effort (EFFORT=medium) and 1-hour prompt cache.
@@ -29,15 +30,16 @@
 # Sessions there don't load this repo's CLAUDE.md, but they do list its skills and agents (the
 # same for both arms; solo has no Agent tool). Auto memory is off in both arms.
 set -euo pipefail
-bench=${1:?usage: bench/run.sh <bench> team|solo}
-mode=${2:?usage: bench/run.sh <bench> team|solo}
+bench=${1:?usage: bench/run.sh <bench> team|team1|solo}
+mode=${2:?usage: bench/run.sh <bench> team|team1|solo}
 repo=$(git rev-parse --show-toplevel)
 here=$repo/bench/$bench
 [ -f "$here/prompt.md" ] || { echo "No such benchmark: $bench" >&2; exit 1; }
 case $mode in
   team) mode_line="Work with team on it." ;;
+  team1) mode_line="Work with team on it, one teammate at a time." ;;
   solo) mode_line="Do all the work yourself in this session, without subagents." ;;
-  *) echo "mode must be team or solo" >&2; exit 1 ;;
+  *) echo "mode must be team, team1 or solo" >&2; exit 1 ;;
 esac
 model=${MODEL:-sonnet}
 effort=${EFFORT:-medium}
@@ -58,7 +60,7 @@ git -C "$repo" worktree add -q --orphan -b "$branch" "$ws"
 # Both arms also lose the worktree tools and `git push`: solo sessions entered a worktree of this
 # whole repo (hidden tests included) and pushed their branches to origin.
 deny="$(python3 "$repo/team_kit.py" lead --print-args),EnterWorktree,ExitWorktree"
-if [ "$mode" = team ]; then
+if [ "$mode" != solo ]; then
   python3 "$repo/team_kit.py" install "$ws" >/dev/null
 else
   deny="$deny,Agent"
