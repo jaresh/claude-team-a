@@ -1,0 +1,48 @@
+Done
+- fin/automation.py: rule add, rule list, import, budget set, report budget, recurring add, recurring run.
+  register(add) uses write=True for rule add, import, budget set, recurring add, recurring run; rule list and
+  report budget are read-only.
+- tests/test_automation.py: 35 tests (rules, import, budgets, report budget, recurring, closed periods,
+  viewer/editor roles, user errors, audit entries). Check result:
+  `python3 -m unittest tests.test_automation` -> Ran 35 tests, OK (about 32 s).
+- No shared files edited (changes.md untouched). Nothing committed.
+
+Assumptions (also list these in README):
+- rule add: the account must already exist (checked with ctx.account). Pattern is compiled with re.IGNORECASE and
+  matched with re.search (anywhere in the description). An empty pattern is a user error.
+- import: description is stripped; amount via parse_amount; a zero amount is accepted. Every row (including
+  duplicates) is date-checked against closed periods before any write. The Uncategorized category accounts are
+  created with ensure_account. Audit `import` is written on every success, even with 0 imported rows.
+- import/recurring run/budget: the audit entry is also written on success when nothing changed (e.g. run with
+  created 0). Spec says "changes data" but the plan says exactly one audit entry on success; this follows the plan.
+- budget set: the account must be type expense; the amount must not be negative; amounts are in the book
+  currency. report budget converts postings in other currencies at the month's last day (ctx.to_currency).
+  Actual = postings to the account and its descendants in that month.
+- recurring add: names are not unique. Postings are checked (accounts exist, at least 2, at most one missing
+  amount, each currency balances unless that currency has the missing amount). Stored as JSON
+  [{"account", "amount": "x.xx" or null}]. Output: {"id", "name", "every", "start"}.
+- recurring run: occurrences are computed from the start with add_months/add_years (not iterated), weekly is
+  start + 7k days. Any uncreated occurrence in a closed month makes the whole run fail, even one from long ago
+  (spec-driven; it means a closed period with never-created occurrences blocks later runs).
+  Created transactions are posted in date order, then recurring id order.
+
+Shared-code notes for the lead (nothing edited outside my files):
+- `_parse_posting` in fin/automation.py is a private copy of the `ACCOUNT=AMOUNT` parsing that the ledger module
+  also needs for `txn add`. Consider moving it to core.py so both use one.
+- `_check_postings` in fin/automation.py mirrors the balancing rules of core.Ctx.post_txn (it does not post).
+  Could be a core helper too.
+- When I started, fin/billing.py failed to import (register() calls add("invoice show") with no handler), which
+  made every CLI call fail, including the test helper's init. It was fixed by the time the tests passed; the
+  error was not in my files.
+
+Do not redo
+- Ran the tests after billing.py loaded: all 35 pass. The earlier failures were the billing.py TypeError, not my code.
+- Checked worktree: /home/jaca/claude-team-a/bench/work/finance-team is a linked git worktree already, so I did
+  not call EnterWorktree.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for this module. Run `python3 -m unittest discover -s tests` once all modules are merged to check the
+  whole suite.

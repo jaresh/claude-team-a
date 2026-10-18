@@ -1,0 +1,20 @@
+Done
+- fin/ledger.py: account add/list, txn add/list, balance, fx add, convert (spec sections 1-4). Audit actions: account.add (name), txn.add (id), fx.add (FROM/TO).
+- tests/test_ledger.py: 50 tests, all passing with the scratch shim (see Do not redo for the shim).
+- Check result: `PYTHONPATH=/home/jaca/claude-team-a/bench/work/finance-team/.claude/team/scratch/ledger/shim python3 -m unittest tests.test_ledger` -> Ran 50 tests, OK.
+- Shared files: none edited, so changes.md has no new rows from me.
+- No commits made. Work is in place in /home/jaca/claude-team-a/bench/work/finance-team (no EnterWorktree call; cwd was already a registered worktree and fin/ and tests/ are untracked here).
+- Outputs not fixed by the spec (my choices, check against the spec): `account add` and `fx add` return the created object; `convert --at` is required; `balance --at` is optional.
+
+In progress
+- Nothing in my module. The plain run `python3 -m unittest tests.test_ledger` (no shim) fails 50/50, because fin/billing.py line 36 calls add("invoice show") with no handler, so build_parser() raises TypeError for every CLI call. That is billing's file, not mine.
+
+Next step
+- Owner of fin/billing.py: fix the add() calls that have no handler (line 36 at least), then run `python3 -m unittest tests.test_ledger` with no shim. Expect 50 OK.
+- Until then, the lead can run the ledger tests with the shim: `cd /home/jaca/claude-team-a/bench/work/finance-team && PYTHONPATH=/home/jaca/claude-team-a/bench/work/finance-team/.claude/team/scratch/ledger/shim python3 -m unittest tests.test_ledger`.
+
+Do not redo
+- Earlier: fin/loans.py had an unescaped % in a help string (`help="annual percent, 6 means 6%"`), which made `python3 -m fin` raise ValueError. It was reported to the lead and loans is now past that point, so it is not the current blocker.
+- The shim is scratch only: .claude/team/scratch/ledger/shim/sitecustomize.py. It sets fin.cli.MODULES = ["admin", "ledger"] for subprocesses. It is not part of the deliverable and should not be committed.
+- Test helper fix made: `account add Assets:Bank` also creates parent `Assets`, so account list expectations have two rows. The empty-balance test uses a fresh db path because setUp already ran init.
+- Ruled out: ledger.py itself. Every failure in the shimmed run came from my test expectations, and all were fixed. No ledger.py change was needed.

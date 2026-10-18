@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 6,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/reports.py balance_sheet computes retained_earnings as a plug (total_assets - total_liabilities - total_equity) instead of income minus expenses as the spec says, so an imbalance or a per-account rounding difference from currency conversion is silently absorbed rather than shown.",
+    "fin/cli.py main/invoke only catches UserError and SystemExit, so an existing empty or non-SQLite --db file (for example one left behind by a failed `init`, since connect() creates the file before validation) makes any later command crash with a sqlite3 OperationalError traceback instead of exiting with code 2.",
+    "Posting validation is duplicated: fin/automation.py _check_postings re-implements the balancing rules of core.Ctx.post_txn, and _parse_posting duplicates ledger._posting, so the two can drift apart.",
+    "fin/billing.py stores invoice and bill lines and payments as JSON blobs and recomputes net/tax/total on every render by looking up the current tax rate (_tax via _rate), so derived amounts are never persisted and depend on the taxes table staying unchanged.",
+    "fin/reports.py ledger converts each descendant posting at its own date, while the other reports convert at the report date, and trial_balance converts per account and rounds each one, so total_debit and total_credit can differ by cents in multi-currency books.",
+    "There is no test module for fin/admin.py: running init twice, user list, an editor trying user add or period close, period status (including null), closing an earlier month as a no-op, and audit list --by are untested or only touched indirectly."
+  ],
+  "strengths": [
+    "Clean plugin-style command registration (register(add)) with one central invoke() that does the role checks, commit and rollback, and is reused by the HTTP API, so CLI and API JSON are identical and every write is atomic.",
+    "Money handling is consistent: Decimal everywhere, one q()/fmt() pair for half-up rounding and the '0.00' zero format, amounts stored as strings, and all SQL values parameterised (only fixed table names are interpolated).",
+    "Multi-row operations (import, recurring run, reconcile) validate everything before writing, and the subprocess-based tests check exact JSON shapes, exit codes, empty stdout and 'changes nothing' for many error cases."
+  ],
+  "review_cost": 0.8064
+}

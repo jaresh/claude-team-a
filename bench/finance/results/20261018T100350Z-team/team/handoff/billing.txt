@@ -1,0 +1,22 @@
+**Done**
+- Created fin/billing.py: tax add/list, customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list, report aging (--payables), report tax.
+- Created tests/test_billing.py: 35 tests, exact JSON expectations, covering each command, validation errors, viewer forbidden, closed periods, audit actions, aging buckets, tax report.
+- `python3 -m unittest tests.test_billing`: Ran 35 tests, OK (about 38 s, all subprocess CLI calls).
+- `py_compile` clean on both files. No shared files edited, so no changes.md entry. Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_billing` once more in the integrated tree, then `python3 -m unittest discover -s tests` for the full suite.
+
+**Do not redo**
+- Checked and ruled out: the first run failed only because read-only commands were registered without a handler (fixed in register). Test expectation fixes were test bugs, not code bugs: aging bucket dates (due 2026-02-09, so 31-60 is 2026-04-01, 61-90 is 2026-04-20, 90+ is 2026-05-20), and a vendor without --terms gets default 30 days (due 2026-02-04).
+- Own validation choices not in the spec (flag for review):
+  - bill line account must be expense or asset type (`_bill_line`);
+  - invoice line quantity must be > 0, price >= 0; bill line amount >= 0;
+  - invoice/bill pay account must be asset type (`_check_payment`), so Income:Sales and Liabilities:* are rejected;
+  - payment amount must be > 0 and not more than the balance;
+  - aging and tax report skip drafts; aging counts only payments dated on or before --at; tax report counts invoices/bills dated within [--from, --to].
+- Invoice numbers are INV-YYYY-NNNN, with NNNN = count of existing INV-YYYY-% numbers + 1 at issue time.
+- Bill duplicate ref check is explicit (per vendor), before insert.

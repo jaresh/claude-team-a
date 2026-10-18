@@ -1,0 +1,18 @@
+Done
+- fin/api.py (new): register(add) adds `serve --port N`. serve() runs make_server(db, port) (ThreadingHTTPServer on 127.0.0.1, db path from PRAGMA database_list) until SIGINT/KeyboardInterrupt, then returns {"port": N}. make_server(db, port) is public for tests.
+- Every request runs fin.cli.invoke(db, argv, X-User header), so the JSON equals the CLI --json output. Option values are sent in --name=value form so values starting with '-' are safe.
+- Routes: GET /accounts, /transactions, /balances?at, /reports/income?from&to, /reports/balance-sheet?at, /reports/aging?at[&payables=1], /invoices, /invoices/ID, /audit. POST /transactions (201), /invoices (201), /invoices/ID/issue (200), /invoices/ID/payments (200).
+- Status: UserError.status is used (400 default, 401 missing/unknown user, 403 role). Unknown path or method 404. Non-numeric invoice id 404. Numeric unknown invoice id 400 (billing's "unknown invoice" error). Body not JSON or not an object 400. Money fields must be JSON strings (a number gives 400). Unexpected exceptions give 500 {"error": "internal error"} with a traceback on stderr.
+- tests/test_api.py (new): 14 tests, all pass: `python3 -m unittest tests.test_api` -> Ran 14 tests, OK (also OK under -X dev, no ResourceWarnings). Covers CLI equality for reads, balancing posting via POST, 401/403/201 by role, 400 bodies and unbalanced txn (nothing written), invoice lifecycle and errors, audit entry user, 404 routes, and `serve` as a subprocess (SIGINT stop, prints {"port": N}).
+- No shared files edited. changes.md not touched. Nothing committed.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` for the whole suite, then `python3 -m fin --db ./fin.db serve --port 8080` for a manual check if wanted.
+
+Do not redo
+- Ran the module tests after fixing 3 test-side mistakes (audit call missing argv; account list includes ancestor accounts "Assets", "Income" from ledger; subprocess cleanup). All API code passed on the first run, no API change was needed.
+- Behavior from cli.py to know: invoke runs argparse before the role check, so a POST missing a required option gets 400 (not 401/403). Not changed; it is cli.py's behavior, not mine.
+- Port already in use makes serve crash with a traceback (exit 1). Not handled, out of scope for the api task; mention if you want a user error there.

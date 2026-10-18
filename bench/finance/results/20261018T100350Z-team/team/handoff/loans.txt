@@ -1,0 +1,19 @@
+**Done**
+- fin/loans.py: `loan schedule PRINCIPAL RATE MONTHS --start DATE` (read-only, no user). Validates principal > 0, rate >= 0, months a positive integer, valid start date, all before output. Payment, interest, principal and balance in Decimal, half-up cents; last row repays the remaining balance (payment = balance + interest), so final balance is "0.00". Dates via add_months(start, n). Rate 0 uses principal / months.
+- fin/reconcile.py: `reconcile ACCOUNT --date DATE --balance AMOUNT [--clear ID ...]` (write=True, audit action `reconcile`, target = account). Validates account, date, balance, each id (int, has a posting to ACCOUNT dated on or before DATE) before marking anything. Marks go to the `cleared` table with INSERT OR IGNORE (repeats count once). cleared_balance = cleared postings to ACCOUNT dated <= DATE; uncleared = ascending distinct txn ids with a posting to ACCOUNT dated <= DATE that are not cleared.
+- tests/test_loans.py (11 tests) and tests/test_reconcile.py (13 tests): exact JSON expectations; the schedule values were cross-checked with an independent Fraction computation (.claude/team/scratch/loans/expect.py).
+- Result: `python3 -m unittest tests.test_loans tests.test_reconcile` → 24 tests OK when run in a scratch copy of the tree with fin/automation.py and fin/reports.py removed (copy at .claude/team/scratch/loans/tree). In the real tree the run fails with 24 errors, all from `build_parser` → `fin/reports.py` line 13: `add("report income")` is missing the handler argument (TypeError in add()). My modules register correctly (checked by building the parser without automation/reports/billing/api).
+- Observed (not mine, not edited): on my first real-tree run, fin/automation.py `register` raised "conflicting subparser: add" (at `add("rule add", ...)`). It did not recur on the later run, where the failure was in reports.py. Recheck after the automation teammate finishes.
+- Shared files: no edits to core/cli/admin/helpers, and no changes.md rows needed. Someone else changed fin/loans.py to escape `%` in the rate help text (`6%%`), which is required by argparse; I kept it.
+
+**In progress**
+- Nothing in my files. Waiting on fin/reports.py to register correctly before the real-tree run can pass.
+
+**Next step**
+- Once reports.py is fixed: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_loans tests.test_reconcile 2>&1 | tail -5` should show `OK` (Ran 24 tests).
+- If it still fails with build_parser errors, the cause is another module's register(), not loans/reconcile; check `python3 -c "import fin.cli"` and the traceback.
+
+**Do not redo**
+- Checked and ruled out: my modules are not the cause of the real-tree failure (parser build with automation, reports, billing, api excluded lists 'loan schedule' and 'reconcile' and all ledger/admin commands).
+- Scratch-copy run of the 24 tests passes; no need to rerun the scratch copy unless loans.py or reconcile.py changes.
+- Schedule expectations were not guessed: checked against Fraction arithmetic (expect.py output: 1000@12%/2 months → 507.51, total 15.02; 1000@6%/12 months → 86.07, total 32.80, last row 86.03).

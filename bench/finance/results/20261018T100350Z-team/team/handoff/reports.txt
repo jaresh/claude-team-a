@@ -1,0 +1,23 @@
+Done
+- fin/reports.py: report income, report balance-sheet, report networth, report trial-balance, report ledger ACCOUNT (spec sections 8 and 17).
+- tests/test_reports.py: 31 tests (IncomeTest, BalanceSheetTest, NetworthTest, TrialBalanceTest, LedgerReportTest, ViewerAccessTest).
+- Check: `python3 -m unittest tests.test_reports` in the real tree -> Ran 31 tests, OK (about 40 s).
+- No shared files edited; changes.md untouched; nothing committed.
+
+In progress
+- Nothing. Earlier real-tree failure was from fin/billing.py (add("invoice show") missing handler); it passes now.
+
+Next step
+- Lead: run `python3 -m unittest tests.test_reports` again after merges to confirm. No other action needed from reports.
+
+Do not redo
+- Handler registration: each add() call passes its handler as the second argument (earlier TypeError was a missing handler, fixed).
+- Balance-sheet identity test uses Decimal comparison (assets == liabilities + equity), not float or the wrong `and` check.
+- Scratch-copy verification (stubbed billing.py) is no longer needed; the real tree passes.
+
+Known limitations (for README, owned by lead)
+- balance-sheet retained_earnings is a plug so assets = liabilities + equity to the cent; in multi-currency it can differ from true income minus expenses by cents.
+- trial-balance totals are sums of rounded displayed rows, so in multi-currency the totals can differ by cents.
+- ledger converts each posting at its own date when the account currency differs.
+- --currency on income/balance-sheet/networth converts at --to / --at / month-end. trial-balance has no --currency (book currency only).
+- Per-account conversions use ctx.to_currency.

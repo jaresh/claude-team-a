@@ -1,0 +1,12 @@
+agent          model       effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:0f1feb0a  sonnet-5-5            23     18     62    58445  1096163   21696        0     58447          0            0  0.6701
+billing        haiku-5-5   medium    23     24     46   101184   876323   21358       11     58540          0            1  0.0321
+loans          haiku-5-5   medium    27     33     54    63377  1181024   14245       18     63379          0            0  0.0269
+ledger         haiku-5-5   medium    19     26     38    84406   631122   19877       14     54439          0            1  0.0268
+reports        haiku-5-5   medium    20     21     40    79776   766947   18793       14     66754          0            1  0.0270
+automation     haiku-5-5   medium    15     14     30    81072   539758   16051        9     64105          0            1  0.0236
+api            haiku-5-5   medium    17     21     34    73633   644839   15065       12     66740          0            1  0.0232
+TOTAL          sonnet-5-5            23     18     62    58445  1096163   21696        0     58447          0            0  0.6701
+TOTAL          haiku-5-5            121    139    242   483448  4640013  105389       78     66754          0            5  0.1595
+total $0.8296
+out_est: responses whose output was estimated from visible content (3.5 chars/token); hidden thinking is not counted.
