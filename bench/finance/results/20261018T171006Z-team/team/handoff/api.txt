@@ -1,0 +1,44 @@
+**Done**
+- fin/api.py (new): `handle(db_path, method, target, user, raw) -> (status, doc)` (socket-free core
+  of the API), routes table `ROUTES` for all section 10 endpoints (GET accounts, transactions,
+  balances, reports/income, reports/balance-sheet, reports/aging, invoices, invoices/ID, audit;
+  POST transactions 201, invoices 201, invoices/ID/issue 200, invoices/ID/payments 200), each
+  mapped to cli.namespace + cli.execute. `make_server(db_path, port)` returns a
+  ThreadingHTTPServer bound to 127.0.0.1 (port 0 = any); it validates the book with
+  cli.open_db first (missing book -> UserError). `serve` command (raw=True, `--port` int,
+  default 8000) prints `serving on http://127.0.0.1:PORT` to stderr, serve_forever until
+  KeyboardInterrupt. Request logging silenced.
+- tests/test_api.py (new): 15 tests in classes Routes (handle() without a socket: 401 before
+  anything else, 403, 201 + audit parity, 400 for unbalanced/bad JSON/non-object/missing field,
+  GET parity with CLI output, invoice routes, 404s, failed write changes nothing), Server (real
+  socket round trip, Content-Type, missing book), ServeCommand (registered raw, missing book exits 2).
+- Done check: `python3 -m unittest discover -s tests` -> Ran 116 tests, OK (python3 3.14.4).
+- Shared files: none edited, so .claude/team/changes.md is untouched. Nothing committed.
+
+**Decisions made (lead may want to confirm)**
+- `serve --port` defaults to 8000 (spec says `--port N`, plan lists it without a default).
+- Unknown methods other than GET/POST/PUT/PATCH/DELETE get the stdlib's 501 (no do_OPTIONS/do_HEAD).
+- Any unexpected exception in a handler -> 500 `{"error": "internal error"}` with a traceback on stderr.
+- POST body scalars are converted with str() (so JSON numbers like 145 work for amounts); a missing
+  or null required field -> 400 `{"error": "missing NAME"}`.
+- Invoice line description with ";" is passed through, so invoicing's own 4-field check reports it as a 400.
+
+**In progress**
+- Nothing open.
+
+**Next step**
+- Lead: review fin/api.py and tests/test_api.py; full check is
+  `python3 -m unittest discover -s tests` from /home/jaca/claude-team-a/bench/work/finance-team.
+- Optional, lead's file: tests/test_acc_api.py `call()` does `json.loads(e.read())` inside
+  `except urllib.error.HTTPError as e:` without closing `e`, which produces ResourceWarning lines in
+  the full run (harmless, tests pass). Fix would be `with e:` around the return.
+
+**Do not redo**
+- Route/argument dests checked against the cli registrations: txn add (date, desc, posting),
+  txn list (account, frm, to), balance (at), report income (frm, to), report aging (at, payables),
+  invoice create (customer, date, line), invoice pay (id, amount, date, account), invoice list
+  (status), audit list (by). All match.
+- require_role gives AuthError 401 for no/unknown user and 403 for a low role; handle() returns
+  e.status, so these come out as the spec says without special-casing.
+- Circular import (fin.cli loads fin.api, fin.api imports fin.cli) is safe: cli does not import
+  api at module load, only inside load_modules().

@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 8,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 8,
+  "issues": [
+    "fin/statements.py report_ledger adds up the raw cents of ACCOUNT and all its descendants without checking their currencies, so a sub-account in another currency is silently mixed into a ledger that is supposed to be in ACCOUNT's currency.",
+    "fin/core.py fmt treats an int as cents and a Decimal as currency units, and amounts move between the two forms (int cents in invoicing/banking, Decimal in statements/ledger), so a stray int such as fmt(5) would quietly print \"0.05\".",
+    "fin/core.py parse_posting/parse_amount round any input to cents (\"12.345\" becomes 12.35) instead of rejecting extra precision, and fin/invoicing.py _lines_doc shows the price rounded to cents while the line's net was computed from the unrounded price.",
+    "fin/cli.py main catches only UserError, so unexpected errors such as sqlite3.OperationalError on a locked database end in a traceback; execute also takes a BEGIN IMMEDIATE write lock for read-only commands, and open_db runs the extra DDL on every connection.",
+    "fin/banking.py import_csv creates Expenses/Income:Uncategorized in the book's currency whatever the currency of the import account, so importing into a foreign-currency account always fails as unbalanced.",
+    "fin/api.py handle checks X-User before matching a route (a POST to an unknown path returns 401, not 404), _body parses JSON numbers as float before they reach Decimal, and a non-numeric Content-Length in _Handler._respond raises an unhandled ValueError."
+  ],
+  "strengths": [
+    "A clear layered design: a command registry with one execute() path that does role checks, audit and a single rolled-back-on-error transaction for every command, which the HTTP API reuses, so CLI and API behave the same.",
+    "Money is stored as integer cents and computed as Decimal with ROUND_HALF_UP; all SQL values are passed as parameters (only internal table/column constants are interpolated); imports and recurring runs check every row before writing and are all-or-nothing.",
+    "The tests run the real CLI in-process against a fresh temporary book per test and check behaviour: exit code 2 with empty stdout, nothing changed after errors, roles, closed periods, dedupe and API status codes."
+  ],
+  "review_cost": 0.8678
+}

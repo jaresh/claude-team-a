@@ -1,0 +1,27 @@
+Done
+- fin/invoicing.py (new): tables tax_codes, customers, vendors, invoices, invoice_lines,
+  invoice_payments, bills, bill_lines, bill_payments (register_schema); commands tax add/list,
+  customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list,
+  report aging (--at, --payables), report tax (--from, --to). Writes use write="editor" and call
+  ctx.audit once. Unknown invoice/bill ids raise core.NotFound.
+- tests/test_invoicing.py (new): 36 unit tests (validation, numbering per year, payments and
+  statuses, bill account rules, aging buckets, tax report by code, audit once per write).
+- Check: `python3 -m unittest tests.test_acc_invoicing tests.test_invoicing` -> Ran 41 tests, OK.
+  (This sandbox has no `python`, only `python3` 3.14.4; the done check was run with python3.)
+- Shared files: none edited, so .claude/team/changes.md is untouched. Nothing committed.
+
+In progress
+- Nothing open. Feature complete for the plan section `invoicing`.
+
+Next step
+- Lead: review and commit when ready. Re-run the check with:
+  cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_acc_invoicing tests.test_invoicing
+
+Do not redo
+- Acceptance failure found and fixed: bill postings had payable before tax receivable. Order is now
+  line accounts, Assets:TaxReceivable, Liabilities:Payable (matches tests/test_acc_invoicing.py).
+- Helper signatures checked against fin/core.py: parse_decimal(text, what), parse_amount, money,
+  fmt, to_cents, from_cents, parse_date, to_date, add_days, get_account (returns dict with type),
+  ensure_account, post_transaction. None were changed.
+- Not checked: fin/api.py interaction (the HTTP layer may call these commands via namespace()).
+  Lead should run the full suite to confirm.

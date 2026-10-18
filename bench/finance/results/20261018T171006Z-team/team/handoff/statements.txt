@@ -1,0 +1,28 @@
+Done
+- fin/statements.py (new): report income, report balance-sheet, report networth, report trial-balance,
+  report ledger, loan schedule. Helpers: _currency, _period, _types, _converted (per-(account,currency)
+  sum converted at the report date and rounded, then summed per account), _pick, _total, _shown,
+  _position (shared by balance-sheet and networth).
+- tests/test_statements.py (new): 13 unit tests beyond the acceptance tests (zero/empty ranges,
+  descendants in ledger, opening balance before --from, trial-balance sides and date cut-off,
+  networth year crossing and validation, loan validation and single-month loan, currency code check).
+- Check: `python3 -m unittest tests.test_acc_statements tests.test_statements` -> Ran 23 tests, OK.
+- Shared files untouched (core.py, cli.py, tests/test_acc_*, helpers.py). changes.md not edited (no shared
+  file changed). Nothing committed.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for this section. Lead: run `python -m unittest discover -s tests` once all sections are in.
+
+Do not redo
+- Checked the acceptance expectations by hand against the core helpers: income/balance-sheet/networth/
+  trial-balance/ledger/loan figures in tests/test_acc_statements.py all match the implementation.
+- Assumptions (not in spec, for README): --from after --to is a UserError for income, ledger and networth
+  (networth: months); the ledger row "id" is the transaction id; ledger sums raw postings in the account's
+  currency (no conversion, as instructed); networth is in the book's currency only (no --currency option);
+  loan payment uses Decimal's default 28-digit precision before rounding; the balance-sheet identity and
+  trial-balance totals can differ by a cent only when foreign-currency accounts are rounded per account.
+- core.py helpers used as-is (posting_sums, convert, money, fmt, add_months, month_end, next_month,
+  parse_*, get_account, book_currency). No missing helper, nothing to move.

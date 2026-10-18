@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 6,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 8
+  },
+  "overall": 7,
+  "issues": [
+    "fin/core.py parse_decimal/money: huge or extreme inputs such as '1e999999' pass the finite check but make quantize raise decimal.InvalidOperation, which no layer catches, so the CLI crashes with a traceback instead of exiting 2.",
+    "fin/cli.py main catches only UserError, so sqlite3.Error, OverflowError, and the ValueError from add_months at year 9999 (recurring run, loan schedule) escape as tracebacks. The HTTP handle() turns them into a 500, but the CLI has no equivalent fallback.",
+    "fin/banking.py recurring_add and fin/invoicing.py invoice_issue: recurring_add validates by posting a transaction inside a SAVEPOINT and then rolling it back, which is hacky. invoice_issue numbers invoices with COUNT(*) and substr(number, 5, 4), which is fragile and can collide if numbering ever changes.",
+    "fin/api.py: the ROUTES/builder indirection with underscore functions (_balance, _income, _audit, _issue_invoice) is repetitive. _Handler._respond does int(Content-Length) unguarded, and the API reaches into the CLI layer (cli.namespace, cli.execute), so the layers are coupled.",
+    "fin/invoicing.py and fin/statements.py: module-wide quirks. Table and column names are interpolated into SQL through the DOCS dict (f-strings), which is safe only because the values are constants. _lines_doc branches on kind inside a supposedly generic abstraction, and invoicing.py mixes tax, parties, invoices, bills, aging and tax reports in one 440-line file.",
+    "fin/liedger.py period_close and fx_add: closing an earlier month than the one already closed still writes an audit entry, although the spec says it changes nothing. fx_add silently deletes and replaces an existing same-day rate. Tests are split into test_*.py and test_acc_*.py files that overlap, so some tests are duplicated or scattered."
+  ],
+  "strengths": [
+    "Money is stored as integer cents and handled as Decimal with ROUND_HALF_UP; fmt() normalizes -0.00 and all SQL is parameterized.",
+    "A single cli.execute wraps each command in BEGIN IMMEDIATE with rollback on any error and checks roles centrally, so writes are atomic and permissions are consistent across the CLI and the API.",
+    "The command registry lets feature modules register commands declaratively. The tests use a shared FinCase helper with a fresh temporary book per test, and they cover edge cases such as all-or-nothing import, dedupe per account, and negative remaining."
+  ],
+  "review_cost": 0.3388,
+  "model": "sonnet"
+}

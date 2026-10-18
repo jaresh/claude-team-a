@@ -1,0 +1,37 @@
+**Done**
+- fin/banking.py (new): commands `rule add`, `rule list`, `import`, `budget set`, `report budget`,
+  `recurring add`, `recurring run`, `reconcile`; schema via core.register_schema for tables
+  rules, import_keys, budgets, recurring, recurring_runs, reconciled.
+- tests/test_banking.py (new): 19 unit tests in classes Rules, Budgets, Recurring, Reconcile.
+- Done check: `python3 -m unittest tests.test_acc_banking tests.test_banking` -> Ran 26 tests, OK.
+  (The sandbox has no `python`, only `python3` 3.14.4; the same command with python3 was used.)
+- py_compile clean for both files.
+- Shared files: none edited, so changes.md has no new line.
+- Commits: none.
+- Working in place in the existing worktree (/home/jaca/claude-team-a/bench/work/finance-team);
+  EnterWorktree is not in my tool list, and the cwd is already a worktree.
+
+**In progress**
+- Nothing open. The banking section is complete against the spec and plan.
+
+**Next step**
+- Lead: review fin/banking.py and tests/test_banking.py, then run the full suite from
+  /home/jaca/claude-team-a/bench/work/finance-team with `python3 -m unittest discover -s tests`
+  (or the lead's usual command) to confirm no cross-module interference.
+- Lead decision needed (not a blocker): recurring add validates postings in a SAVEPOINT with
+  check_period=False, so a closed period only fails at `recurring run`, which is what the
+  lead's test_closed_period expects.
+
+**Do not redo**
+- SQLite reserves `check`: an earlier draft used `SAVEPOINT check` and would have failed.
+  Renamed to `recurring_check`.
+- Budget and report checks: the core helpers get_account (returns dict, UserError if unknown),
+  add_months (day=None keeps start day, clamps), add_days, month_end (takes 'YYYY-MM'),
+  convert(conn, Decimal, frm, to, at), posting_sums(frm, to) all match how banking.py calls them.
+- Import: all rows are validated before any posting, and post_transaction runs per row inside
+  the command transaction, so a closed-month row rolls back the whole import (the lead's test
+  checks this and passes).
+- Reconcile: a bad --clear id rolls back the earlier clears in the same call (command-level
+  rollback), so nothing is marked on error.
+- Two early test failures came from my own duplicate `account add` in the Reconcile tests;
+  fixed by removing the duplicates. No code defect there.
