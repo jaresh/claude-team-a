@@ -1,0 +1,40 @@
+Done
+- fin/server.py (new): ThreadingHTTPServer on 127.0.0.1 (Server, make_server(db, port), serve(db, port)). Each request runs the existing command through cli.run with --json, --user and a global LOCK. Routes:
+  GET /accounts, /transactions, /balances?at, /reports/income?from&to, /reports/balance-sheet?at, /reports/aging?at[&payables=1], /invoices, /invoices/{id}, /audit (no user needed).
+  POST /transactions (201), /invoices (201), /invoices/{id}/issue (200), /invoices/{id}/payments (200). POST needs X-User.
+  Status mapping: missing or unknown X-User 401; viewer 403; unknown path 404; UserError 400 with {"error"}; other exception 500 with {"error": "internal error"} and a traceback on stderr.
+- fin/misc_cmds.py (new): `serve --port N` (perm read), prints "serving DB on http://127.0.0.1:PORT" to stderr; Ctrl-C returns {"stopped": port}.
+- tests/test_api.py (new): 22 tests (reads, transactions with 201/401/403/400, invoices create/issue/pay, 400 on bad fields, subprocess serve test).
+- Check results:
+  - `python3 -m unittest tests.test_api` (unpatched, current tree): 21 pass, 1 FAIL: test_income_report_needs_from_and_to gets 500 instead of 200. Cause: ValueError "conflicting subparser: budget" raised from fin/import_cmds.py:212 during cli.build_parser() (see Blocker below).
+  - Same tests with fin/reportgroup._CACHE cleared before each build_parser (scratch runner .claude/team/scratch/api/run_patched.py, no shared files touched): 22 of 22 pass.
+  - Lead's done check is not met yet because of the Blocker below.
+- Not logged in changes.md (no shared-file edits).
+
+Blocker (lead-owned file, not fixed by me)
+- fin/reportgroup.py: get_report_sub caches by id(sub). After one build_parser() call the top-level parser can be freed and a new one can reuse its id, so a second build_parser() in the same process gets the old `report` subparsers, which already has `budget` (added by import_cmds.register at fin/import_cmds.py:212). The CLI is unaffected (one parse per process), but the server parses on every request, so about every other request fails with 500.
+- Suggested fix (lead decides): key the cache per parser, e.g. store the report subparsers on the top-level parser object or reset _CACHE in cli.build_parser() before registering modules. Either way, get_report_sub must return a fresh group per build_parser().
+- Also a possible issue in import_cmds.py:205: it adds a top-level `budget` and a `report budget`. This is not a conflict (different parents), but worth a look.
+
+In progress
+- Nothing is half-done in my files. Only the blocker above remains.
+
+Next step
+- Lead: fix fin/reportgroup.py as described above, then run `python3 -m unittest tests.test_api` (should be 22 OK). Once it passes, `python3 -m unittest discover -s tests` for the whole suite.
+- If the fix is delayed, the API tests can still be verified with: `python3 .claude/team/scratch/api/run_patched.py` (clears the cache per parse; for checking only, not a fix).
+
+Do not redo
+- Did not edit fin/common.py, fin/cli.py, fin/core_cmds.py, fin/reportgroup.py, fin/import_cmds.py or tests/helpers.py.
+- Account list includes ancestor accounts (Assets, Income) as the ledger module returns; the test expects that. Not a bug.
+- Unbalanced transaction returns 400 with the posting error (verified after the parser fix path; it was 500 only because of the parser bug).
+- Viewer 403 and missing/unknown user 401 checks run before body validation, so a bad body from a viewer is 403.
+- The "ResourceWarning" lines printed by the test run are from unclosed sockets/pipes in the test client or the serve subprocess test; they did not fail any test and I did not chase them.
+
+Assumptions (for the README)
+- Server binds 127.0.0.1 only.
+- Invoice line fields (description, quantity, price, tax_code) containing ';' are rejected with 400, because the command line format uses ';' as separator.
+- GET /audit and GET /transactions take no filters.
+- Unknown paths give 404; HTTP methods other than GET and POST (e.g. DELETE) get the http.server default 501.
+- Internal errors give 500 with a generic body; details only go to stderr.
+- serve returns {"stopped": port} when interrupted with Ctrl-C.
+- Request bodies may hold numbers as well as strings (kept as written, then passed to the command).

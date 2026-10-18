@@ -1,0 +1,30 @@
+Done
+- fin/import_cmds.py (new): rule add/list, import FILE, budget set, report budget MONTH (via get_report_sub), recurring add/run.
+- tests/test_imports.py (new): 10 test methods, 15 tests with test_core, all pass.
+- Check: `python3 -m unittest tests.test_imports tests.test_core` -> Ran 15 tests, OK.
+- Full `python3 -m unittest discover -s tests` -> 40 tests, 1 FAIL: test_invoicing.InvoicingTest.test_invoice_create_totals_and_due (invoicing teammate's file, not touched by me).
+- No edits to shared files, no changes.md rows needed (no common/schema changes). Nothing committed.
+
+Assumptions (for README)
+- rule add: pattern is a case-insensitive regex, first rule in id order wins; the account is not created by rule add (it is created by ensure_account when an import needs it). Account must be valid: type prefix in common.TYPES, no empty segments.
+- import: CSV, default columns date=0, desc=1, amount=2 (--date-col/--desc-col/--amount-col), --skip-header optional. Whole file is validated first (bad date, closed period, too few columns, zero amount, unparsable amount, unreadable file), then inserted; any error = nothing imported, exit 2.
+- Dedup: an identical row (account, date, description, amount) already in table imported, or earlier in the same file, is skipped. imported.n is always 0 (the repeat is skipped, not counted as n=1).
+- Counterpart account: first matching rule, else Expenses:Uncategorized (negative amount) or Income:Uncategorized (positive). Created in the book currency. So importing into an account that is not in the book currency fails with "does not balance" when a category is needed.
+- Empty descriptions are allowed; zero amounts are rejected.
+- import audit target = the bank account; written only if at least one row was imported. Output {"imported": N, "skipped": M}.
+- budget set: account must exist and be type expense; month validated by parse_month; amount may be negative; INSERT OR REPLACE. Output {"account","month","budget"} with budget as fmt string. Audit target "ACCOUNT MONTH".
+- report budget MONTH: one row per budget for that month (ordered by account). actual = sum of postings in the account and its descendants dated in the month, each converted to the budget account's currency at month end (common.convert), then q2. remaining = budget - actual. Output rows {account, budget, actual, remaining} as fmt strings. Empty list if no budgets.
+- recurring add NAME --every monthly|weekly|yearly --start DATE --posting ACC[=AMT] (repeatable; one posting may omit the amount to balance). Validated with common.resolve_postings at add time. Output {id, name, every, start}. Audit "recurring.add" NAME.
+- recurring run --until DATE: monthly/yearly occurrences are computed from start (add_months, so Jan 31 -> Feb 28, and Feb 29 yearly -> Feb 28 in non-leap years); weekly = start + 7k days. Each occurrence posted once (recurring_done table prevents repeats). Posts through common.post_transaction, so closed periods raise UserError and nothing from that run is kept. Output {"created": N}. Audit "recurring.run" with the until date, only if N > 0.
+
+In progress
+- Nothing. Work is complete for the imports section.
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests` after the invoicing fix (test_invoicing.InvoicingTest.test_invoice_create_totals_and_due is failing in the invoicing teammate's area). Copy the assumptions above into README.md.
+
+Do not redo
+- Checked schema in fin/common.py SCHEMA: txns(id,date,description), postings(id,txn_id,seq,account,amount,currency), rules, imported, budgets, recurring, recurring_done, audit(action,target) column names match the module and tests.
+- Ran py_compile on fin/import_cmds.py and tests/test_imports.py: OK.
+- Fixed one wrong expectation in my own test (weekly Standup + yearly Insurance count to 2028-03-01 is 113, not 3); the code was right.
+- Full discover: the only failure is in test_invoicing, not in my files; I did not look into it further.

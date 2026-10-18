@@ -1,0 +1,25 @@
+{
+  "coverage": 0.969,
+  "covered_lines": 1294,
+  "executable_lines": 1336,
+  "tests_passed_under_coverage": true,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/misc_cmds.py (80%)"
+  ],
+  "per_file": {
+    "fin/__init__.py": 0.0,
+    "fin/__main__.py": 0.75,
+    "fin/cli.py": 0.899,
+    "fin/common.py": 0.979,
+    "fin/core_cmds.py": 0.933,
+    "fin/import_cmds.py": 0.984,
+    "fin/invoice_cmds.py": 0.985,
+    "fin/ledger_cmds.py": 0.988,
+    "fin/misc_cmds.py": 0.8,
+    "fin/report_cmds.py": 0.995,
+    "fin/reportgroup.py": 0.857,
+    "fin/server.py": 0.946
+  }
+}

@@ -1,0 +1,23 @@
+**Done**
+- fin/ledger_cmds.py (new): txn add, txn list, balance, fx add, convert. Registered via register(sub).
+- tests/test_ledger.py (new): 10 test methods covering spec sections 2, 3, 4, plus permissions, audit, closed period.
+- Check: `python3 -m unittest tests.test_ledger tests.test_core` -> Ran 15 tests, OK.
+- Shared files: none edited, so no changes.md line. Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for ledger. Lead can run `python3 -m unittest discover -s tests` once other modules exist.
+
+**Do not redo**
+- Checked find_rate semantics in common.py: a direct FROM->TO rate wins over a newer TO->FROM rate; the inverse is used only when no direct rate exists on or before the date. Tests assert this.
+- Checked multi-currency balancing: resolve_postings sums per currency, so a EUR posting cannot balance a USD posting. Tests assert this.
+
+**Assumptions for README (lead to add)**
+- txn add: description must not be blank/whitespace-only (user error). Posting order kept.
+- txn list --account matches the account itself or any descendant (`X` or `X:...`), not a plain string prefix (so `Assets:Bank` does not match `Assets:BankX`).
+- balance: each posted account and each of its ancestors gets the per-currency signed sum; keys sorted; currencies sorted within each account. An account whose postings net to zero still appears with "0.00".
+- fx add: FROM and TO must differ (user error); rate must be a positive decimal (zero or negative is a user error); stored and output as plain decimal notation (no exponent). Output is {"date", "from", "to", "rate"} (spec did not define the shape). Currencies are upper-cased.
+- convert: --at is required. Output is {"amount", "currency"}; amount is rounded half up via common.fmt.
+- Permissions: txn add and fx add need write (editor or admin); txn list, balance, convert are read-only and work without --user.

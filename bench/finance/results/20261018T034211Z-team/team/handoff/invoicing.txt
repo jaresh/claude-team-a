@@ -1,0 +1,35 @@
+**Done**
+Files changed (both new, owned by me):
+- fin/invoice_cmds.py: tax add/list, customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list, report aging [--payables], report tax --from --to. register(sub) uses get_report_sub for aging and tax.
+- tests/test_invoicing.py: 10 test methods (tax/customer/vendor lists, invoice totals and due dates, invoice user errors, issue numbering and postings, pay status transitions, draft pay refused, invoice list filters, bill create/pay and refusals, aging receivables, aging payables, tax report, closed-period refusals, closed-period payment refused, viewer read-only and audit entries).
+No shared files edited; changes.md untouched (no shared-file edits). Nothing committed. .bench-end not written.
+
+Check: `python3 -m unittest tests.test_invoicing tests.test_core` -> Ran 16 tests, OK (about 15 s).
+
+Note on worktree: I wrote the two files before calling EnterWorktree. The env reports this checkout as a git worktree already (cwd is not under .claude/worktrees/). Lead should confirm the location is acceptable before committing.
+
+Assumptions for README:
+- Invoice and bill lines: DESCRIPTION;A;B;TAXCODE (4 fields, ';' separated, so descriptions cannot contain ';'). Empty TAXCODE means no tax.
+- Invoice line: A = quantity (> 0), B = unit price (>= 0); net = q2(qty*price); tax = q2(net*rate/100) per line; invoice totals sum the rounded line values.
+- Bill line: A = amount (>= 0), B = expense or asset account (must exist).
+- Tax rate must be >= 0; customer/vendor --terms must be >= 0 (default 30 days); due = date + terms.
+- Invoice numbers: INV-YYYY-NNNN by the invoice date's year, sequential per year, assigned at issue. Ids (for show/issue/pay) are per kind, 1-based.
+- Invoice create requires at least one --line and is allowed in a closed period; issue posts on the invoice date and is refused in a closed period.
+- Issue postings: Assets:Receivable +total, Income:Sales -net, Liabilities:SalesTax -tax (only when tax != 0). Accounts are created as needed.
+- Payments (invoice pay / bill pay): amount rounded to cents, must be > 0 and <= balance; the account must be an asset account; date must be open (closed period refused). Invoice pay posts Account +amt / Assets:Receivable -amt; bill pay posts Liabilities:Payable +amt / Account -amt. Payment dates are not required to fall after the invoice date.
+- Draft invoices cannot be paid. Status: invoice draft -> issued -> partial -> paid; bill open -> partial -> paid.
+- Bill create: --ref must be unique per vendor; bill date must be in an open period; postings per line are account +net, Assets:TaxReceivable +tax, Liabilities:Payable -total.
+- Aging: buckets by days past due (current = not yet due, 1-30, 31-60, 61-90, 90+); drafts excluded; balances as of --at count only payments on or before --at; zero balances omitted.
+- Tax report: range is inclusive on invoice/bill date; drafts excluded; collected = invoice line tax, paid = bill line tax; net = collected - paid; by_code lists every code used in range (even with zero tax).
+- Names (customer, vendor, tax code, ref) are stripped of surrounding spaces.
+
+**In progress**
+Nothing. The module and tests are complete and passing.
+
+**Next step**
+Lead: review the assumptions above and copy them into README.md. Then run `python3 -m unittest discover -s tests` once all teammates are done. If the worktree location is a concern, confirm before any commit.
+
+**Do not redo**
+- Ran both test modules after fixing two of my own test-expectation bugs (tax on a no-tax line; customer Bob missing in one test). Code behavior was correct in both cases; fin/invoice_cmds.py was not changed after its first write.
+- Did not touch fin/common.py, fin/cli.py, fin/core_cmds.py, fin/reportgroup.py, tests/helpers.py, tests/test_core.py, or other teammates' files.
+- Did not rely on txn list for posting checks; postings are read directly from sqlite in the test.

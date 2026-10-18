@@ -1,0 +1,45 @@
+Done
+- fin/report_cmds.py: report income, report balance-sheet, report networth, report trial-balance, report ledger
+  (via get_report_sub), loan schedule (top-level "loan" group), reconcile (top-level, perm write).
+- tests/test_reports.py: 14 tests covering spec sections 8, 9, 16, 17, including user errors (exit 2, empty stdout),
+  multi-currency conversion, zero-sum accounts, loan zero-rate and month-end dates, reconcile clears and audit,
+  viewer and no-user refusal.
+- Check: `python3 -m unittest tests.test_reports tests.test_core` -> Ran 14 tests, OK.
+- No shared files edited (changes.md untouched). Nothing committed.
+- Test data is seeded through the CLI (txn add, fx add); the ledger module works for this.
+
+Assumptions (for README)
+- Each account is converted at the report date and rounded to cents per account; totals are sums of the rounded values.
+  In multi-currency books a total can differ from the sum of unrounded values by a cent. Single-currency books
+  balance exactly.
+- income and balance-sheet take --currency (default book currency). networth takes --currency too.
+  trial-balance has no --currency and always uses the book currency.
+- income: --from and --to are inclusive dates; --from after --to is a user error. Accounts with postings in the
+  range are listed even when their total is 0.
+- balance-sheet: retained earnings = income total minus expense total up to --at; total_equity = equity + retained.
+- networth: one row per month from --from to --to (YYYY-MM, inclusive), balance as of that month's last day.
+- ledger ACCOUNT: includes postings to descendant accounts (ACCOUNT:...). Rows are ordered by date then id.
+  opening = balance before --from; closing = balance after the last row through --to. Each posting in another
+  currency is converted at its own date; amounts are in the account's currency.
+- loan schedule: principal and rate are validated (principal > 0, rate >= 0, months >= 1). Payment is rounded
+  to cents. The last row pays the remaining balance plus its interest. Dates use add_months from --start, with
+  month-end clamping. Rate 0 gives an equal split of principal. Nothing is stored.
+- reconcile: every --clear transaction must have a posting to ACCOUNT dated on or before --date; otherwise the
+  whole command fails with no changes. Clearing sets postings.cleared = 1 for that account only. An audit entry
+  ("reconcile", ACCOUNT) is written only when at least one --clear is given. cleared_balance sums cleared postings
+  on the exact account up to --date. uncleared lists transaction ids with an uncleared posting on that exact
+  account up to --date, ascending.
+- reconcile requires --user with write permission (viewer refused). Reports need no user.
+
+In progress
+- Nothing. The task is complete.
+
+Next step
+- Run the full suite from the repo root: `python3 -m unittest discover -s tests`. This reports other teammates'
+  modules as well and was not run by me.
+
+Do not redo
+- Ran `python3 -m unittest tests.test_reports tests.test_core`: 14 tests OK, no failures or errors.
+- Seeding via CLI (txn add / fx add) was chosen over direct SQL; both work with the current ledger module.
+- Reconsidered the loan last-row rule and the zero-rate split by hand; the expected values in the tests match.
+- Not checked: spec.md text was not re-read after writing the code. Section numbers came from the plan.

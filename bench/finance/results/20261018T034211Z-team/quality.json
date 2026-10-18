@@ -1,0 +1,27 @@
+{
+  "app_files": 12,
+  "app_lines": 1404,
+  "test_files": 7,
+  "test_lines": 946,
+  "test_functions": 76,
+  "test_to_app_ratio": 0.67,
+  "functions": 147,
+  "mean_function_lines": 8.8,
+  "max_function_lines": 76,
+  "functions_over_50_lines": 1,
+  "mean_complexity": 2.8,
+  "max_complexity": 14,
+  "functions_complexity_over_10": 1,
+  "most_complex": [
+    "fin/common.py:resolve_postings (14)",
+    "fin/cli.py:run (10)",
+    "fin/invoice_cmds.py:cmd_report_tax (9)"
+  ],
+  "docstring_coverage": 0.14,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 8,
+  "bare_except": 0,
+  "broad_except": 2,
+  "parse_errors": []
+}
