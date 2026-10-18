@@ -7,3 +7,4 @@ out/
 
 # Benchmark workspaces (built apps, deleted after each run)
 bench/work/
+__pycache__/
