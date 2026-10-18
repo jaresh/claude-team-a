@@ -242,3 +242,50 @@ lead ran its tasks in order, one teammate each (5-8 teammates, none overlapping)
 - Against solo: ties on review, consistency and structure; cheaper (-33%); one hidden test lower.
 - Offered as a choice in the prompt (README); kit 3.12 documents it in the skill, with a line on
   reuse that adds checks the spec doesn't ask for. Not re-measured.
+
+## Research-brief items, one run each (finance v2.1, base kit 3.12)
+
+Each item from the research brief as one single-change variant (`bench/variants/`) or arm, run
+once to see whether it holds before any 4-run check. Baseline: kit 3.11, 4 runs: hidden 42
+(41-42), review 7 (7-7), consistency 6, $0.832 cold, 14 minutes. Solo Sonnet: 42, 7, $1.154.
+
+| Item | Run | Hidden | Review (consistency) | Cold $ | Minutes | Teammates | Advisor calls |
+|---|---|---|---|---|---|---|---|
+| force-haiku | 20261018T100350Z-team | 42/42 | 7 (7) | 0.830 | 19 | 6 | 0 |
+| intake-hook | 20261018T100420Z-team | 41/42 | 7 (7) | 0.645 | 11 | 5 | 0 |
+| done-gate (fixed hook) | 20261018T105214Z-team | 42/42 | 7 (6) | 0.716 | 15 | 6 | 0 |
+| audit | 20261018T103345Z-team | 42/42 | 7 (7) | 0.888 | 22 | 6 | 0 |
+| advisor-haiku | 20261018T105244Z-team | 40/42 | 7 (6) | 0.745 | 13 | 8 | 0 |
+| workflow (not available) | 20261018T110214Z-team | 42/42 | 7 (6) | 0.972 | 13 | 9 | 0 |
+| solo-haiku | 20261018T100450Z-solo | 42/42 | 7 (8) | 0.312 | 36 | 0 | 0 |
+| solo-haiku-advisor | 20261018T115647Z-solo | 0/42 | 3 (3) | 0.334 | 19 | 0 | 1 |
+| team-haiku-lead | 20261018T115617Z-team | 42/42 | 7 (6) | 0.376 | 27 | 13 | 0 |
+
+- **force-haiku** (item 1): holds; every teammate on Haiku, cost as 3.11. Safety only: all
+  earlier runs already used Haiku.
+- **intake-hook** (item 2): the hook ran on every teammate Bash call and never had to change one
+  (teammates already pipe their test output). Harmless; no effect on finance.
+- **done-gate** (item 3): the first run (20261018T103315Z-team) is invalid: the hook ran the
+  plan's `python ...` checks where only `python3` exists and blocked every teammate twice. Fixed
+  (717f071); the rerun ran each teammate's done check on idle, all passed, nothing blocked.
+  Harmless; finance gives it nothing to catch. It did expose that the lead's done checks don't
+  run as written on this machine.
+- **audit** (item 5): the Haiku auditor found real issues for $0.02, but acting on them cost the
+  lead ~$0.06 more and the review stayed 7. No gain, like the consistency pass retired in 3.10.
+- **advisor-haiku** (item 6): the advisor was attached to every teammate, and Haiku never called
+  it in 36 responses. Inert.
+- **workflow** (item 7): not tested. Dynamic workflows aren't enabled for this account (no
+  Workflow tool, no `/workflows`); the lead fell back to Agent teammates. Needs workflows turned
+  on (`/config`, "Dynamic workflows").
+- **solo-haiku**: one Haiku session matched solo Sonnet (42/42, review 7, consistency 8) at
+  $0.312 (-73%), but took 36 minutes (Claude Code's default compaction kept it under 100K: 9
+  compactions, peak 67K).
+- **solo-haiku-advisor**: failed: 0/42, review 3. It built `account add` with a different
+  argument shape from the spec and only checked against its own 128 tests; one interface
+  mistake fails every hidden test. Its one Sonnet advisor call cost $0.179, 54% of the run.
+- **team-haiku-lead**: a Haiku lead with Haiku teammates matched the Sonnet-lead team (42/42,
+  review 7) at $0.376 (-55% vs kit 3.11), 27 minutes, 13 teammates, 395 own tests. It never
+  called its Sonnet advisor.
+- Not run: item 4 (scout: finance starts empty) and the sequential benchmark (needs a prompt).
+- **Next:** 4-run checks of team-haiku-lead and solo-haiku (the second Haiku solo run's total
+  failure says one good run is not enough). force-haiku can go into the kit as a safety change.
