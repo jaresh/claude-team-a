@@ -1,0 +1,21 @@
+Done
+- fin/core.py: shared library per the plan Contract (money/fmt/cents, dates, accounts, postings, periods, FX, audit, JSON output).
+- fin/cli.py: parser, dispatch, --user/role checks, one transaction per command, and the core commands: init, user add/list, account add/list, audit list [--by], period close/status.
+- Stubs for txn, statements, imports, planning, loans, reconcile, invoices, bills, server (each has register(commands, reports)).
+- fin/__init__.py, fin/__main__.py.
+- tests/test_core.py: 35 tests, all pass.
+- Checks: `python3 -m unittest discover -s tests -p 'test_core.py'` gives OK (35 tests). `python3 -c "import fin.cli"` works.
+- Note: this box has python3 only (no `python`). The lead's command needs `python3` here.
+
+Assumptions
+- An unknown --user is an error for every command. Write commands with no --user are errors.
+- Parent accounts created by `account add` take the child's currency.
+- init, user add, account add and period close print small JSON objects. --role is required for user add.
+- get_rate returns 1 for the same currency and inverts a stored rate when only the other direction exists.
+- period close writes no audit entry when closed_through does not change.
+- init removes a partly created DB file on failure.
+- Extra helpers beyond the Contract: core.currency_code, and audit(..., user=None).
+
+Next step
+- Run `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests -p 'test_core.py'`. Expect 35 tests OK.
+- Lead: confirm the stub register(commands, reports) signature matches what the other teammates expect.

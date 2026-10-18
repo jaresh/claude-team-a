@@ -1,0 +1,17 @@
+agent          model      effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:b020c59f  haiku-5-5            39     35    102    76881  2638564   38329        0     86457          0            0  0.0609
+acceptance     haiku-5-5  medium     9      8     18    62755   283569   87308        5     53130          0            1  0.0543
+core           haiku-5-5  medium    14     15     28    65616   440146   34255        9     54330          0            1  0.0297
+statements     haiku-5-5  medium    10     12     20    67827   283900   21299        7     61339          0            1  0.0220
+reconcile      haiku-5-5  medium    12     13     24    27212   341624    8677        7     40819          0            0  0.0112
+loans          haiku-5-5  medium    14     13     28    29254   467545    5720        9     42861          0            0  0.0112
+invoices       haiku-5-5  medium    22     25     44    69943   688458   26791       15     58367          0            1  0.0290
+planning       haiku-5-5  medium    16     17     32    37017   517377   12068       12     50624          0            0  0.0158
+bills          haiku-5-5  medium    21     22     42    71279   809377   16847       17     65822          0            1  0.0254
+ledger         haiku-5-5  medium    18     18     36    46911   682519   11938       14     60518          0            0  0.0187
+imports        haiku-5-5  medium    14     17     28    44567   536713   10157        8     58174          0            0  0.0160
+api            haiku-5-5  medium    34     45     68   113450  1469035   17716       28     65324          0            1  0.0377
+TOTAL          haiku-5-5           223    240    470   712712  9158827  291105      131     86457          0            6  0.3320
+total $0.3320
+cold start $0.3339: the lead's first message read a prefix another session had cached; written by this run it would cost $0.0018 more.
+out_est: responses whose output was estimated from visible content (3.5 chars/token); hidden thinking is not counted.

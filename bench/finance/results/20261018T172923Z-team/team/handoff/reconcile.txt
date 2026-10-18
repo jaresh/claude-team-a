@@ -1,0 +1,15 @@
+Done
+- fin/reconcile.py: `reconcile ACCOUNT --date DATE --balance AMOUNT [--clear ID ...]` per spec §16. Registers via register(commands, reports) with write=True, admin=False.
+- tests/test_reconcile.py: 9 tests (clearing, difference, persistence across runs, ascending uncleared excluding later dates, invalid --clear after the date rolls back, unknown txn id, txn without posting to the account, unknown account, audit entry).
+- Checks: `python3 -m unittest discover -s tests -p 'test_reconcile.py'` OK (9 tests). `python3 -m unittest discover -s tests -p 'test_core.py'` OK (35 tests).
+- No changes to core.py, cli.py, schema, or changes.md.
+
+Assumptions
+- Reconcile is write=True, so a viewer cannot run it even without --clear. It audits (action `reconcile`, target the account) on every successful run, not only when --clear is given. Change to write=False if the lead wants read-only runs unaudited.
+- An unknown ACCOUNT is a FinError (spec silent).
+- --clear marks all postings of that transaction to ACCOUNT, not just one posting.
+- uncleared lists distinct transaction ids where any posting to ACCOUNT on or before DATE is uncleared.
+- --balance parsed with core.money (at most 2 decimals).
+
+Next step
+- None for this task. Lead may run `python3 -m fin --db PATH --user alice reconcile ACCOUNT --date YYYY-MM-DD --balance AMOUNT [--clear ID]` once txn add exists.

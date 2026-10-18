@@ -1,0 +1,13 @@
+Done
+- fin/loans.py: `loan schedule PRINCIPAL RATE MONTHS --start DATE` (read-only, write=False), registered via register().
+- tests/test_loans.py: 8 tests (known payment 88.85 at 12%, final balance 0.00 and total_interest over 60 months, principal sums, zero rate, one month, month-end dates, read-only, exit 2 on bad input).
+- Checks: `python3 -m unittest discover -s tests -p 'test_loans.py'` OK (8 tests); `python3 -m unittest discover -s tests -p 'test_core.py'` OK (35 tests).
+- No changes to core.py, cli.py or any other file.
+
+Assumptions
+- Principal must be > 0 (money format, at most 2 decimals), RATE >= 0, MONTHS a whole number >= 1; otherwise FinError (exit 2).
+- Zero-rate payment is PRINCIPAL/MONTHS rounded; the last row absorbs the rounding difference.
+- Decimal context prec 40 is set locally with decimal.localcontext(), not globally.
+
+Next step
+- None for loans. Lead can run the acceptance Loans tests once everything is merged.

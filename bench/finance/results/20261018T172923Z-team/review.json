@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 9,
+    "tests": 8,
+    "consistency": 6
+  },
+  "overall": 7,
+  "issues": [
+    "fin/server.py `_write_error` and `_Handler._run` repeat the role checks from `cli._context`, then recover the error text by splitting the CLI's stderr on 'error: ', so the HTTP layer depends on CLI text formatting instead of calling the domain functions.",
+    "fin/bills.py and fin/invoices.py each define their own `_tax_rate`, `_paid` and line parsing, and the copies have drifted: customer terms must be 0-3650 but vendor terms only >= 0, an invoice needs an asset account for payment while `bill pay` accepts any existing account, and paying an already paid bill gives a misleading 'more than the balance' message instead of a 'nothing left to pay' error.",
+    "fin/statements.py `_totals` converts and rounds each posting before summing, so in a multi-currency book the trial balance's `total_debit` and `total_credit` (and the balance-sheet identity) can drift apart by cents; `_ledger` also converts at each posting's own date instead of the report date that section 8 uses.",
+    "fin/cli.py `main` only catches FinError, so a sqlite3.DatabaseError (for example `--db` pointing at a file that isn't SQLite, or a locked database) ends in a traceback rather than exit code 2 with a message.",
+    "fin/statements.py `_networth` re-filters and re-converts every posting for every month, running one or two FX queries per posting per month (quadratic work), and its `--currency` option skips the early rate check the other reports do.",
+    "The tests repeat their `_cli`/`_book` helpers in every file, and some, such as tests/test_bills.py `_book_with_accounts` and `balances`, insert into and read from the SQLite tables directly, which ties them to the schema instead of to behaviour."
+  ],
+  "strengths": [
+    "Money handling is careful throughout: strict regex parsing into Decimal, one `cents`/`fmt` helper for half-up rounding without '-0.00', and every SQL statement uses parameters.",
+    "Each CLI command runs inside a single `with conn:` transaction, failed `init` removes the file it created, and argparse errors are turned into FinError, so user errors reliably give exit code 2 with nothing written to the database.",
+    "The test suite is broad (about 390 tests): unit tests for core helpers plus subprocess-based acceptance tests for every spec section and the HTTP API, each using its own temporary book."
+  ],
+  "review_cost": 0.8153
+}

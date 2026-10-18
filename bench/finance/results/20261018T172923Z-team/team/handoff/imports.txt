@@ -1,0 +1,17 @@
+Done
+- fin/imports.py: register() adds `rule add`, `rule list`, `import` (write flags per spec: rule add and import write, rule list does not). Helpers only use core.* functions; no core change needed.
+- tests/test_imports.py: 31 tests, all pass (matching, defaults, dedupe, skip counts, closed-month rollback, bad date/amount/zero/short row, viewer, audit, bad regex).
+- Checks: `python3 -m unittest discover -s tests -p 'test_core.py'` 35 OK; `-p 'test_imports.py'` 31 OK; extra: `python3 -m unittest tests.test_acceptance.Imports` 12 OK.
+- No edits to shared files; changes.md not touched.
+
+Assumptions
+- rule add rejects an empty pattern and an invalid regex (FinError); validates ACCOUNT with core.account_type only (does not require it to exist; import creates it).
+- A zero amount row is an error ("amount is zero"), since spec gives no category for it. Whole import fails.
+- Blank CSV lines (or lines of only empty cells) are ignored and not counted.
+- Description is stripped; column values are stripped. Files read as UTF-8 with BOM accepted.
+- Closed-month check runs before the duplicate check, so a closed-month row fails the import even if it is a duplicate (literal reading of spec §5/§9).
+- import writes its audit entry even when imported = 0 (command succeeded).
+- Negative --date-col/--desc-col/--amount-col is a FinError.
+
+Next step
+- None for this section. Lead can run: python3 -m unittest discover -s tests -p 'test_imports.py'

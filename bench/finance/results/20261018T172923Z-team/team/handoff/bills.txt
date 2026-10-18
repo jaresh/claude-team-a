@@ -1,0 +1,17 @@
+Done
+- fin/bills.py: vendor add/list, bill create/pay/show/list, register() wired. Helpers _name, _vendor_terms, _tax_rate, _parse_line, _bill_row, _paid, _bill_doc.
+- tests/test_bills.py: 16 tests (vendors, shape, posting, per-line rounding, unique ref, account type, bad input changes nothing, viewer denied, partial/full payment, overpay, list/show by status, closed period, audit).
+- Checks: `python3 -m unittest discover -s tests -p 'test_bills.py'` OK (16). `python3 -m unittest discover -s tests -p 'test_core.py'` OK (35).
+- No changes to core.py, cli.py, schema, or shared files. changes.md not touched.
+
+Assumptions
+- Line ACCOUNT must already exist (acceptance expects an error for Expenses:Nope). ensure_account is used only for Assets:TaxReceivable and Liabilities:Payable.
+- Line accounts must be in the book currency; a line net must be above zero; line description and account must be non-empty.
+- Tax code is looked up in tax_codes (the invoices `tax add` table); an unknown code is an error; empty code means no tax and is stored as NULL.
+- Pay: amount must be above zero and no more than the balance; the payment account is any existing account (not type-restricted).
+- bill list returns full bill documents (same shape as show), optionally filtered by --status.
+- vendor add returns {"name", "terms"}; vendor terms must be 0 or more.
+- The test file was changed on disk by someone else during my run; I kept its current content (my intended edits were in place) and both suites pass.
+
+Next step
+- Nothing for bills. Lead: run `python3 -m unittest discover -s tests -p 'test_bills.py'` again after wave 1 merges, and the acceptance Bills/TaxAndVendors classes once invoices (tax add, tax_codes) and cli merge.

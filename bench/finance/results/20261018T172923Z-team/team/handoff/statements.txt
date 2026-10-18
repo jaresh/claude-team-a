@@ -1,0 +1,22 @@
+Done
+- fin/statements.py: report income, balance-sheet, networth, trial-balance, ledger.
+- tests/test_statements.py: 21 tests, all pass.
+- python3 -m unittest discover -s tests -p 'test_core.py': 35 tests, OK.
+- python3 -m unittest discover -s tests -p 'test_statements.py': 21 tests, OK.
+- No shared files touched; no changes.md rows; nothing committed.
+
+Assumptions
+- networth and trial-balance take --currency as an extension (default: book currency).
+- ledger takes no --currency; amounts are shown in the account's own currency, each converted at its posting date.
+- --from after --to (and networth --from after --to) is a user error (exit 2).
+- Each amount is converted and rounded to cents before summing, per the plan convention. In multi-currency books, a balance-sheet identity or trial-balance total can differ by a cent from a single-rate conversion of the total.
+- Missing exchange rate surfaces as a FinError from core.convert ("no exchange rate").
+
+Next step
+- Lead: run `python3 -m unittest discover -s tests -p 'test_statements.py'` and `python3 -m unittest discover -s tests -p 'test_core.py'` in the repo root to confirm.
+- Lead: optional CLI smoke, e.g. `python3 -m fin --db <path> --json report balance-sheet --at 2026-12-31`.
+- No core.py or cli.py change requested.
+
+Do not redo
+- Ran both suites after the fix; the two earlier failures were wrong test expectations (Jan income includes two postings, 3875 USD; ledger closing includes the descendant's +500 and parent's -500, so 2100). Module code was correct for both.
+- Balance identity (assets = liabilities + equity incl. retained earnings) is asserted in the balance-sheet tests.

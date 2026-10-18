@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 8,
+    "correctness_risks": 6,
+    "error_handling": 8,
+    "data_safety": 9,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/server.py builds CLI argv strings and runs fin.cli.main in-process (with a function-level import to avoid a cycle), so the HTTP layer depends on the CLI. It also hands every error back as 400 by parsing stderr text, and the ';' restriction on invoice lines comes from this argv encoding.",
+    "fin/statements.py `_ledger` converts each posting at its own date, while `_totals` and the trial balance convert at the report date, so conversion is inconsistent. Converting and rounding per posting before summing can also drift from rounding the total.",
+    "fin/core.py `audit` takes either a Context or a bare connection plus an optional `user` override, a muddled signature that exists only for `init`. Also, `_run` in fin/cli.py deletes the database file on any exception during init.",
+    "Account-prefix matching (`name == p or startswith(p + ':')`) and the `YYYY-MM` key formatting are repeated in planning.py, statements.py, cli.py and others instead of being shared helpers. `_report_budget` is also O(budgets \u00d7 postings) in Python.",
+    "fin/invoices.py `_invoice_issue` derives the next number from COUNT(*) of numbers with the year prefix, and `_aging` / `_tax_report` are mixed into the invoice module even though they also cover bills. Both are fragile and put responsibilities in the wrong place.",
+    "tests: the helpers (`_cli`, `_ok`, `_book`) are copied per file, and some tests insert rows straight into the tables (`_add_bill`), which ties them to the schema rather than to behaviour. The server tests and the atomicity and rollback paths appear thinly covered."
+  ],
+  "strengths": [
+    "Money is Decimal throughout and stored as formatted strings. `fmt` avoids '-0.00', SQL is parameterized, and each command runs in one transaction with FinError mapped to exit 2.",
+    "Input validation is strict and consistent: regex-checked amounts, dates and months, a role check in one central `_context`, and row-numbered import errors with the whole import failing atomically.",
+    "Code is small and readable, with docstrings. Domain modules each register their own commands, and core.py holds the shared money, date and posting logic."
+  ],
+  "review_cost": 0.3018,
+  "model": "sonnet"
+}

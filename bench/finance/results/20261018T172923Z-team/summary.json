@@ -1,0 +1,128 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "arm": "team-haiku-lead",
+  "claude_args": "--advisor sonnet",
+  "model": "haiku",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.13",
+  "started": "2026-10-18T17:29:23Z",
+  "ended": "2026-10-18T18:04:18Z",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 387,
+  "own_total": 387,
+  "python_lines": 6165,
+  "cost": 0.332,
+  "cost_cold": 0.3339,
+  "lead_cost": 0.0609,
+  "team_cost": 0.2711,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [
+    "acceptance",
+    "core",
+    "statements",
+    "reconcile",
+    "loans",
+    "invoices",
+    "planning",
+    "bills",
+    "ledger",
+    "imports",
+    "api"
+  ],
+  "lead_messages": 39,
+  "lead_peak_ctx": 86457,
+  "lead_compactions": 0,
+  "team_peak_ctx": 65822,
+  "coverage": 0.974,
+  "least_covered": [
+    "fin/__init__.py (0%)",
+    "fin/__main__.py (75%)",
+    "fin/server.py (92%)"
+  ],
+  "quality": {
+    "app_files": 13,
+    "app_lines": 1824,
+    "test_files": 11,
+    "test_lines": 3358,
+    "test_functions": 387,
+    "test_to_app_ratio": 1.84,
+    "functions": 132,
+    "mean_function_lines": 13.1,
+    "max_function_lines": 51,
+    "functions_over_50_lines": 1,
+    "mean_complexity": 3.3,
+    "max_complexity": 13,
+    "functions_complexity_over_10": 3,
+    "most_complex": [
+      "fin/core.py:resolve_postings (13)",
+      "fin/server.py:_get_argv (11)",
+      "fin/imports.py:_import (11)"
+    ],
+    "docstring_coverage": 0.69,
+    "duplicate_share": 0.002,
+    "float_calls": 0,
+    "sql_built_from_strings": 4,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 8,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "fin/server.py `_write_error` and `_Handler._run` repeat the role checks from `cli._context`, then recover the error text by splitting the CLI's stderr on 'error: ', so the HTTP layer depends on CLI text formatting instead of calling the domain functions.",
+      "fin/bills.py and fin/invoices.py each define their own `_tax_rate`, `_paid` and line parsing, and the copies have drifted: customer terms must be 0-3650 but vendor terms only >= 0, an invoice needs an asset account for payment while `bill pay` accepts any existing account, and paying an already paid bill gives a misleading 'more than the balance' message instead of a 'nothing left to pay' error.",
+      "fin/statements.py `_totals` converts and rounds each posting before summing, so in a multi-currency book the trial balance's `total_debit` and `total_credit` (and the balance-sheet identity) can drift apart by cents; `_ledger` also converts at each posting's own date instead of the report date that section 8 uses.",
+      "fin/cli.py `main` only catches FinError, so a sqlite3.DatabaseError (for example `--db` pointing at a file that isn't SQLite, or a locked database) ends in a traceback rather than exit code 2 with a message.",
+      "fin/statements.py `_networth` re-filters and re-converts every posting for every month, running one or two FX queries per posting per month (quadratic work), and its `--currency` option skips the early rate check the other reports do.",
+      "The tests repeat their `_cli`/`_book` helpers in every file, and some, such as tests/test_bills.py `_book_with_accounts` and `balances`, insert into and read from the SQLite tables directly, which ties them to the schema instead of to behaviour."
+    ],
+    "strengths": [
+      "Money handling is careful throughout: strict regex parsing into Decimal, one `cents`/`fmt` helper for half-up rounding without '-0.00', and every SQL statement uses parameters.",
+      "Each CLI command runs inside a single `with conn:` transaction, failed `init` removes the file it created, and argparse errors are turned into FinError, so user errors reliably give exit code 2 with nothing written to the database.",
+      "The test suite is broad (about 390 tests): unit tests for core helpers plus subprocess-based acceptance tests for every spec section and the HTTP API, each using its own temporary book."
+    ],
+    "review_cost": 0.8153
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 8,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 9,
+        "tests": 8,
+        "consistency": 6
+      },
+      "review_cost": 0.8153
+    }
+  ],
+  "review_alt": {
+    "model": "sonnet",
+    "overall": 7,
+    "scores": {
+      "structure": 6,
+      "readability": 8,
+      "correctness_risks": 6,
+      "error_handling": 8,
+      "data_safety": 9,
+      "tests": 7,
+      "consistency": 7
+    },
+    "review_cost": 0.3018
+  }
+}

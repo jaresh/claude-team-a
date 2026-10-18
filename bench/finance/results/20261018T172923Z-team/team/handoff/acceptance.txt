@@ -1,0 +1,19 @@
+Done
+- Wrote tests/test_acceptance.py (only file changed). 165 test methods, covering spec sections 1-17 and the HTTP API of section 10.
+- CLI tests run `python -m fin --db PATH --json ...` as subprocesses. HTTP tests start `python -m fin --db PATH serve --port N` on a free port and stop it in tearDown.
+- Checks: `python3 -m py_compile tests/test_acceptance.py` passes. `grep -c 'def test_'` gives 165.
+- One run of `python3 -m unittest tests.test_acceptance` (current code): 165 run, 133 failures. All 133 failures are argparse "invalid choice" for commands not yet implemented (tax, txn, recurring, fx, import, loan, budget, balance, rule, convert). No failure comes from a bug in the test file.
+
+Assumptions
+- Command spellings and flags in the tests are taken from spec.md as I read it before the context reset. Please cross-check them against the spec: `txn add --date --desc --posting`, `tax add CODE RATE`, `invoice create --customer --date --line "desc;qty;price;tax"`, `bill create --vendor --ref --date --line "desc;amt;account;tax"`, `reconcile ACCOUNT --date --balance --clear ID`, `report KIND`, `import FILE --account`, and `serve --port`.
+- Output keys (e.g. `imported`/`skipped`, `closed_through`, `networth` rows, `by_code`) and audit `action`/`target` strings are also taken from the spec.
+- Global options (`--db`, `--json`, `--user`) come before the command.
+- Expected error behaviour: exit 2, empty stdout, non-empty stderr, no state change.
+
+Next step
+- After the other teammates implement the code, run: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_acceptance 2>&1 | tail -n 40`
+- For any failing test, check the spec field name first, then the code.
+
+Do not redo
+- py_compile and the test-method count were checked (both pass).
+- I did not run the full suite under `python -m unittest discover -s tests`. Only the acceptance module was run.

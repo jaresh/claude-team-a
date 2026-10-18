@@ -1,0 +1,18 @@
+Done
+- fin/txn.py: txn add, txn list (group txn), balance, fx add (group fx), convert. Uses core.post_transaction, parse_posting, convert, audit (txn.add with id, fx.add with FROM/TO).
+- tests/test_txn.py: 31 tests, all pass.
+- Checks: `python3 -m unittest discover -s tests -p 'test_txn.py'` OK (31); `python3 -m unittest discover -s tests -p 'test_core.py'` OK (35).
+- Smoke test via `python3 -m fin`: txn add prints the spec shape, balance and same-currency convert work, missing rate exits 2.
+- No shared files touched (changes.md unchanged, core.py and cli.py untouched).
+
+Assumptions
+- convert AMOUNT uses core.money (at most 2 decimals), so 12.345 is a user error. `--at` is required on convert.
+- fx add returns {"date","from","to","rate"}; the spec does not define the output. Rate must be > 0 and the two currencies must differ.
+- txn list --account matches the account or names starting with "ACCOUNT:"; output lists all postings of each matching transaction.
+- balance includes every ancestor and sums per currency; zero totals print "0.00".
+
+Flag for lead (core, not changed)
+- core.get_rate picks the most recent row in EITHER direction (ORDER BY date DESC, id DESC). Spec §4 can also be read as "prefer a FROM->TO row over an inverse row, regardless of date". Example: USD->EUR 0.9 on 2026-01-01, then EUR->USD 2 on 2026-02-01: convert 100 USD on 2026-03-01 gives 50 EUR with core (most recent row, inverted 1/2), but 90 EUR under the direct-preference reading. Tests cover only the single-direction and same-direction cases. Decide which reading is right; if direct-preference, get_rate needs a change in core.py.
+
+Next step
+- Lead: decide the get_rate direction question above. Then run `python3 -m unittest discover -s tests -p 'test_txn.py'` and the acceptance tests for §2-§4 once wave 0 and wave 1 are merged.

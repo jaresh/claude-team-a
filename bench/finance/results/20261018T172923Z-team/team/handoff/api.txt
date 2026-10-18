@@ -1,0 +1,27 @@
+Done
+- fin/server.py: `serve --port N` (registered via register), make_server(db, port), _Handler with GET and POST routes from spec section 10. Each request runs fin.cli.main in-process with --db, --json and (for POST) --user from X-User. Auth (401/403) is checked in the server against the users table before argv is built. argparse errors (SystemExit) and FinError both return 400 with {"error": ...}; the server keeps running.
+- tests/test_server.py: 19 tests, server in a thread on port 0. Covers routes, 401/403/201, unbalanced/unknown account/malformed body (400), a bad payment amount (400, server still answers), invoice flow, invoice 404, aging keys, audit equal to `audit list`.
+- README.md: usage, commands, HTTP API table and rules, tests, Assumptions (plan.md, all handoff Assumptions, both lead decisions).
+- Checks on the final code: `python3 -m unittest discover -s tests -p 'test_server.py'` OK (19 tests). `python3 -m unittest tests.test_acceptance.HttpApi` OK (22 tests). Full suite `python3 -m unittest discover -s tests`: Ran 387 tests, OK (143.6 s).
+- No shared files edited, so changes.md is unchanged. Nothing committed. git status shows fin/, tests/ and README.md as untracked (they were untracked before I started), so git diff cannot isolate my edits.
+
+In progress
+- Nothing.
+
+Assumptions
+- serve listens on 127.0.0.1 only; single-threaded HTTPServer; each request opens the book again.
+- POST routes: 401 when X-User is missing or unknown, 403 for viewers, checked before the body is parsed. GET needs no user.
+- A GET on /invoices/ID checks that the invoice exists first, so a missing one is 404 rather than the 400 that `invoice show` would raise.
+- Invoice line fields containing ';' are rejected with 400 (the CLI splits lines on ';').
+- Body values may be strings or numbers; booleans and objects are errors. A missing tax_code means no tax.
+- Access logs from BaseHTTPRequestHandler go to stderr (visible in the serve log).
+- Non-GET/POST methods get the stdlib's HTML 501 response, not a JSON error.
+
+Next step
+- Lead: review fin/server.py and README.md. Try it by hand: `python3 -m fin --db ./fin.db init --currency EUR --admin alice`, then `python3 -m fin --db ./fin.db serve --port 8080`.
+- Optional, not blocking: server.py imports fin.core for open_db and user_role, and reads the invoices table directly for the 404 check. If core gains an "invoice exists" helper, server.py can use it.
+
+Do not redo
+- Did not edit fin/core.py or fin/cli.py. cli.py imports fin.server at module level. server.py imports fin.cli lazily inside _Handler._run, which avoids the circular import.
+- A GET /balances without `at` is valid (the CLI defaults the date), so it is not an error case.
+- Full suite already run on the final code (387 OK). Rerun only the test_server and HttpApi commands if fin/server.py changes.

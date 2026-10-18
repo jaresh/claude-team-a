@@ -1,0 +1,19 @@
+Done
+- fin/planning.py: recurring add, recurring run --until, budget set, report budget. Registered via register(commands, reports).
+- tests/test_planning.py: 21 tests (month-end, leap Feb, leap-year yearly, weekly, idempotent runs, later runs, closed period, blank posting, duplicate name, budget replace, actual/remaining incl. descendants, sort, negative remaining, non-expense rejected, audit).
+- Checks: test_planning.py 21 OK; test_core.py 35 OK; test_acceptance.py -k Budgets -k Recurring 14 OK.
+- No changes to core.py, cli.py, or shared files. changes.md not touched (no shared edits).
+
+Assumptions
+- recurring add returns {"name","every","start"}; budget set returns {"account","month","budget"}. Spec gives no output for these.
+- recurring run audits every successful run, even when created is 0 (target = --until date).
+- budget set accepts any valid money amount (negative not rejected); non-expense or unknown account is a FinError.
+- Recurring postings stored as JSON [[account, "amount" | null]]; blank amount balanced at run time.
+- Occurrences are computed from the start (not chained), so Jan 31 monthly -> Feb 28 -> Mar 31.
+
+Next step
+- None for this task. Lead may run the full suite: python3 -m unittest discover -s tests
+
+Do not redo
+- Checked that core.post_transaction already enforces closed periods via check_open, so run needs no extra check.
+- Checked that tests/test_acceptance.py Budgets/Recurring classes pass against this module.
