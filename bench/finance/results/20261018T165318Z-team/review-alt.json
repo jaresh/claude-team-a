@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 8
+  },
+  "overall": 7,
+  "issues": [
+    "fin/api.py turns each HTTP request into CLI argv strings and calls cli.main, so the API depends on CLI parsing; a description containing ';' is rejected, and values starting with '-' can be misparsed.",
+    "fin/api.py `_handle` maps every CLI failure to 400, and `_cli` recovers the message by stripping the 'error: ' prefix from stderr, which is fragile; Unauthorized/Forbidden from inside the CLI call would come back as 400.",
+    "fin/cli.py `main` catches only UserError, so an unexpected exception such as a sqlite3 error, a corrupt database or a bad rule regex at run time ends in a traceback instead of exit code 2.",
+    "fin/invoices.py `_next_number` numbers invoices with COUNT(*) of the same-year prefix; this is fragile (any deletion or manual change would produce duplicate numbers) and relies on the UNIQUE constraint to catch the clash.",
+    "fin/documents.py `apply_payment`, fin/cli.py `Context.book_currency` and fin/imports.py `_book_account` each re-query or re-implement the book currency and account checks; `check_access` is also duplicated by `_role_of` and by `_authorize` in the API.",
+    "fin/reports.py `ledger` loads every posting up to the end date and filters in Python, and `aging` runs several queries per document, so these reports will scale badly."
+  ],
+  "strengths": [
+    "Money handling is consistent: Decimal everywhere with half-up rounding in fin/money.py, a '0.00' normaliser, regex-validated parsing and parameterised SQL.",
+    "The design is modular: each command module registers its own parser and handlers, shared document logic for invoices and bills lives in fin/documents.py, and each CLI command runs inside a single transaction that rolls back on error.",
+    "The tests drive the real CLI through a shared helper (tests/support.py) with a fresh database per test, and check behaviour including error cases, numbering, rounding and partial payments."
+  ],
+  "review_cost": 0.1949,
+  "model": "sonnet"
+}

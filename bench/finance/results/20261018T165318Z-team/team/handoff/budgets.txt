@@ -1,0 +1,30 @@
+Done
+- fin/budgets.py: replaces the stub. Command `budget set ACCOUNT MONTH AMOUNT` (group "budget") and `report budget MONTH` (registered in groups["report"]).
+- tests/test_budgets.py: 20 tests, all pass.
+- Checks: `python3 -m unittest discover -s tests -p 'test_budgets.py'` gives Ran 20, OK. Full suite `python3 -m unittest discover -s tests` gives Ran 173, OK.
+- No shared files edited, so changes.md has no new rows. Nothing committed. No program launched.
+
+Public helpers
+- budgets.set_budget(conn, account, month, amount): Decimal amount. Checks the account exists and is expense, rejects negatives, then INSERT OR REPLACE with fmt(amount). No audit.
+- budgets.set_budget_command(ctx, args): the `budget set` handler. Authorizes budget.set, parses month and amount, audits budget.set with target "ACCOUNT MONTH". Returns {"account", "month", "budget"}.
+- budgets.budget_report(ctx, args): the `report budget` handler. Returns [{"account", "budget", "actual", "remaining"}] sorted by account. Read-only.
+- budgets.register(root, groups).
+
+Assumptions and deviations
+- A negative budget is refused (UserError). Zero is allowed. The spec does not say either way.
+- A budget row stores fmt(amount), so amounts have at most 2 decimals (parse_amount rejects more).
+- `actual` is rollup(raw_sums(from=first day, to=last day of MONTH))[account][account's currency], so it includes descendants and ignores other currencies. Missing sums give 0.00.
+- Re-setting a budget replaces it and is always audited (the set always changes a row).
+- `budget set` on an unknown user or a viewer is refused by authorize. `report budget` does not authorize, so a viewer and an unknown --user can read it (same as the other read-only reports).
+- Only budgets for MONTH are listed. An account with a budget but no postings shows actual 0.00.
+
+In progress
+Nothing. Task complete.
+
+Next step
+Lead: nothing needed from budgets. Rerun: `cd <repo> && python3 -m unittest discover -s tests -p 'test_budgets.py'`.
+
+Do not redo
+- Checked that `report budget` and `budget set` are registered: the test run goes through build_parser, and both commands pass.
+- Checked that raw_sums accepts date objects (_day converts them), so no ISO string conversion is needed in the report.
+- Checked that the full suite passes with the other teammates' current files (173 tests).

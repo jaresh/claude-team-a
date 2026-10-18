@@ -1,0 +1,32 @@
+DONE
+Files changed (only these two):
+- fin/loans.py: schedule(principal, rate, months, start) -> dict; schedule_command(ctx, args); register() adds `loan schedule PRINCIPAL RATE MONTHS --start DATE`.
+- tests/test_loans.py: 9 tests (7 for schedule, 2 for the command) covering the hand-checked worked example (1000, 12%, 3 months), zero rate, one month, a 360-month loan (final balance 0.00, principal sums to the loan), monthly date rule from Jan 31, invalid inputs, and that the command writes no audit rows.
+Check: `python3 -m unittest discover -s tests -p 'test_loans.py'` gives Ran 9 tests, OK.
+Shared files: none edited, so changes.md has no rows. Nothing committed. No program launched.
+
+Public helpers (for other teammates):
+- loans.schedule(principal: Decimal, rate: Decimal, months: int, start: date) -> {"payment", "total_interest", "rows": [{"n", "date", "payment", "interest", "principal", "balance"}]}. All amounts are fmt strings. It raises UserError for principal <= 0, principal with more than 2 decimals, months < 1, rate < 0.
+
+Assumptions and deviations:
+- The command parses PRINCIPAL with money.parse_amount (at most 2 decimals), RATE with money.parse, MONTHS as digits only (int), and --start with dates.parse_date. The plan said "strict decimals" for principal; I added the 2-decimal limit because the schedule is in cents.
+- The whole calculation runs inside decimal.localcontext with prec 50. Interest, payments and balances are rounded with money.cents (ROUND_HALF_UP).
+- Each non-final month: interest = cents(balance * rate/1200), principal = payment - interest. The final row repays the remaining balance, so its payment = balance + interest.
+- RATE 0 uses cents(PRINCIPAL / MONTHS) as the payment; the final row absorbs the rounding difference.
+- Row dates use dates.add_months(start, n), so a Jan 31 start gives Feb 28, Mar 31, and so on.
+- Read-only: no authorize, no audit, no DB access. It works without a user (--user is not needed).
+- --start is required.
+
+Git note: the cwd was already a git worktree (not under .claude/worktrees/), so I did not call EnterWorktree and edited in place.
+
+IN PROGRESS
+Nothing. The task is complete.
+
+NEXT STEP
+None for loans. The lead can run `python3 -m unittest discover -s tests -p 'test_loans.py'` to reconfirm, or run `python3 -m fin --db PATH init --currency EUR --admin admin` and then `python3 -m fin --db PATH loan schedule 1000 12 3 --start 2026-01-31` for a manual check.
+
+DO NOT REDO
+- Hand check of the worked example: payment 1000 * 0.01 / (1 - 1.01^-3) = 340.0221, so 340.02. Rows: 10.00/330.02/669.98; 6.70/333.32/336.66; last row 3.37/336.66, payment 340.03, balance 0.00. Total interest 20.07. The test asserts these values and passes.
+- Zero rate: 100 over 3 months gives 33.33, 33.33, 33.34 with balances 66.67, 33.34, 0.00. The test passes.
+- Negative RATE on the command line ("-6") is parsed by argparse as a positional and reaches the UserError check. The test passes.
+- Did not touch fin/money.py, fin/dates.py, fin/cli.py or any other owner's file.

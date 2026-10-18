@@ -1,0 +1,43 @@
+DONE
+Files changed (owned by fx only):
+- fin/fx.py: add_rate (handler for `fx add`), convert_amount, convert (handler for `convert`), register.
+- tests/test_fx.py: 27 tests (fx add, convert, convert_amount unit tests, audit, roles, unknown user).
+Check: `python3 -m unittest discover -s tests -p 'test_fx.py'` gives Ran 27 tests, OK.
+No shared files edited, so changes.md has no new rows. Nothing committed. No program launched.
+
+Public helpers (for other teammates):
+- fin.fx.convert_amount(conn, amount: Decimal, frm, to, at: date) -> Decimal, unrounded.
+  Same currency returns amount. Otherwise the latest direct frm->to rate with date <= at,
+  else amount / latest to->frm rate. None: UserError "no exchange rate: FROM to TO on DATE".
+  `at` must be a datetime.date (it is passed through dates.iso).
+- Command `fx add DATE FROM TO RATE` (group `fx`): editor or admin (not admin-only).
+  Audit `fx.add` with target "FROM/TO". Returns {"date", "from", "to", "rate"}.
+- Command `convert AMOUNT FROM TO --at DATE` (top-level, read-only: no user needed, no audit).
+  Returns {"amount": fmt, "currency": TO}.
+
+Assumptions and deviations:
+- `fx add` with FROM == TO is a UserError (no rate is needed within one currency). The spec is silent.
+- `fx add` rate must be a strict decimal and > 0 (0, negatives, "1e3" are user errors).
+  Stored as format(rate, 'f'), so "1.10" stays "1.10".
+- A repeated date/pair replaces the row (INSERT OR REPLACE), as the plan says.
+- `convert` takes `--at` as required (spec shows it as present); no default date.
+- `convert` AMOUNT is a strict decimal (any number of decimals); the output is rounded with money.fmt.
+- Currency codes are validated with money.parse_currency (3 letters, uppercased). Currencies are not
+  checked against the book; any 3-letter code is accepted.
+- The audit target for fx.add is "FROM/TO" (e.g. "EUR/USD"), as the plan says.
+- The `fx add` response shape is not fixed by the spec; it is the four-key dict above.
+
+IN PROGRESS
+Nothing.
+
+NEXT STEP
+Lead: nothing needed for fx. Run the full suite once all wave-2 tasks are done:
+`python3 -m unittest discover -s tests`.
+
+DO NOT REDO
+- Syntax and wiring: the module imports, and the test run calls register() through fin.cli, so the
+  `fx` group and the `convert` top-level command are both registered.
+- Rounding: 0.01 EUR at rate 0.5 gives "0.01" (ROUND_HALF_UP on 0.005); zero stays "0.00".
+- Rate date selection: a later rate is ignored for an earlier date; the direct rate beats the inverse
+  rate on the same date.
+- Failed `fx add` (for example same-currency) writes no audit row.

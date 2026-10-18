@@ -1,0 +1,19 @@
+agent          model      effort  msgs  tools  input  cache_w   cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:5195a0dc  haiku-5-5            37     39    100   112384   3205473   59119        0    112386         15            0  0.1685
+core           haiku-5-5  medium    14     45     28   107383    475395   28851        8     62039          0            1  0.0326
+parties        haiku-5-5  medium    15     15     30    31641    479497    7999       11     45249          0            0  0.0128
+ledger         haiku-5-5  medium    17     21     34    41813    660432   16009       11     62253          0            0  0.0198
+loans          haiku-5-5  medium    12     13     24    32977    360461   11497        7     46585          0            0  0.0135
+fx             haiku-5-5  medium    13     14     26    36304    474603   10462        7     49912          0            0  0.0145
+invoices       haiku-5-5  medium    25     30     50   125122    923523   25884       18     64141          0            2  0.0378
+imports        haiku-5-5  medium    15     16     30    43796    567058   10411       10     57404          0            0  0.0164
+bills          haiku-5-5  medium    18     23     36    47822    803895   14462       13     62005          0            0  0.0213
+budgets        haiku-5-5  medium    11     11     22    32476    369418    6580        8     46084          0            0  0.0110
+recurring      haiku-5-5  medium    14     14     28    33074    457129    8908        9     46682          0            0  0.0132
+reports        haiku-5-5  medium    23     31     46   125553    877825   28371       16     63893          0            2  0.0387
+reconcile      haiku-5-5  medium    14     17     28    34609    465641    9410        8     48217          0            0  0.0137
+api            haiku-5-5  medium    18     20     36    71754    579808   12960       14     57779          0            1  0.0213
+readme         haiku-5-5  medium    17     18     34    62677    608267   15544       14     56910          0            1  0.0217
+TOTAL          haiku-5-5           263    327    552   939385  11308425  266467      154    112386         15            7  0.4566
+total $0.4566
+out_est: responses whose output was estimated from visible content (3.5 chars/token); hidden thinking is not counted.

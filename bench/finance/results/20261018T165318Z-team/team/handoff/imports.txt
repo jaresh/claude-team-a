@@ -1,0 +1,41 @@
+DONE
+Files changed (owned by imports):
+- fin/imports.py: rule add, rule list (group `rule`), top-level `import FILE --account ACCOUNT [--date-col N] [--desc-col N] [--amount-col N] [--skip-header]`.
+- tests/test_imports.py: 19 tests (rules, import mapping, rule matching, dedupe, column options, bad rows, closed period, audit, currency, missing file).
+- No shared files edited, so changes.md has no new rows. Nothing committed; no program launched.
+
+Check results:
+- `python3 -m unittest discover -s tests -p 'test_imports.py'`: Ran 19 tests, OK.
+- `python3 -m unittest discover -s tests`: Ran 224 tests, OK.
+
+Public helpers:
+- imports.add_rule(ctx, args), imports.list_rules(ctx, args), imports.import_csv(ctx, args): command handlers.
+- No new shared helpers. Uses accounts.get_account, accounts.ensure_account, periods.check_open, txns.create_transaction, money.parse_amount/fmt, dates.parse_date/iso.
+
+Behaviour (decisions taken where the spec was silent):
+- rule add: authorize `rule.add`; pattern compiled with re.IGNORECASE (invalid -> UserError); account must exist and be in the book currency; audit `rule.add` with the pattern as target; returns {"pattern", "account"}.
+- rule list: read-only, seq order.
+- import: authorize `import`; ACCOUNT must exist and be in the book currency. Every row is parsed first (nothing written): a bad date, bad or >2-decimal amount, zero amount, empty description, or a missing column is a UserError naming the line. Then dedupe, then check_open per row to import. Then the writes run. The handler runs inside `with conn:`, so any failure rolls back everything.
+- Dedupe key is (date, description, amount as fmt) per ACCOUNT, checked against imported_rows and repeats within the file. Skipped rows skip the closed-period check.
+- Category: first rule by seq whose pattern matches (re.search, IGNORECASE), else Expenses:Uncategorized (negative) / Income:Uncategorized (positive), created with ensure_account only when a row needs it.
+- Postings: ACCOUNT=amount, category=-amount. A row inserts into imported_rows with its txn_id.
+- Audit `import` with target ACCOUNT only when at least one row was imported.
+- Blank CSV lines are skipped silently. The file is read as UTF-8 with an optional BOM; a read or decode error is a UserError "cannot read PATH".
+- Column indexes below 0 are a UserError.
+
+Assumptions and deviations:
+- Zero amounts are rejected as bad rows (the spec's Uncategorized rule covers only negative and positive amounts). Change in _row if the lead wants them imported.
+- Empty descriptions are rejected at import (txn add rejects them too). create_transaction itself still accepts them.
+- rule add accepts an empty pattern (matches everything). Not restricted.
+- Rule accounts are validated at add time only; there is no account delete command, so they stay valid. check_postings would still reject a bad one at import.
+
+IN PROGRESS
+Nothing. Task complete.
+
+NEXT STEP
+Lead: nothing needed from imports. Re-run with `python3 -m unittest discover -s tests -p 'test_imports.py'` and the full `python3 -m unittest discover -s tests`.
+
+DO NOT REDO
+- Closed-period, duplicate, and missing-column paths were all exercised in tests and pass.
+- The line-number prefix comes from _row, so _cell raises a bare "no column N" (not doubled).
+- The `python` binary doesn't exist here; `python3` works.

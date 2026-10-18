@@ -1,0 +1,41 @@
+Done
+- fin/api.py: `serve --port N` and the HTTP API from spec section 10. Requests run fin.cli.main in-process with --json; POST takes the acting user from the X-User header.
+- tests/test_api.py: 33 tests (GET routes, POST routes, 401/403/400/404 cases, invalid JSON, invoice issue and payment flow, POST argument mapping, serve registration).
+- Checks: `python3 -m unittest discover -s tests -p 'test_api.py'` -> Ran 33 tests, OK. `python3 -m unittest discover -s tests` -> Ran 299 tests, OK (about 65 s).
+- No shared files edited. Nothing committed. Nothing in changes.md.
+
+Public helpers (fin/api.py)
+- DEFAULT_PORT = 8000, HOST = "127.0.0.1"
+- make_server(db, port) -> ThreadingHTTPServer with .db set (port 0 picks a free port; tests use this)
+- Handler (BaseHTTPRequestHandler), POST_ROUTES
+- serve(ctx, args) and register(root, groups) (the serve command; wired via MODULES in fin/cli.py, which already lists fin.api)
+- Tests call the private builders api._transaction_words and api._invoice_words directly.
+
+Assumptions
+- Port defaults to 8000; server binds 127.0.0.1 only.
+- Content-Length is read; a missing or zero length is treated as an empty body, which becomes {} for POST.
+- Unknown query parameters are ignored. For /reports/aging, only payables=1 turns on --payables.
+- A missing database file gives 400 "no database: PATH" before any access check (connect() would otherwise create an empty file).
+- Access order for POST: route match (404) -> access check (401 missing or unknown user, 403 viewer or non-admin on admin-only actions) -> body parse (400) -> CLI run. A CLI error exit (code 2) becomes 400 with the stderr message minus "error: ".
+- Error bodies are JSON {"error": "..."}; an unexpected exception gives 500 {"error": "internal error"}.
+
+Deviations
+- None from spec section 10 that I know of.
+- The server logs each request line to stderr (BaseHTTPRequestHandler default). I did not silence it; this shows in test output.
+
+POST argument mapping
+- POST /transactions {date, description, postings:[{account, amount}]} -> `txn add --date=D --desc=TEXT --posting=ACCOUNT=AMOUNT` per posting. A posting with amount absent or null becomes `--posting=ACCOUNT`. postings must be a list of objects with an account; non-string fields give 400. Success 201 with the transaction JSON.
+- POST /invoices {customer, date, lines:[{description, quantity, price, tax_code?}]} -> `invoice create --customer=C --date=D --line=DESC;QTY;PRICE;TAX` per line (empty tax when absent). Lines need description, quantity and price. Any field containing ";" gives 400. Success 201 with the draft invoice.
+- POST /invoices/ID/issue -> `invoice issue ID`. Success 200.
+- POST /invoices/ID/payments {amount, date, account} -> `invoice pay ID AMOUNT --date=D --account=A`. Success 200 with the invoice.
+
+In progress
+- Nothing. The api section is complete and both suites pass.
+
+Next step
+- Lead: review fin/api.py and tests/test_api.py, then run `python3 -m unittest discover -s tests` (already green here) before committing. No further api work is needed.
+
+Do not redo
+- The first targeted run had 7 failures, all from my test setUp: it never created the Equity:Capital account, so txn add returned 400. Fixed by adding the account in setUp. Confirmed by running the CLI directly: the txn add with both accounts succeeds (exit 0).
+- Confirmed `python3` is the interpreter (no `python`). Running from the repo root needs no PYTHONPATH for unittest discover; a standalone script needs PYTHONPATH=. because tests/support.py imports fin.
+- The full suite is green with the api tests included; no need to rerun unless fin/api.py or tests/test_api.py changes.

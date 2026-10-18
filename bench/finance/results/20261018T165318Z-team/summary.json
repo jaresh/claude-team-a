@@ -1,0 +1,131 @@
+{
+  "bench": "finance",
+  "mode": "team",
+  "arm": "team-haiku-lead",
+  "claude_args": "--advisor sonnet",
+  "model": "haiku",
+  "effort": "medium",
+  "prompt": "87a9b86a9023",
+  "kit": "3.13",
+  "started": "2026-10-18T16:53:18Z",
+  "ended": "2026-10-18T17:39:17Z",
+  "accept_passed": 41,
+  "accept_total": 42,
+  "own_passed": 299,
+  "own_total": 299,
+  "python_lines": 5396,
+  "cost": 0.4566,
+  "cost_cold": 0.4566,
+  "lead_cost": 0.1685,
+  "team_cost": 0.2881,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [
+    "core",
+    "parties",
+    "ledger",
+    "loans",
+    "fx",
+    "invoices",
+    "imports",
+    "bills",
+    "budgets",
+    "recurring",
+    "reports",
+    "reconcile",
+    "api",
+    "readme"
+  ],
+  "lead_messages": 37,
+  "lead_peak_ctx": 112386,
+  "lead_compactions": 0,
+  "team_peak_ctx": 64141,
+  "coverage": 0.961,
+  "least_covered": [
+    "fin/__main__.py (0%)",
+    "fin/__init__.py (50%)",
+    "fin/db.py (90%)"
+  ],
+  "quality": {
+    "app_files": 28,
+    "app_lines": 2008,
+    "test_files": 14,
+    "test_lines": 2428,
+    "test_functions": 299,
+    "test_to_app_ratio": 1.21,
+    "functions": 189,
+    "mean_function_lines": 9.4,
+    "max_function_lines": 48,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 2.7,
+    "max_complexity": 12,
+    "functions_complexity_over_10": 2,
+    "most_complex": [
+      "fin/bills.py:create_bill (12)",
+      "fin/api.py:_get_words (11)",
+      "fin/imports.py:import_csv (10)"
+    ],
+    "docstring_coverage": 0.05,
+    "duplicate_share": 0.006,
+    "float_calls": 0,
+    "sql_built_from_strings": 13,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 8,
+      "consistency": 7
+    },
+    "overall": 8,
+    "issues": [
+      "fin/cli.py main only catches UserError, so any sqlite3 error causes a traceback and a 500 from the API: a locked database when ThreadingHTTPServer handles two POSTs at once, a --db that points at a non-fin file, or init into a directory that does not exist.",
+      "fin/api.py Handler._cli turns each request into argv strings and runs cli.main again, so the HTTP layer depends on argparse: a value starting with '-' (for example a negative payment amount, which _payment_words passes as a positional) is misparsed, every inner failure is reduced to 400, and access is checked twice on separate connections (_authorize, then ctx.authorize).",
+      "fin/reports.py trial_balance quietly moves rounding drift into the largest row (_absorb_rounding), but balance_sheet does no such thing, so after multi-currency conversion total_assets can differ from total_liabilities + total_equity by a cent.",
+      "fin/invoices.py parse_line accepts prices with more than two decimals and stores quantity and price through db_text, so a price is shown as the parsed number (\"95\", not \"95.00\") and a quantity is normalised (\"+2\" becomes \"2\") instead of being shown exactly as given.",
+      "Logic is duplicated across modules: a _day helper in both txns.py and balances.py, txns._exact_cents repeating money.parse_amount, documents.apply_payment querying meta for the book currency instead of using ctx.book_currency, tax_rate re-exported through documents.py and imported from two places, and _currency/_currency_or_book written twice.",
+      "Edge cases: documents.status_for only runs on payment, so a zero-total invoice stays 'issued' after issue_invoice; txns.check_postings gives a blank posting 0.00 without warning when no other posting shares its currency; reports.ledger and networth load every posting in Python per call and per month."
+    ],
+    "strengths": [
+      "Money is handled carefully throughout: Decimal parsing with a strict regex, one cents() with ROUND_HALF_UP, fmt() that never prints -0.00, amounts stored as TEXT, and every SQL value passed as a parameter (f-strings only insert constant table names).",
+      "Atomicity is solid: each command runs inside one `with conn:` transaction, validation comes before writes (reconcile _mark_cleared, import parses the whole file and checks closed periods first), and a failed init removes the half-created file.",
+      "Each feature lives in a small, focused module with its own register(), errors are typed (UserError/Unauthorized/Forbidden carrying a status), and about 300 behaviour-level tests cover every section, including edge cases like month-end clamping, closed periods, rounding drift and audit entries not being written on failure."
+    ],
+    "review_cost": 0.7862
+  },
+  "reviews": [
+    {
+      "overall": 8,
+      "scores": {
+        "structure": 7,
+        "readability": 8,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 9,
+        "tests": 8,
+        "consistency": 7
+      },
+      "review_cost": 0.7862
+    }
+  ],
+  "review_alt": {
+    "model": "sonnet",
+    "overall": 7,
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 8,
+      "consistency": 8
+    },
+    "review_cost": 0.1949
+  }
+}

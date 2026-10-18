@@ -1,0 +1,35 @@
+DONE
+Files changed (owned by recurring):
+- fin/recurring.py: add_recurring, run_recurring, _post_due, _occurrence, _stored_postings, _loaded_postings, register. Commands `recurring add NAME --every monthly|weekly|yearly --start DATE --posting ACCOUNT=AMOUNT [...]` and `recurring run --until DATE` -> {"created": N}.
+- tests/test_recurring.py: 22 tests (add validation, audit, occurrence dates, idempotent rerun, closed period, viewer refusal).
+No shared files edited, so changes.md has no new rows. Nothing committed; no program launched.
+
+Check results:
+- `python3 -m unittest discover -s tests -p 'test_recurring.py'`: Ran 22 tests, OK.
+- `python3 -m unittest discover -s tests`: Ran 195 tests, OK.
+- pyflakes is not installed, so no lint run.
+
+Public helpers: none new. Module-level functions in fin/recurring.py are `add_recurring(ctx, args)` and `run_recurring(ctx, args)` (command handlers). Uses txns.check_postings, txns.create_transaction, txns.parse_posting_arg, dates.add_months/add_days/iso/parse_date, money.fmt/parse.
+
+Assumptions and deviations:
+- Recurring names are not unique. Each template is identified by its id, so two templates can share a name; each run posts both (tested).
+- Template postings are stored as JSON [[account, fmt-string or null]]. A blank posting stays null, so it is refilled per occurrence.
+- Occurrence k is computed from the start date (add_months(start, k), add_days(start, 7k), add_months(start, 12k)), so monthly clamping does not drift.
+- The run walks occurrences from the start and skips any (recurring_id, occurrence) already in recurring_runs. A closed occurrence raises UserError from check_open, and the CLI rollback undoes the whole run, including earlier occurrences in that run (tested).
+- Audit: `recurring.add` with target = NAME. `recurring.run` with target = the until date, written only when created > 0.
+- Authorization: `recurring.add` and `recurring.run` are not in ADMIN_ONLY, so admin and editor may run them; viewer is refused (tested).
+- `recurring add` returns {id, name, every, start, postings: [{account, amount or null}]}. The spec does not fix this shape.
+- Validation: blank name refused in the handler, `--every` also enforced by argparse choices, the start date parsed strictly.
+- No list or remove command for templates (the spec does not ask for one).
+
+IN PROGRESS
+Nothing. Recurring work is complete.
+
+NEXT STEP
+Lead: nothing needed from recurring. Rerun: `cd <repo> && python3 -m unittest discover -s tests -p 'test_recurring.py'`.
+
+DO NOT REDO
+- The 22 recurring tests and the 195-test full suite already pass in this worktree.
+- Monthly clamping from the start (Jan 31 -> Feb 28 -> Mar 31 -> Apr 30, and 2026-05-31 at n=4) is tested, so it is not a chained-add bug.
+- Yearly from Feb 29 2024 gives Feb 28 in 2025 and 2026 (tested).
+- The `--user` flag comes before the command in argv (as in the other test files).

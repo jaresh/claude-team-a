@@ -1,0 +1,45 @@
+DONE
+Files changed (owned by ledger):
+- fin/txns.py: parse_posting_arg, check_postings, create_transaction, txn_doc; commands `txn add`, `txn list`.
+- fin/balances.py: raw_sums, rollup; command `balance`.
+- tests/test_ledger.py: 27 tests (txn add, txn list, balance, helpers). No shared files touched, so changes.md has no rows. Nothing committed; no program launched.
+
+Check results:
+- `python3 -m unittest discover -s tests -p 'test_ledger.py'`: Ran 27 tests, OK.
+- `python3 -m unittest discover -s tests -p 'test_core.py'`: Ran 42 tests, OK (re-run, still green).
+- pyflakes is not installed, so no lint run.
+
+Public helpers (contract signatures):
+- txns.parse_posting_arg(text) -> (account, Decimal | None). Splits on the first "="; amount via parse_amount (max 2 decimals). Empty account -> UserError.
+- txns.check_postings(conn, postings) -> list[(account, currency, Decimal)]. postings: list of (account, Decimal | None). Validates everything before any write (it writes nothing). Amounts must be exact cents (a non-cent Decimal is a UserError, not rounded), so the stored values are the summed values. Blank posting gets -(sum of its currency); other currencies must sum to zero.
+- txns.create_transaction(conn, date, description, postings) -> txn_doc. date: a datetime.date or an ISO str. Calls check_postings, then check_open, then inserts. No audit. Empty description is accepted here (per advice); only the `txn add` handler rejects blank text.
+- txns.txn_doc(conn, txn_id) -> {"id","date","description","postings":[{"account","amount","currency"}]}, postings ordered by seq.
+- balances.raw_sums(conn, at=None, from_date=None, to_date=None) -> {account: {currency: Decimal}}. at, from_date, to_date accept a date or an ISO str (None = no filter). Accounts with postings in range appear even when the sum is zero. Filters are in SQL.
+- balances.rollup(sums) -> {name: {currency: Decimal}}: each account's sums added to itself and every ancestor.
+
+Commands:
+- `txn add --date DATE --desc TEXT --posting ACCOUNT=AMOUNT` (repeatable). Authorize txn.add, audit txn.add with the id as target. Returns the txn_doc.
+- `txn list [--account PREFIX] [--from DATE] [--to DATE]`. Read-only. Ordered by date, then id. Prefix match is account == P or starts with P + ":" (done in SQL with substr, no LIKE).
+- `balance [--at DATE]`. Read-only. Returns {name: {currency: fmt}} with names and currencies sorted.
+
+Assumptions and deviations:
+- Posting seq is 1-based, in the order given.
+- Amounts with more than 2 decimals are rejected (UserError), not rounded, both on the CLI and in check_postings.
+- Empty or blank --desc is refused by `txn add` only (create_transaction accepts it, so imports are not blocked).
+- `txn list --account` with an unknown account returns an empty list (no error).
+- `balance` lists an account (and ancestors) if it has any posting on or before --at, even when its balance is zero. Accounts with postings only after --at are absent.
+- A bad --at/--from/--to date is a UserError from parse_date.
+- Read-only commands (`txn list`, `balance`) do not authorize, so a viewer and an unknown --user can run them. `txn add` by an unknown user or a viewer is refused.
+- `register(root, groups)` in balances.py ignores `groups` (balance is top-level).
+
+IN PROGRESS
+Nothing. Ledger work is complete.
+
+NEXT STEP
+Lead: nothing needed from ledger. Reruns: `cd <repo> && python3 -m unittest discover -s tests -p 'test_ledger.py'`.
+
+DO NOT REDO
+- Core helpers used as-is: accounts.get_account, accounts.is_descendant_or_self not used (prefix SQL inline), periods.check_open, money.parse/parse_amount/cents/fmt, dates.parse_date/iso, cli.Context.authorize/audit/book_currency (via handler args).
+- Checked: the `--user` flag must come before the command in argv (tests use `--user NAME txn ...`); `--from` uses dest from_date.
+- Checked: fmt never gives "-0.00" (zero-sum balances show "0.00", tested).
+- Checked: multi-currency transactions balance per currency (tested with USD pair and a blank USD posting).

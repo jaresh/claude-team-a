@@ -1,0 +1,29 @@
+Done
+- Files written: fin/documents.py, fin/invoices.py, fin/aging.py, tests/test_invoices.py.
+- No shared files edited, so .claude/team/changes.md is untouched. Nothing committed.
+- Public helpers in fin/documents.py: tax_rate (re-exported), line_tax(net, rate), document_totals(lines) -> (net, tax, total), document_total(conn, kind, doc_id), payments_total(conn, kind, doc_id, on_or_before=None), status_for(total, paid, issued_status="issued"), apply_payment(conn, kind, doc_id, amount, date, account, doc_label, pay_description) -> (paid, status), DOCUMENTS (kind -> table, lines table, issued status). apply_payment serves bills too: kind "bill" posts Liabilities:Payable +amount, ACCOUNT -amount.
+- fin/invoices.py: invoice_doc(conn, id) gives the full invoice dict. Commands: invoice create|issue|pay|show|list.
+- fin/aging.py: bucket_for(days), aging(ctx, args). Command: report aging --at DATE [--payables].
+- Check results: `python3 -m unittest discover -s tests -p 'test_invoices.py'` runs 18 tests, OK. `python3 -m unittest discover -s tests` runs 153 tests, OK.
+
+Assumptions (spec silent)
+- Line format is exactly four ";" fields. Quantity must be > 0 and price >= 0.
+- Quantity and price are stored with db_text and shown as entered.
+- Invoice numbers count issued invoices with the same INV-YYYY- prefix, then add 1. Numbering uses the invoice date year.
+- Aging skips draft invoices (status != 'draft') and selects by invoice date <= AT. Payments count only when dated <= AT.
+- Aging for bills uses status != 'draft' as well.
+- apply_payment checks the payment amount (positive, at most two decimals) before the status checks.
+
+Deviations
+- None from the spec. The error messages are my own wording where the spec gave none.
+
+In progress
+- Nothing.
+
+Next step
+- Nothing for this section. The lead can run: python3 -m unittest discover -s tests
+
+Do not redo
+- Known limitation, left as is: aging only sees issued invoices. An invoice dated on or before AT but issued after AT is left out, because it is still a draft at AT and the invoice has no issue timestamp to tell it apart. Making this exact would need an issue date stored on the invoice. Flagging it for the lead.
+- fin/bills.py was still a stub, so the --payables test inserts a bill and its line via SQL, after `vendor add`. Once the bills teammate lands bill commands, this test could switch to `bill` commands.
+- Test fixes made during the run were in the test file only (period closed before issue; the helper reads the latest matching txn). No production code changed for them.

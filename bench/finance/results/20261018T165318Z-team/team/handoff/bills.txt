@@ -1,0 +1,35 @@
+Done
+- Files written: fin/bills.py, tests/test_bills.py. No shared files edited (.claude/team/changes.md untouched). Nothing committed.
+- Commands: bill create --vendor --ref --date --line (repeat), bill pay ID AMOUNT --date --account, bill show ID, bill list [--status open|partial|paid].
+- Audits: bill.create (id), bill.pay (id). Authorize actions: bill.create, bill.pay.
+- Check results: `python3 -m unittest discover -s tests -p 'test_bills.py'` runs 10 tests, OK.
+- Full suite `python3 -m unittest discover -s tests`: 224 tests, OK on two later runs. The first full run, before my test fix, showed 1 failure I did not capture (its output was not kept). Unverified. Likely a teammate's in-progress file changing mid-run (wave 4 is running), but I could not confirm which test it was. Passing on later runs supports this.
+- End-to-end aging check (scratch DB .claude/team/scratch/bills/aging.db): bill A-1 of 120.00 (100 net + VAT20), due 2026-02-14, paid 50.00 on 2026-02-10. `report aging --payables`: at 2026-03-01 `1-30` 70.00 = balance; at 2026-02-01 `current` 120.00 (before payment, not due); at 2026-01-20 `current` 120.00.
+
+Public helpers
+- None. fin/bills.py exports only the command functions and register. It imports from fin/documents.py (apply_payment, document_totals, line_tax, payments_total, tax_rate), fin/parties.py (vendor_terms), fin/accounts.py, fin/dates.py, fin/money.py, fin/txns.py (create_transaction).
+- bill_doc(conn, id) is a module-level function returning the full bill dict. bill_doc is not used by other modules yet.
+
+Assumptions (spec silent)
+- Line format is exactly four ";" fields. AMOUNT is parsed with parse_amount (at most 2 decimals) and must be >= 0. Empty TAXCODE means no tax.
+- A line's ACCOUNT must exist and be type expense or asset (spec says so). Other types give a user error.
+- Bill ref is stripped; an empty ref is a user error. The duplicate check runs before the lines are validated.
+- Each line posts its own ACCOUNT +net (one posting per line, not merged by account). Assets:TaxReceivable +tax is one posting, only when the bill's tax is not zero. Liabilities:Payable -total.
+- Bill pay uses doc label "bill ID" in error messages and description "Payment REF".
+- Bill list --status choices: open, partial, paid.
+
+Deviations
+- None from the spec. Error wording is mine where the spec gave none.
+- Worktree: EnterWorktree is not in my tool list, so I worked in place in this worktree.
+
+In progress
+- Nothing.
+
+Next step
+- Nothing for this section. The lead can run: python3 -m unittest discover -s tests -p 'test_bills.py', then python3 -m unittest discover -s tests.
+
+Do not redo
+- Checked end to end: `report aging --at DATE --payables` on a bill made by `bill create`, with a partial payment (see Done). Result matches the balance. No change needed in fin/aging.py.
+- Checked: aging --payables is owned by invoices (fin/aging.py), not changed here. apply_payment already handles bills (status open/partial/paid, kind "bill"), so no changes to fin/documents.py were needed.
+- Checked: create_transaction runs check_open, so closed-period create and pay are refused without an extra check.
+- Checked: the test expectation for the create postings was wrong (one posting per line). Fixed in the test, not the module.

@@ -1,0 +1,62 @@
+127.0.0.1 - - [18/Oct/2026 17:39:51] "POST /transactions HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:51] "GET /audit?by=editor HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:39:52] "GET /accounts HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:39:52] "POST /transactions HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:52] "GET /audit HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:52] "GET /audit?by=viewer HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:39:53] "POST /transactions HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:53] "GET /balances?at=2026-01-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:53] "GET /reports/income?from=2026-01-01&to=2026-12-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:53] "GET /reports/balance-sheet?at=2026-12-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:53] "GET /reports/aging?at=2026-12-31 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:53] "GET /reports/aging?at=2026-12-31&payables=1 HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:39:54] "POST /invoices HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:54] "POST /invoices/1/issue HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:54] "GET /invoices/1 HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:54] "GET /invoices?status=issued HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:54] "GET /invoices/101 HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:39:54] "GET /reports/income?from=2026-01-01 HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:39:55] "POST /transactions HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:55] "GET /transactions?account=Equity&to=2025-12-31 HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:39:56] "POST /transactions HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:56] "GET /transactions HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:39:56] "POST /invoices HTTP/1.1" 401 -
+..127.0.0.1 - - [18/Oct/2026 17:39:57] "POST /invoices HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:57] "POST /invoices/1/issue HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:57] "POST /invoices/1/payments HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:39:58] "POST /invoices/999/issue HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:39:59] "POST /invoices HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:59] "POST /invoices/1/issue HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:59] "POST /invoices/1/payments HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:39:59] "POST /invoices HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:39:59] "POST /invoices/1/issue HTTP/1.1" 200 -
+127.0.0.1 - - [18/Oct/2026 17:39:59] "POST /invoices/1/payments HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:40:00] "POST /transactions HTTP/1.1" 201 -
+.127.0.0.1 - - [18/Oct/2026 17:40:01] "POST /transactions HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:40:01] "POST /invoices HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:40:02] "POST /invoices HTTP/1.1" 201 -
+.127.0.0.1 - - [18/Oct/2026 17:40:02] "POST /invoices HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:40:03] "POST /transactions HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:40:04] "POST /transactions HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:40:04] "POST /transactions HTTP/1.1" 400 -
+.127.0.0.1 - - [18/Oct/2026 17:40:05] "POST /transactions HTTP/1.1" 201 -
+.127.0.0.1 - - [18/Oct/2026 17:40:05] "POST /transactions HTTP/1.1" 201 -
+.127.0.0.1 - - [18/Oct/2026 17:40:06] "POST /transactions HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:40:06] "GET /transactions HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:40:07] "POST /transactions HTTP/1.1" 400 -
+127.0.0.1 - - [18/Oct/2026 17:40:07] "GET /transactions HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:40:07] "POST /transactions HTTP/1.1" 401 -
+.127.0.0.1 - - [18/Oct/2026 17:40:08] "POST /transactions HTTP/1.1" 403 -
+127.0.0.1 - - [18/Oct/2026 17:40:08] "GET /transactions HTTP/1.1" 200 -
+.127.0.0.1 - - [18/Oct/2026 17:40:09] "POST /transactions HTTP/1.1" 401 -
+...127.0.0.1 - - [18/Oct/2026 17:40:10] "GET /nope HTTP/1.1" 404 -
+127.0.0.1 - - [18/Oct/2026 17:40:10] "POST /nope HTTP/1.1" 404 -
+127.0.0.1 - - [18/Oct/2026 17:40:10] "GET /invoices/abc HTTP/1.1" 404 -
+.127.0.0.1 - - [18/Oct/2026 17:40:11] "POST /invoices HTTP/1.1" 201 -
+127.0.0.1 - - [18/Oct/2026 17:40:11] "POST /invoices/1/issue HTTP/1.1" 403 -
+127.0.0.1 - - [18/Oct/2026 17:40:11] "POST /invoices/1/payments HTTP/1.1" 403 -
+...........................................................................................................................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 299 tests in 47.104s
+
+OK

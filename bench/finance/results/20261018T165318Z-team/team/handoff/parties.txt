@@ -1,0 +1,37 @@
+DONE
+Files written (all owned by parties):
+- fin/parties.py: customer add/list, vendor add/list. Public helpers: customer_terms(conn, name) -> int, vendor_terms(conn, name) -> int (UserError "unknown customer: NAME" / "unknown vendor: NAME"), check_terms(text) -> int (non-negative whole number, else UserError).
+- fin/tax.py: tax add/list. Public helper: tax_rate(conn, code) -> Decimal (UserError "unknown tax code: CODE").
+- tests/test_parties.py: 30 tests (customers, vendors, tax codes, helpers, roles, audit rows, bad input).
+Check: `python3 -m unittest discover -s tests -p 'test_parties.py'` gives Ran 30 tests, OK.
+No shared files edited; changes.md has no new rows. Nothing committed. No program launched.
+
+Public helpers for other teammates:
+- parties.customer_terms(conn, name), parties.vendor_terms(conn, name)
+- tax.tax_rate(conn, code) (contract says it lives in fin/tax.py; documents.py re-exports it)
+- parties.check_terms(text)
+
+Imports used: fin.money (parse), fin.users.check_name (empty-name check), fin.errors.UserError, ctx.authorize/ctx.audit from core.
+
+Output shapes (spec does not fix these; chosen here):
+- customer add / vendor add -> {"name", "terms"} (terms as int)
+- tax add -> {"code", "rate"} (rate as given)
+- lists -> sorted by name (customers, vendors) or code (tax)
+
+Assumptions and deviations:
+- Terms: digits only (regex [0-9]+), so "+3", "1.5", "-1", "1e3" are user errors. Default 30.
+- Tax rate: must parse with money.parse, and a negative rate is a user error. Spec does not say; this is my choice. Stored string is as given (e.g. "5.50" stays "5.50").
+- Names: check_name from fin.users (non-empty after strip). Customers and vendors are separate namespaces, so the same name may be both.
+- Authorization: customer.add, vendor.add, tax.add use ctx.authorize, so viewer is refused and editor and admin are allowed (no ADMIN_ONLY entries).
+- Initially I put tax code functions in parties.py by mistake; moved to fin/tax.py before the final run. parties.py has no tax code in it now.
+
+IN PROGRESS
+Nothing.
+
+NEXT STEP
+Lead: nothing needed for parties. Optionally run the whole suite: `python3 -m unittest discover -s tests`.
+
+DO NOT REDO
+- Ran the done check: all 30 tests pass.
+- Checked that `audit list` returns the action names used in the audit tests (customer.add, vendor.add, tax.add), so no changes to the audit module are needed.
+- Checked that check_access for tax.add is allowed for admin, refused for viewer (tests/test_parties.py) and for a missing user. The editor case is covered only by the customer.add test (test_editor_may_add), not by a tax.add test.

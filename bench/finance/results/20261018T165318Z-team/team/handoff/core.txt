@@ -1,0 +1,52 @@
+DONE
+Files written (all owned by core):
+- fin/__init__.py, fin/__main__.py (calls fin.cli.main(sys.argv[1:]) and exits with its code)
+- fin/cli.py: build_parser(), check_access(conn, user, action), Context, main(argv, out=None, err=None), GROUPS, MODULES, ADMIN_ONLY, DEFAULT_DB="./fin.db"
+- fin/errors.py: UserError (status 400), Unauthorized (401, subclass of UserError), Forbidden (403, subclass of UserError)
+- fin/money.py: parse, parse_amount, cents, fmt, db_text; extra helper parse_currency (3 letters, uppercased)
+- fin/dates.py: parse_date, iso, parse_month, month_range, add_months, add_days, last_day
+- fin/db.py: SCHEMA (exact DDL from plan), connect(path) (turns on foreign keys), init_schema(conn)
+- fin/audit.py: record(conn, user, action, target), entries(conn, by=None), list_audit handler, register
+- fin/accounts.py: TYPES, account_type, parent_names, get_account, ensure_account(conn, name, currency), is_descendant_or_self, add_account, list_accounts, register
+- fin/users.py: ROLES, check_name, add_user, list_users, register
+- fin/books.py: init_book, register (top-level `init`)
+- fin/periods.py: closed_through(conn), check_open(conn, day), close_period, period_status, register
+- Stubs (docstring + `def register(root, groups): pass`): fin/txns.py, balances.py, fx.py, loans.py, parties.py, tax.py, invoices.py, aging.py, bills.py, imports.py, recurring.py, budgets.py, reports.py, reconcile.py, api.py
+- fin/documents.py: docstring only (not in MODULES, no register)
+- tests/support.py: new_db(currency="EUR", admin="admin") -> path, run(db, *argv) -> (code, out, err), ok(db, *argv), expect_error(db, *argv). Temp dirs go under $CLAUDE_JOB_DIR/tmp when set.
+- tests/test_core.py: 42 tests (money, dates, init, CLI conventions, check_access, users and roles, accounts, audit, periods).
+
+Check result: `python3 -m unittest discover -s tests -p 'test_core.py'` gives Ran 42 tests, OK. There is no `python` binary in this environment, only `python3`. The done check as written needs `python` to exist, or the lead must use python3.
+No shared files were edited, so changes.md has no new rows. Nothing committed. No program launched.
+
+Public helpers for other teammates:
+- Context: .conn, .user, .role, .json; authorize(action) (sets and returns role), audit(action, target), book_currency()
+- cli.check_access(conn, user, action) -> role, raises Unauthorized (missing or unknown user) or Forbidden
+- audit.record(conn, user, action, target)
+- accounts.ensure_account(conn, name, currency) -> dict; accounts.get_account(conn, name) -> dict (raises UserError if missing)
+- periods.check_open(conn, day) raises UserError "period closed: YYYY-MM"
+
+Assumptions and deviations:
+- `init` refuses an existing file. If init fails after the file was created, the file is removed, so a retry works.
+- Non-init commands on a missing DB file are a user error (exit 2, "no database: PATH").
+- Read-only commands accept an unknown --user (role None); changing commands raise Unauthorized for a missing or unknown user.
+- Viewer is refused every changing action; editor is refused user.add and period.close.
+- `account add` returns the account dict {name, type, currency}; `user add` returns {name, role}. The spec does not fix these shapes.
+- `init` returns {"currency", "admin"}; `period close` returns {"closed_through"}; `period status` returns {"closed_through": value or null}.
+- Closing a month that is not after the current closed_through changes nothing and writes no audit row.
+- `--help` is printed by argparse straight to the real stdout, not to `out` (the parser's exit only raises _Exit).
+- Human output: the same JSON indented 2 spaces; --json gives compact JSON. Both end with a newline. Handlers returning None print nothing.
+- Account types come from the first segment: Assets, Liabilities, Equity, Income, Expenses.
+
+IN PROGRESS
+Nothing. Core work is complete.
+
+NEXT STEP
+Lead: run `python3 -m unittest discover -s tests -p 'test_core.py'` (or set up a `python` alias) to reconfirm. Then start the other teammates' tasks that depend on core (cli.check_access and Context are in place).
+
+DO NOT REDO
+- Syntax and import check: the whole package imports, and build_parser() imports all 20 MODULES (every stub has register). This is confirmed by the passing test run.
+- Money edge cases confirmed by tests: ROUND_HALF_UP on ties both signs, no "-0.00", parse rejects "1e3" and "1,5".
+- add_months clamps from the start date (Jan 31 + 2 = Mar 31) and handles leap years.
+- Failed init leaves no file and can be retried.
+- Audit rows are written only for changes that succeed (duplicate account add and unknown-user changes add nothing).

@@ -1,0 +1,36 @@
+DONE
+Files changed (owned by reconcile):
+- fin/reconcile.py: register (top-level `reconcile`), handler reconcile_account(ctx, args), private helpers _posting_on_or_before, _mark_cleared, _cleared_balance, _uncleared.
+- tests/test_reconcile.py: 20 tests (report, clearing, persistence, date cut-off, account leg, idempotence, refusals, roles, audit).
+- No shared files edited, so changes.md has no new rows. Nothing committed. No program launched.
+
+Check results:
+- `python3 -m unittest discover -s tests -p 'test_reconcile.py'`: Ran 20 tests, OK.
+- `python3 -m unittest discover -s tests` (full suite): Ran 244 tests, OK.
+
+Public helpers: none exported for other teammates. The only public name is the handler reconcile_account(ctx, args) -> dict.
+
+Assumptions and deviations:
+- Authorization happens only when at least one --clear is given (ctx.authorize("reconcile"), so admin or editor). A report without --clear is read-only: viewers and an unknown --user can run it, matching the plan's read-only rule.
+- Audit row ("reconcile", ACCOUNT) is written only when at least one posting actually changed from cleared=0 to cleared=1. Re-clearing an already cleared transaction writes nothing.
+- All --clear ids are validated before any update (each needs a posting to ACCOUNT dated on or before DATE). One bad id means nothing is marked and the error names the id.
+- Duplicate --clear ids are deduplicated.
+- Clearing a transaction marks all of its postings to ACCOUNT. Those postings share the transaction date, so this is the same as marking the transaction.
+- --clear is parsed as int by argparse, so a non-integer id is an argparse error (exit 2).
+- --balance uses parse_amount (at most 2 decimals, negatives allowed). A bad --date is a UserError from parse_date.
+- Unknown ACCOUNT is a UserError (get_account), also for a report.
+- cleared_balance is summed in Python over Decimal values (no SQL SUM). It counts only that account's cleared postings dated on or before DATE.
+- uncleared is DISTINCT transaction ids with a not-yet-cleared posting to ACCOUNT dated on or before DATE, ascending.
+- difference = statement_balance - cleared_balance, formatted with fmt, so zero shows as 0.00.
+
+IN PROGRESS
+Nothing. The reconcile task is complete.
+
+NEXT STEP
+Lead: nothing needed from reconcile. Rerun: `cd <repo> && python3 -m unittest discover -s tests -p 'test_reconcile.py'`.
+
+DO NOT REDO
+- Read the spec section 16 wording and the plan's reconcile section. Both were followed.
+- Checked: the audit list rows carry user and target keys (the tests read them and pass).
+- Checked: the missing-user failure in the first run was in my test helper (it had no --user for --clear calls), not in the handler. Fixed in the test file; the helper now always passes --user (default admin).
+- Checked: the full suite passes (244 tests) with the new module in place.

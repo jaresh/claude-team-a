@@ -1,0 +1,45 @@
+DONE
+Files changed (owned by reports only):
+- fin/reports.py: replaces the stub. Handlers income, balance_sheet, networth, trial_balance, ledger, tax_report; register(root, groups) adds six commands under groups["report"]. Helpers are private (leading underscore). No public helpers for other teammates.
+- tests/test_reports.py: 22 tests (income 6, balance-sheet 4, networth 2, trial-balance 1 plus 1 rounding test, ledger 5, tax 3, including the rounding case in its own class).
+No shared files edited, so changes.md has no new rows. Nothing committed. No program launched. No scratch files used.
+
+Check results:
+- `python3 -m unittest discover -s tests -p 'test_reports.py'`: Ran 22 tests, OK.
+- `python3 -m unittest discover -s tests`: Ran 266 tests, OK.
+
+Commands:
+- `report income --from DATE --to DATE [--currency CUR]`. Returns {income: {acct: fmt}, expenses: {acct: fmt}, total_income, total_expenses, net}.
+- `report balance-sheet --at DATE [--currency CUR]`. Returns {assets, liabilities, equity (per account), retained_earnings, total_assets, total_liabilities, total_equity}. total_equity includes retained_earnings.
+- `report networth --from YYYY-MM --to YYYY-MM`. Returns a list of {month, assets, liabilities, networth}, one per month, in the book currency, valued at each month's last day.
+- `report trial-balance --at DATE`. Returns {rows: [{account, debit, credit}], total_debit, total_credit}, in the book currency.
+- `report ledger ACCOUNT --from DATE --to DATE`. Returns {account, opening, rows: [{date, id, description, amount, balance}], closing}. Includes the account and its descendants. Values are in the account's own currency; each posting is converted at its posting date.
+- `report tax --from DATE --to DATE`. Returns {collected, paid, net, by_code: {code: {collected, paid}}}. Reads invoices/invoice_lines and bills/bill_lines directly with SQL; draft documents are excluded.
+
+Assumptions and deviations:
+- Income and balance-sheet accept --currency (default: book currency); networth and trial-balance always use the book currency. Confirmed against spec 8 and 17: only the income and balance-sheet signatures list --currency; the networth and trial-balance signatures list none.
+- Confirmed against spec 8/15/17: required options (--from/--to on income, ledger, tax and networth; --at on balance-sheet and trial-balance); output key names and nesting (total_income, retained_earnings, total_equity, by_code, networth rows, trial-balance rows/debit/credit); ledger opening/closing definitions.
+- Trial-balance absorption rule is my choice: the spec only says "the totals are equal". Largest absolute balance takes the drift; ties go to the first name in sorted order.
+- Ledger converts each posting at its posting date (my choice). The spec says only "in ACCOUNT's currency", with no conversion date. For postings in the account's own currency this is an identity.
+- Amounts convert per account, rounded to cents once per account (money.cents), then summed. Totals are sums of those rounded values.
+- Cross-currency caveat: with foreign accounts, total_assets may differ from total_liabilities + total_equity by a cent or so, because each account is rounded separately. Same-currency books are exact. The cross-currency test happens to balance exactly.
+- Every non-zero-sum or zero-sum account in a foreign currency still needs a rate on or before the report date. A missing rate is a UserError, even when that account's balance is zero (convert_amount is called for every currency present in the raw sums).
+- Trial balance: when the rounded rows do not sum to zero, the drift goes into the row with the largest absolute balance (ties go to the first account name). Debit and credit totals are then equal.
+- Tax: "collected" is the sum of invoice line tax in the period. "paid" is the sum of bill line tax. Lines without a tax_code count in the totals but not in by_code. Only status 'draft' is excluded. Confirmed against spec 15 and the real vocabularies: invoices are draft/issued/partial/paid (anything after draft counts as issued); bills are open/partial/paid (no draft). Test fixtures now use the real statuses ('issued', 'paid', 'open').
+- Ledger reads every posting up to --to and filters in Python (no SQL index on account prefix). Fine for the expected book size; it would need an index for large books.
+- --from/--to are required on income, ledger and tax; --from is after --to is a UserError on all period reports and networth.
+- Report handlers are read-only: no authorize, no audit, and an unknown --user is accepted (same as the other read-only commands).
+
+IN PROGRESS
+Nothing. Reports work is complete and both checks pass.
+
+NEXT STEP
+Lead: nothing needed from reports. Re-run with `cd <repo> && python3 -m unittest discover -s tests -p 'test_reports.py'` and then the full suite `python3 -m unittest discover -s tests`.
+
+DO NOT REDO
+- Checked: the full suite passes (266 tests), not only this file.
+- Checked: balance-sheet identity holds on the cross-currency fixture after February (115 = 30 + 85) and is exact for same-currency data; the test compares with Decimal, not float.
+- Checked: the rounding-drift case: a USD posting of 0.01 at 0.25 gives 0.00 per account, and the USD Fx row of -0.02 gives -0.01, so the drift of -0.01 goes to the Bank row (100.00 becomes 100.01).
+- Checked: postings take their account's currency (Assets:Cash is USD), so the ledger for a USD account returns USD, not converted.
+- Not done: no separate test for an account whose balance is zero in a foreign currency with no rate (the rule is stated above, not tested).
+- Not done: `report aging` and `report budget` are not touched (owned by invoices and budgets).
