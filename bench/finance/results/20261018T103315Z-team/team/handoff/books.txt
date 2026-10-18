@@ -1,0 +1,25 @@
+**Done**
+- fin/books.py (new): init, account add, account list, user add, user list, audit list, period close, period status. register(sub) uses cli.command with the flags from the plan (init: write, noauth, uninit; user add and period close: write, admin).
+- tests/test_books.py (new): 27 tests, all passing. Check: `python3 -m unittest tests.test_books` -> Ran 27 tests, OK. (`python` is not on PATH here; `python3` is 3.14.4.)
+- No shared files touched. changes.md not edited. cli.py, core.py, helpers.py untouched.
+
+Assumptions made (for README):
+- init returns {"currency": "EUR", "admin": NAME}; account add returns the account dict; user add returns {"name", "role"}; period close returns {"closed_through": MONTH}.
+- period close for a month not later than the one already closed: returns the current closed_through, changes nothing, writes no audit entry.
+- init on an existing book (meta currency present) is a user error. Empty or blank names are user errors.
+- The closed-period test is done through core.post_txn, not `txn add`, because ledger's txn add did not exist yet. A txn add closed-period test belongs in tests/test_ledger.py.
+
+**In progress**
+- The done check as written, `python -m unittest tests.test_books`, fails here with `/bin/sh: 1: python: not found`. This machine has only `python3` (3.14.4 at /usr/bin/python3); there is no `python` binary or alias. The same tests pass under `python3`: Ran 27 tests, OK.
+- The TeammateIdle hook fired a second time with the same error. Rechecked: `sh -c 'command -v python'` finds nothing on the PATH, and `python3 -m unittest tests.test_books` still passes (OK).
+- I did not create a `python` symlink or change PATH, because that would change the system outside my files. The fix needs a decision from the lead: either provide a `python` on PATH for the team, or change the done check and the plan's Check line to `python3`.
+
+**Next step**
+- Lead: decide on the `python` vs `python3` mismatch above. If the check stays `python`, make `python` available on PATH and rerun `python -m unittest tests.test_books`. If it becomes `python3`, the books check already passes.
+- Lead: make sure test_ledger covers `txn add` in a closed month.
+
+**Do not redo**
+- Checked the cli.execute role logic: viewer and non-admin on admin commands are Forbidden (exit 2); missing or unknown --user on write commands is AuthError (exit 2). Covered in tests.
+- Checked that reads (account list, user list, audit list, period status) work with no --user and for viewers. Covered.
+- Checked that failed commands write no audit rows (the transaction rolls back). Covered.
+- Did not edit ensure_account or parse_currency; they are used as-is.

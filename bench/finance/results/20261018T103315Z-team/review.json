@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 8,
+    "consistency": 8
+  },
+  "overall": 8,
+  "issues": [
+    "reports.py balance_sheet sets total_equity to total_assets \u2212 total_liabilities instead of summing equity and retained_earnings, so the stated identity always holds and any FX-rounding or data imbalance between the sections is hidden.",
+    "ledger.py trial_balance moves the conversion rounding residue onto the largest account row, so that row no longer shows the account's real converted balance just to make the totals equal.",
+    "api.py turns each HTTP request into CLI argv strings (_txn_argv, _pay_argv, _line) and runs them through cli.execute, which ties the API to argparse quirks: ';' is banned in invoice line fields, and a negative positional amount like \"-5\" is read as an option, giving a confusing error.",
+    "cli.py main only catches UserError, so sqlite3 errors such as a --db path in a missing directory or a non-SQLite file escape with a traceback, and core.connect runs the schema script even for read-only commands, which creates or changes a database file when the command fails with 'not initialised'.",
+    "Domain modules (books, ledger, bank, reports, invoices) import cli and define their own argparse options in register(), and cli.execute repeats the user/role lookup that authenticate() already does, so domain logic and the CLI layer are mixed.",
+    "api.py _field accepts JSON numbers, including floats, and converts them with str(), so money can arrive as a float (e.g. 1e-07 becomes '1e-07'), even though the spec says amounts are strings and floats should never be used."
+  ],
+  "strengths": [
+    "core.py keeps money, date, posting, FX and closed-period logic in one place: Decimal with ROUND_HALF_UP everywhere, fmt() guarantees no '-0.00', and every query is parameterised.",
+    "cli.execute runs each command in one BEGIN/COMMIT with ROLLBACK on any exception, so failed imports, recurring runs, reconciles and invoice postings are atomic, and both CLI and API go through the same permission checks.",
+    "Tests are thorough and independent (fresh temporary DB per test). They compare whole documents against the spec examples, check that rejected commands change nothing (row counts, audit entries), cover closed periods, rounding and roles, and check that API responses match the CLI output."
+  ],
+  "review_cost": 0.7463
+}

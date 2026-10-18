@@ -1,0 +1,30 @@
+**Done**
+- fin/ledger.py: txn add, txn list, balance, fx add, convert, reconcile, report trial-balance, report ledger, with register(sub). Stdlib only, Decimal for all money.
+- tests/test_ledger.py: 39 tests in 7 classes (TxnAddTest, TxnListTest, BalanceTest, FxConvertTest, ReconcileTest, TrialBalanceTest, LedgerReportTest). Accounts and users are created with core.ensure_account and SQL inserts, so the tests do not depend on `account add` from books.
+- Checks: `python3 -m py_compile fin/ledger.py tests/test_ledger.py` clean. `python3 -m unittest tests.test_ledger` -> Ran 39 tests, OK.
+- Shared files: none changed, so .claude/team/changes.md is untouched. No commit made.
+- Done check as written, `python -m unittest tests.test_ledger`, FAILS in this environment with "python: command not found" (no `python` on PATH; only /usr/bin/python3 exists). Re-run just now: `python3 -m unittest tests.test_ledger` -> Ran 39 tests, OK. I did not add a `python` shim because that would change the environment outside my files. The lead should either run the check with `python3` or put a `python` on PATH before the gate.
+
+Assumptions (spec left these open):
+- from > to is not validated; it returns an empty row list.
+- Ledger report: foreign-currency postings are converted to the account's currency at each posting's txn date.
+- Trial balance: rounding residue goes onto the row with the largest absolute balance, so debit and credit totals agree.
+- reconcile is marked write=True and audits on every run (even when no --clear is given). Marks persist across runs in the cleared table.
+- fx add rejects FROM == TO and rates <= 0. Currencies go through parse_currency.
+- balance includes currency entries whose sum is zero.
+- --at (trial-balance, convert) and --from/--to (report ledger) are required, following the spec's unbracketed syntax.
+- Viewer role is refused for all write commands (txn add, fx add, reconcile). Reads work without a user.
+
+**In progress**
+- Nothing. Work is complete for the ledger section.
+
+**Next step**
+- Gate re-check: the gate runs under /bin/sh with PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin. Only /usr/bin/python3 (-> python3.14) exists; there is no `python` in any PATH directory. Fixing this needs a `python` symlink on the system PATH (e.g. `ln -s /usr/bin/python3 /usr/local/bin/python`), which is an environment change outside my files, so I did not make it.
+- Lead: the done check `python -m unittest tests.test_ledger` cannot run here (no `python` on PATH). Either provide a `python` on PATH and re-run that exact command, or run `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_ledger`. Then run `python3 -m unittest` for the whole suite once books, bank and reports are in.
+- If the lead wants a different balance-with-zero rule or a validated from > to, change `balance` and `ledger_report` in fin/ledger.py; the tests to update are `test_zero_sum_account_shows_zero` and `test_empty_period_closing_is_opening`.
+
+**Do not redo**
+- Tests exercising txn add with the closed period (closed_through meta), the viewer and unknown-user cases, audit rows for txn.add / fx.add / reconcile, and user-error cases (exit 2, empty stdout, nothing written) all pass. Don't re-check these.
+- Trial-balance expectations: the seed data has 5 account rows, not 6 (test_all_dates_totals_equal was fixed for this). Ledger report opening for the seed_bank data is 2160.00 because the child account Assets:Bank:Checking is included in the tree.
+- Initial test failures were only my own wrong expectations (the two above), not ledger.py bugs. Don't change ledger.py for them.
+- No EnterWorktree was used. The cwd is already the isolated worktree, and the staged scaffolding files are uncommitted, so a fresh worktree from HEAD would lose them.

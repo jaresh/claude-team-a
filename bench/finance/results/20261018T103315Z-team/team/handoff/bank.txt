@@ -1,0 +1,27 @@
+**Done**
+- fin/bank.py (new): register() for rule add/list, import, budget set, report budget, recurring add/run.
+- tests/test_bank.py (new): 24 tests, all pass with `python3 -m unittest tests.test_bank` (Ran 24, OK).
+  The `python` command does not exist in this environment, only `python3` (3.14.4); the done check uses `python`, so run it as `python3` or make sure `python` resolves on the lead's side.
+- No shared files edited (cli.py, core.py, helpers.py untouched). changes.md not touched.
+- Helpers used from core only: connect, Ctx, audit, get_account, ensure_account, check_open, post_txn, check_postings, parse_posting_arg, parse_amount, parse_month, parse_date, date_str, fmt, add_months, month_end, balances_by_account. No private helpers duplicated.
+
+Assumptions I made (spec silent), for README:
+- rule add: rejects empty pattern and invalid regex; the target account must exist (checked at add time).
+- import: closed-period check runs on every row, including duplicates (a closed-month row fails the whole import even if it would be skipped). Blank CSV lines are ignored. Column indexes must be >= 0. The category account is created in the book currency, so importing into a non-book-currency account fails with "does not balance".
+- import: a zero amount is categorised as Income:Uncategorized (only negatives go to Expenses:Uncategorized).
+- budget set: negative amounts are rejected; returns {account, month, amount}.
+- report budget: actual = raw sum (debits positive) of postings to the account and descendants in the account's currency for that month; remaining = budget - actual.
+- recurring add: returns {id, name, every, start}. Postings stored as JSON with amounts as fmt strings or null.
+- Audit: write commands (rule.add, import, budget.set, recurring.add, recurring.run) write one audit row on success, including import/run that create 0 rows. Import audit target is the account; recurring.run target is the --until date (ISO).
+
+**In progress**
+- Nothing. Task complete. Re-ran `python3 -m unittest tests.test_bank` after the hook report: Ran 24, OK.
+- Hook failure is not in bank files: team_kit.py `done check` parser (line ~543, regex `[Dd]one[^`\n]*`([^`]+)``) matches the "done" inside `recurring_done` in the bank section of plan.md, so it captures the text between the backticks after `recurring_done(rec_id, n)` (" where n = occurrence index ...") as the check. Fix belongs in plan.md (rephrase that line without "done" before a backtick, e.g. "the recurring_done table") or in the kit's regex (anchor on `Done:`). I did not edit either.
+
+**Next step**
+- Lead: `python3 -m unittest tests.test_bank` to confirm (`python` is not installed here; use `python3`). Then, when the books/ledger modules exist, run `python3 -m unittest discover -s tests` for the whole suite; no cross-module dependency is needed by test_bank (it uses core helpers only).
+
+**Do not redo**
+- Ran the full test module: 24 tests OK after fixing two wrong expectations in my own tests (duplicate budget.set audit rows; two occurrences created up to 2026-03-15). No failures remain.
+- Checked that the closed-period test does roll back earlier recurring occurrences in the same run (Gym created before Rent fails; txns and recurring_done both 0 afterwards).
+- Did not check the full cli flow through `fin.api` (wave 2); not in this task.

@@ -1,0 +1,23 @@
+Done
+- fin/api.py (new): HTTP JSON API per spec section 10. ROUTES maps each method + path to a cli argv builder; the handler runs cli.execute(db, X-User, argv) under a lock and maps UserError.status to the HTTP status (400/401/403), 201 for POST /transactions and POST /invoices, 200 for the other POSTs, 404 for unknown paths, 500 for other exceptions. Also serve (top-level `serve --port N`, write=False, uninit=True), make_server(db, port) (port 0 allowed; bind failure -> UserError), Handler.
+- fin/cli.py: MODULES now ends with "api" (the one allowed edit).
+- .claude/team/changes.md: one line logged for the cli.py edit.
+- tests/test_api.py (new): 13 tests, all passing. Covers GET documents equal to the CLI output (accounts, transactions, balances, income, balance-sheet, audit, invoices, invoice show, aging incl. --payables), POST transaction 201, unbalanced 400 with nothing written, audit txn.add, 401 missing/unknown user, 403 viewer, 404 path/method, 400 bad JSON / non-object body / missing date / '=' in account, closed period 400, missing query params 400, invoice create/issue/pay flow, invoice errors (viewer 403, ';' in line 400, empty lines 400), serve registered, port in use 400.
+- Check: `python3 -m unittest tests.test_api` -> Ran 13 tests, OK (rerun after the gate report).
+- Gate fired again (second time, same error). Nothing in fin/api.py or tests/test_api.py can fix a missing `python` binary. The gate's command text comes from the plan's done check (`.claude/team/plan.md`, owned by the lead), so the lead must change it or add `python` to PATH.
+- Gate report: the hook runs `python -m unittest tests.test_api` and gets "python: not found". `python` is not on PATH here; only /usr/bin/python3 exists. I did not add a symlink or change PATH (outside my files). The code is fine; the literal command needs `python` on PATH or the plan's done check changed to python3.
+
+In progress
+- Nothing. Not run: the full `python3 -m unittest discover -s tests` and the serve command end to end (the rules say not to launch the program).
+
+Next step
+- Lead: decide on the `python` gate failure. Either put `python` on PATH for the gate, or accept python3 as the done check (`cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_api`). Then review. Optional smoke test by the lead only: `python3 -m fin --db ./fin.db serve --port 8000` (not run by me).
+
+Do not redo
+- EnterWorktree: not in my tool list, so I could not call it. I wrote fin/api.py in place before noticing the requirement; the write succeeded. Work stayed in the current worktree at /home/jaca/claude-team-a/bench/work/finance-team. Lead should decide whether that counts as isolated.
+- Argparse runs before the role check in cli.execute, so an invoice with no --line gives 400 even for a viewer. That is the CLI's existing order, not changed here.
+- The test for POST /invoices with a viewer uses a valid line, for the same reason.
+- Invoice line text is built as DESCRIPTION;QUANTITY;PRICE;TAXCODE (tax code empty when absent). ';' inside a field is rejected with 400 because the CLI format cannot express it.
+- Account names containing '=' are rejected with 400 for the same reason (posting argument format).
+- Concurrency: one lock in api.py serialises requests so SQLite writes from parallel requests do not collide.
+- Nothing in fin/core.py, fin/books.py, fin/invoices.py, fin/reports.py, fin/ledger.py, fin/bank.py or the helpers was edited.

@@ -1,0 +1,24 @@
+**Done**
+- Files changed (mine only): fin/invoices.py (new), tests/test_invoices.py (new).
+- Not touched: fin/core.py, fin/cli.py, tests/helpers.py, other teammates' files. No entry added to changes.md (no shared file edited).
+- fin/invoices.py: register(sub) with tax add/list, customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list, report aging (--at, --payables flag), report tax (--from, --to). Pure helpers: invoice_doc(conn, id), bill_doc(conn, id), aging(conn, at, payables=False), tax_report. Audit: tax.add, customer.add, vendor.add, invoice.create, invoice.issue, invoice.pay, bill.create, bill.pay.
+- tests/test_invoices.py: 37 tests in 7 classes (PartyTest, InvoiceTest, BillTest, AgingTest, TaxReportTest, RoleTest, plus the InvoiceBase setUp). Covers spec sections 13, 14, 15: line math and rounding, tax null without code, due from terms, INV-YYYY-NNNN sequencing, SalesTax posting only when tax nonzero, partial/paid transitions, overpay and error cases (nothing changed), closed period via post_txn, aging buckets and cutoff, --payables, tax report period bounds and by_code, viewer/editor/missing/unknown user, audit rows.
+- Check results: `python3 -m py_compile fin/invoices.py tests/test_invoices.py` OK. `python3 -m unittest tests.test_invoices`: Ran 37 tests, OK.
+- Note: `python` is not on PATH here; use `python3` (3.14.4).
+- Did not call EnterWorktree: cwd is already a git worktree, so work was done in place. No commit made.
+
+- Done check as written (`python -m unittest tests.test_invoices`) fails in this environment with "python: command not found" (exit 2). The same tests pass with `python3`: Ran 37 tests, OK. Only /usr/bin/python3 (3.14.4) exists; there is no `python` on PATH. I did not add a symlink or change the PATH, since that is outside my files. The hook output "python: not found" is this same issue.
+
+**In progress**
+- Blocked on one decision for the lead: the done check command uses `python`, which does not exist here. Options: (a) run the check as `python3 -m unittest tests.test_invoices` (passes now); (b) install a `python` alias/symlink in the environment, then the command runs unchanged. I have not changed plan.md or the hook.
+
+**Next step**
+- Lead: pick (a) or (b) above. With (a), the check is `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_invoices`. With (b), the existing command passes once `python` exists.
+- Lead: run the full suite once other modules are in: `cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest discover -s tests`.
+- If the lead wants a move of helpers: nothing to move. invoice_doc/bill_doc/aging are module-level and importable as fin.invoices.
+
+**Do not redo**
+- Tests were run once as written; all 37 passed on the first run, so no fixes were needed.
+- Accounts are created in tests with core.ensure_account on core.connect(self.db); users and tax/customer/vendor rows are inserted with SQL in InvoiceBase.setUp. The books module is not used.
+- Closed-period meta row is inserted via a direct query; it works with core.connect's default transaction handling (confirmed by the passing closed-period tests).
+- Not checked: whether `invoice list --status` with an unknown value is also covered by the books/report modules (it is only tested here, via bad()).

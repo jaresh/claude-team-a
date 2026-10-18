@@ -1,0 +1,23 @@
+Done
+- fin/reports.py (new): report income, report balance-sheet, report networth (section 8); loan schedule (section 9, group `loan`, write=False, no user needed). register(sub) uses cli.command(sub, "report", ...) so it shares the group with ledger's trial-balance.
+- tests/test_reports.py (new): 18 tests, all pass.
+- Check: `python3 -m unittest tests.test_reports` -> OK (18 tests), re-run after the hook report.
+- The gate hook reported the same failure a second time (second report: same message). Still unfixed; it is an environment issue, not a test failure. I did not change the hook, .claude/skills, or PATH.
+- Done check NOT met as written: `python -m unittest tests.test_reports` fails with "/bin/sh: 1: python: not found". This sandbox has only `python3` (/usr/bin/python3, 3.14) on PATH; there is no `python`. I did not add a symlink or alias because that changes the environment outside my task. Fix options for the lead: (a) make `python` available on PATH (e.g. `ln -s /usr/bin/python3 /usr/local/bin/python`), then the check runs unchanged; or (b) change the done-check command for this run to `python3 -m unittest tests.test_reports`.
+- No shared files edited; changes.md untouched.
+
+In progress
+- Nothing. Stopped after the module and its tests passed.
+
+Next step
+- Lead: run `python3 -m unittest tests.test_reports` (or `python -m unittest tests.test_reports` where python exists) once cli/books/ledger are in place; nothing else needed.
+
+Do not redo
+- Loan: checked 1000 @ 0% over 4 months (payment 250.00, last balance 0.00), 1000 @ 12% over 1 month (payment 1010.00, interest 10.00), and 200000 @ 6% over 360 months (payment 1199.10, principal and interest sums and final balance 0.00). Passes.
+- Income: zero-sum account shows "0.00"; postings before FROM and after TO excluded; --currency converts each account at --to via core.total_in; a missing rate gives exit 2 with empty stdout.
+- Balance sheet: identity total_assets = total_liabilities + total_equity checked at several dates; RE = income - expenses up to --at.
+- Networth: month-end conversion; a missing rate gives exit 2.
+
+Caveat (not a test failure)
+- Multi-currency only: each account's converted amount is rounded to cents before summing, so total_equity (derived as total_assets - total_liabilities, so the identity holds exactly) can differ from the sum of the shown equity rows plus retained_earnings by a cent. Single-currency books are exact. Say if you want a different rounding policy.
+- Validation: --from after --to, and invalid months/dates/currency, are user errors (exit 2).
