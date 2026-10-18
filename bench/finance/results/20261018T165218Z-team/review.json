@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 8,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 8
+  },
+  "overall": 8,
+  "issues": [
+    "fin/cli.py main() and run() catch only FinError, so a sqlite3.Error such as a --db path that is not a SQLite file, a locked database or a schema clash crashes with a traceback instead of exiting with code 2.",
+    "fin/core.py init_book() runs conn.executescript(SCHEMA) outside the atomic() block, so init is not atomic: a failure partway through leaves a half-created schema, and a non-empty file that has no meta table ends in an uncaught 'table already exists' error.",
+    "fin/statements.py _converted() converts and rounds each account separately, so in multi-currency books the trial_balance totals and balance_sheet's total_assets = total_liabilities + total_equity can drift by cents, and no test covers converted reports with more than one foreign account.",
+    "fin/api.py _Handler._serve() parses Content-Length with int() outside the try block, so a malformed header kills the request with no JSON response; GET /transactions also silently drops the account filter that the CLI supports.",
+    "fin/invoicing.py _invoice_lines() stores the price as fmt(price), rounded to cents, but computes net from the unrounded price, so a shown line (e.g. price 0.34 for 0.335) does not match its net; negative quantities and bill line amounts are accepted without checks.",
+    "fin/banking.py cmd_import() creates the Uncategorized accounts in the book currency and never checks the currency of rule accounts, so importing into a foreign-currency account fails on every row with a confusing 'does not balance' error; tests/helpers.py fin_err() also checks only exit code and empty stdout, never that the data was left unchanged."
+  ],
+  "strengths": [
+    "Clean layering: core.py holds money, dates, storage and posting logic with no CLI or HTTP knowledge, and a declarative @command registry gives every writing command a role check and one BEGIN IMMEDIATE transaction, rolled back on error.",
+    "Money is handled carefully throughout: Decimal from strict regex-validated strings, a single q()/fmt() pair for half-up rounding and no '-0.00', and fully parameterised SQL (the f-string table names are internal constants only).",
+    "Service functions are shared by the CLI and the API, so the JSON shapes match, and the tests use in-process helpers with a fresh temp database per test, covering edge cases like month-end recurrence, leap years, aging buckets, rollback on failed POSTs and closed periods."
+  ],
+  "review_cost": 0.798
+}

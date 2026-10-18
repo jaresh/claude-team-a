@@ -1,0 +1,38 @@
+**Done**
+
+Files changed (all new, none shared):
+- fin/statements.py: service functions income(), balance_sheet(), networth(), trial_balance(), ledger(), loan_schedule(); commands report income, report balance-sheet, report networth, report trial-balance, report ledger, loan schedule (db=False).
+- tests/test_statements.py: 13 unit tests (ReportEdgeTest, LoanEdgeTest).
+- .claude/team/handoff/statements.txt (this file).
+No shared files changed, so changes.md has no new entry. Nothing committed.
+
+Checks:
+- python3 -m unittest tests.test_statements: 13 tests, OK.
+- python3 -m unittest tests.test_accept_statements tests.test_statements: 20 tests, OK.
+
+Assumptions:
+- Report currency defaults to the book currency; --currency converts each account's raw sum at the report date.
+- Income and liabilities/equity are shown negated (credit-positive); retained earnings = income minus expenses to date.
+- Ledger converts each posting's amount into the account's currency at --to, and includes descendant accounts.
+- networth loops month by month from --from to --to and uses month_end of each month for the balance sheet.
+- Loan: r = rate/1200; payment = q(P·r/(1−(1+r)^−n)), or q(P/n) at 0%; each row's interest = q(balance·r); the last row repays the remaining balance so the closing balance is exactly 0.00.
+- All money is Decimal; output via core.fmt.
+
+**In progress**
+
+Nothing in progress. The module and tests are complete for the section.
+
+Known limitation (not tested, not fixed): in a multi-currency balance sheet, each account is converted separately and rounded, so total assets can differ from total liabilities + total equity by one cent. The balance sheet does not force the identity to balance. I did not add a test for this because it is a rounding artifact, not a specified result.
+
+**Next step**
+
+Nothing required from me. For the lead's integration run, execute:
+  cd /home/jaca/claude-team-a/bench/work/finance-team && python3 -m unittest tests.test_accept_statements tests.test_statements
+If the lead wants the one-cent drift removed, the fix belongs in statements.balance_sheet (for example, plug the rounding difference into retained_earnings) and needs the spec's decision on which account absorbs it.
+
+**Do not redo**
+
+- Ran the 7 acceptance tests in tests/test_accept_statements.py: all pass on the current fin/statements.py. Do not change statements code to chase them.
+- Ran tests/test_statements.py for the first time after writing it: 13/13 pass with the expected values as written. The expected values were not changed after a failure.
+- Read-only, not modified: fin/core.py, fin/cli.py, fin/books.py, tests/helpers.py, tests/test_accept_statements.py, .claude/team/plan.md, spec.md, status.md, changes.md.
+- Did not run the full project test suite, only the two modules named in the done check.

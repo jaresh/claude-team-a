@@ -1,0 +1,38 @@
+Done
+- Files changed: fin/banking.py (new), tests/test_banking.py (new). No other files touched. No commit.
+- Commands: rule add/list, import FILE --account [--date-col --desc-col --amount-col --skip-header],
+  budget set ACCOUNT MONTH AMOUNT (expense accounts only), report budget MONTH,
+  recurring add NAME --every --start --posting..., recurring run --until, reconcile ACCOUNT --date --balance [--clear ID ...].
+- Check: `python3 -m unittest tests.test_accept_banking tests.test_banking` -> Ran 13 tests, OK
+  (6 acceptance, 7 unit).
+
+In progress
+- Nothing. Module and tests are complete for the banking section.
+
+Next step
+- Lead: review, then run `python3 -m unittest discover -s tests` once the other modules are in.
+- Lead: add the assumptions below to the README.
+
+Do not redo
+- Acceptance tests pass unchanged on first run (6/6). Unit tests pass on first run after one fix
+  pass to my own test file (removed a tautological assertion in test_rule_validation_and_order and
+  corrected the expected import balances in test_import_first_matching_rule_wins).
+- Recurring run uses core.occurrence with the `created` counter; the UPDATE of `created` happens per
+  recurring row, all inside the editor transaction, so a FinError rolls back every row.
+- Import: dedupe via the import_rows primary key (account, date, description, amount) checked before
+  posting; within-file repeats are skipped the same way. Any bad row raises FinError and the
+  transaction rolls back, so no partial import.
+- Reconcile: every --clear id is validated before any mark is written; invalid ids roll back.
+
+Assumptions
+- Budget amounts are not restricted to non-negative values.
+- Zero-amount import rows go to Income:Uncategorized (amount < 0 goes to Expenses:Uncategorized).
+- Blank CSV lines are skipped; import descriptions are stripped.
+- Import audit target is the account name.
+- Recurring run and reconcile write an audit entry even when they change nothing.
+- An empty rule pattern is accepted (it matches every description).
+- Rule patterns are compiled case-insensitively (re.IGNORECASE).
+- Recurring names must be non-empty and unique.
+
+Notes for the lead (no edits made)
+- None blocking. core.py was read-only for me and I did not need changes to it.

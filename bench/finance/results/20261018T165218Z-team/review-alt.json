@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 8,
+    "correctness_risks": 6,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "fin/banking.py: cmd_import, cmd_recurring_run, cmd_reconcile and cmd_budget_set hold their business logic and SQL inside the CLI command handlers, unlike the service-function layer in books.py, invoicing.py and statements.py. The HTTP layer can't reuse them and the CLI/domain split is uneven.",
+    "fin/api.py: GET /transactions never passes the `account` filter to books.list_txns, so the API output differs from `txn list`. Only a few commands are exposed over HTTP, and the request-handling code duplicates some parsing from cli.py.",
+    "fin/api.py: _serve does `int(Content-Length)` outside the FinError handling, so a malformed header raises a ValueError. Unexpected exceptions return a 500 with the raw exception text. Missing query parameters such as `from`, `to` or `at` reach parse_date as None, which gives a generic 400 message.",
+    "fin/core.py: init_book runs `executescript(SCHEMA)` outside the atomic block. A failure after that point leaves a half-initialized database file, and the next `init` is then rejected as 'already exists'.",
+    "fin/statements.py: ledger() loads every posting dated up to `--to` and converts each one at the `--to` date. Trial-balance and report conversions use the same approach. That is slow on large books, and for historical postings it is arguably not what a per-date conversion should do.",
+    "fin/banking.py: cmd_recurring_run stores postings as unrounded raw text and re-validates them on every run. Recurring definitions are never checked against the closed period when added. A run that hits a closed month fails the whole run, and the only way to recover is to reopen the period."
+  ],
+  "strengths": [
+    "Money is Decimal throughout and stored as text. Every SQL statement is parameterized, with the table names in f-strings coming from internal constants. Rounding and zero formatting are centralized in core.q and core.fmt.",
+    "The command decorator registry runs every mutating command inside one atomic() transaction with the role check first. This gives consistent exit code 2, rollback on error and audit entries.",
+    "Short, well-named functions and a clear core/books/banking/statements/invoicing split with docstrings. The test suite has both unit and acceptance tests, uses isolated temporary databases, and covers error paths such as a bad import row leaving nothing behind."
+  ],
+  "review_cost": 0.3395,
+  "model": "sonnet"
+}

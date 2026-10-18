@@ -1,0 +1,51 @@
+DONE
+- fin/api.py (new): make_server(db_path, host, port) returns an HTTPServer; the handler opens
+  core.connect(db_path) per request. Routes (spec 10): GET /accounts, /transactions (from, to),
+  /balances (at), /reports/income (from, to), /reports/balance-sheet (at), /reports/aging (at,
+  payables), /invoices, /invoices/ID, /audit. POST /transactions (201), /invoices (201),
+  /invoices/ID/issue (200), /invoices/ID/payments (200). Service functions only. Command
+  `serve [--port N]` (db=False, perm None): checks the book exists, then serve_forever().
+- tests/test_api.py (new): 13 unit tests (bad JSON, non-object body, postings/lines not lists
+  of objects, unknown POST path 404 even without user, POST user check before body, missing
+  query params 400, bad and unknown invoice id 400/404, viewer 403 changes nothing, failed post
+  rolls back with no audit entry, closed period 400, GET with no book 400, serve without a book
+  and with a non-numeric port are user errors).
+- Check: `python3 -m unittest tests.test_accept_api tests.test_api` -> Ran 15 tests, OK.
+- No shared files edited, so .claude/team/changes.md is unchanged. Nothing committed. Nothing
+  launched (serve was not started; the lead can run `python -m fin --db PATH serve --port 8000`).
+
+IN PROGRESS
+- Nothing. Task complete.
+
+NEXT STEP
+- Lead: run `python3 -m unittest discover -s tests` for the whole suite, then (optional) start
+  `python -m fin --db ./fin.db serve --port 8000` and try `curl -H 'X-User: alice' ...` by hand.
+
+DO NOT REDO
+- Acceptance tests: ran, pass unchanged. They print ResourceWarning lines ("Implicitly cleaning up
+  <HTTPError ...>") because the test's http() helper does not close HTTPError responses. Harmless,
+  and tests/test_accept_api.py is lead-owned, so I did not touch it. Fix there if you want quiet
+  output: `with e:` around e.read().
+- Service signatures used (all verified by reading fin/books.py, fin/statements.py,
+  fin/invoicing.py): books.list_accounts/list_txns/balances/audit_list/add_txn,
+  statements.income/balance_sheet, invoicing.aging/list_invoices/get_invoice/create_invoice/
+  issue_invoice/pay_invoice. Input validation is in the services (parse_date, parse_amount,
+  _row for ids), so the API passes raw body values through and gets 400s from FinError.
+- core.connect raises FinError (400) when the file is missing; that is the no-book case.
+- Core: FinError.status is 400, NotFound 404, AuthError 401/403. The handler uses e.status.
+
+ASSUMPTIONS (for README)
+- Query params beyond the plan's list are not supported (no account filter on /transactions,
+  no status filter on /invoices). Unknown query params are ignored.
+- payables=1 (or true) means bills; any other value or none means invoices.
+- POST checks in this order: route (unknown path -> 404), then X-User and role (401/403), then
+  the body (bad JSON or wrong shape -> 400). So a bad body from an unauthorized user gets 401/403.
+- POST /invoices/ID/issue ignores any body. Other POSTs need a JSON object body.
+- Unknown method on a known path (for example DELETE /accounts) -> 404 with the same body as
+  an unknown path.
+- Unexpected (non-FinError) exceptions -> 500 {"error": "internal error: ..."}; the server keeps
+  running.
+- The request log is silenced (log_message is a no-op) so the terminal stays quiet.
+- serve binds 127.0.0.1 only; --port defaults to 8000 (port 0 picks a free port). With --json,
+  serve prints `null` after it stops (Ctrl-C).
+- Responses are compact JSON (same as --json), Content-Type application/json.

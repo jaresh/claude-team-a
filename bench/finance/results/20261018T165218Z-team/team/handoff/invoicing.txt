@@ -1,0 +1,50 @@
+DONE
+- fin/invoicing.py (new): service functions add_tax, list_taxes, add_customer, add_vendor,
+  list_parties, create_invoice, issue_invoice, pay_invoice, get_invoice, list_invoices,
+  create_bill, pay_bill, get_bill, list_bills, aging, tax_report; CLI commands tax add/list,
+  customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list,
+  report aging [--payables], report tax --from --to.
+- tests/test_invoicing.py (new): 9 unit tests (line rounding, invalid terms and tax rates,
+  duplicate vendor and bill ref, payment must be positive, lines required and known tax codes,
+  bad status filter, aging buckets, bill partial then paid, bill without lines).
+- Check: `python3 -m unittest tests.test_accept_invoicing tests.test_invoicing` -> Ran 14 tests, OK.
+- No shared files edited, so .claude/team/changes.md is unchanged. Nothing committed.
+
+IN PROGRESS
+- Nothing. Task complete.
+
+NEXT STEP
+- Lead: review fin/invoicing.py, then run `python3 -m unittest discover -s tests` for the whole suite.
+  Command for a re-check of this module: `python3 -m unittest tests.test_accept_invoicing tests.test_invoicing`
+
+DO NOT REDO
+- Read the plan, the spec sections 1, 11-15, core.py, cli.py, books.py, the acceptance test and the
+  helpers. core signatures used: parse_amount(text, what), parse_date(text, what) returns the
+  string, add_days, days_between(a, b) = b - a, dsum (takes any iterable of strings or Decimals),
+  q, fmt, get_account (sqlite row), ensure_account, post_txn (returns dict with "id").
+- Acceptance tests pass unchanged (5 of 5). The unit tests pass (9 of 9).
+- The module has no print, no sys.exit and no float.
+
+ASSUMPTIONS
+- Invoice number is INV-YYYY-NNNN, with YYYY taken from the invoice date (not the issue date) and
+  the counter stored in meta key invseq:YYYY, incremented at issue only.
+- Issue posts Assets:Receivable (+total), Income:Sales (-net), Liabilities:SalesTax (-tax, only when
+  tax is non-zero). Accounts are created with core.ensure_account.
+- Bill posts each line's account (+net), Assets:TaxReceivable (+tax, only when non-zero) and
+  Liabilities:Payable (-total). Bill line accounts must be expense or asset type.
+- Invoice payment account must be asset. Bill payment account must be asset or liability. Posting:
+  invoice payment Assets:Receivable -amount; bill payment Liabilities:Payable +amount.
+- Payments must be above zero and no more than the current balance. Dates are YYYY-MM-DD.
+- Terms are whole, non-negative days (default 30). Due date = date + terms.
+- Tax rate is a non-negative decimal stored as the text given. Line tax = q(net * rate / 100),
+  rounded per line. Empty tax code means no tax (stored as null).
+- Quantity and price are decimals; quantity is not range-checked (negative quantity is allowed).
+- Invoice status: draft -> issued -> partial -> paid. Bill status: open -> partial -> paid.
+  Status after a payment is derived from the balance.
+- Aging at date D counts only non-draft documents dated on or before D, using payments dated on or
+  before D. Days late = D - due. Buckets: current (<= 0), 1-30, 31-60, 61-90, 90+.
+- Tax report: collected = tax on non-draft invoices dated in range; paid = tax on bills dated in
+  range. by_code lists only non-empty codes.
+- Duplicate customer or vendor names are rejected. A bill ref must be unique per vendor.
+- Invoice lines are given as DESCRIPTION;QUANTITY;PRICE;TAXCODE (semicolons not allowed in text).
+  Bill lines are DESCRIPTION;AMOUNT;ACCOUNT;TAXCODE.
