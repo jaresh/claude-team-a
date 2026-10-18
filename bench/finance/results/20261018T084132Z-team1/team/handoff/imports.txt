@@ -1,0 +1,26 @@
+Done
+- fin/imports.py: rule add/list, import, budget set, report budget, recurring add/run, with SCHEMA tables rules, imported, budgets, recurring, recurring_postings, recurring_occurrences.
+- tests/test_imports.py: 42 tests (rules, import, budgets, recurring, audit, permissions, closed periods, atomicity, exit code 2 with empty stdout).
+- Checks: `python3 -m unittest discover -s tests` -> 86 tests OK. `python3 -m unittest tests.test_imports tests.test_books` -> 86 tests OK.
+- No shared files edited, so changes.md has no new entry. Nothing committed. Nothing launched.
+
+Assumptions for README.md (I do not own README; the lead or httpapi should add these):
+- Import: CSV columns default to 0 date, 1 description, 2 amount; --skip-header drops the first non-blank record; blank lines are ignored; description is stripped; the amount is rounded half-up to cents.
+- Import: the category is the first rule (case-insensitive regex search) that matches the description; otherwise Income:Uncategorized (amount > 0) or Expenses:Uncategorized. Rule accounts and Uncategorized accounts are created on demand in the book currency.
+- Import: a row already in the imported table (same account, date, description, amount) is skipped, including repeats within one file. The whole import is all-or-nothing; a bad row or a closed-period row raises a UserError that rolls back everything. The "line" in errors is the CSV record number.
+- Rule add: pattern must be non-empty and compile as a regex; the account must be a valid account name (it is not created at rule add).
+- Budgets: only on existing expense accounts; amount is rounded to cents and must not be negative; set replaces an existing budget for the same account and month. Budgets are in the account's currency.
+- Report budget: actual = postings under the account (including descendants) dated in the month; postings in another currency are converted at the month end. Remaining = budget - actual. Accounts are ordered by name.
+- Recurring: names are unique and are checked with books.check_name. Postings may have one blank amount, which takes the balancing amount. Monthly and yearly occurrences keep the start day, clamped to month end (2028-01-31 gives 2028-02-29). Weekly adds 7 days per occurrence.
+- Recurring run: processes all items by name up to --until (inclusive). Each (item, occurrence) is created at most once. A closed-period occurrence raises a UserError and rolls back the whole run. Audit "recurring.run" target is the until date, written only when something is created.
+- Audit: import is written only when rows are added (target: account); budget.set target "ACCOUNT MONTH"; rule.add target: pattern; recurring.add target: name.
+
+Do not redo
+- Checked the monthly clamping: add_months with the start's day gives Jan 31, Feb 28, Mar 31, ... without drift. The test expects 5 occurrences through 2026-05-31.
+- Checked that a closed period in an import rolls back all rows (core.execute ROLLBACK on UserError), and that a closed period in a recurring run rolls back the other items too.
+- Checked that the import currency check rejects a non-book-currency account when the Uncategorized account is in the book currency.
+- The one test failure seen was my own wrong expected count (4 instead of 5); it is fixed. The module needed no change.
+- Not run: the lead's own full run and any program launch (not my job).
+
+Next step
+- Lead: add the assumptions above to README.md (the httpapi teammate owns it). Then run `python3 -m unittest discover -s tests` once more to confirm, and commit.

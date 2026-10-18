@@ -1,0 +1,21 @@
+Done
+- fin/serve.py (new): `serve [--port N]` (perm read, default port 8000). Releases the write lock (ROLLBACK) while serving, re-takes it (BEGIN IMMEDIATE) before execute() commits. Prints "serving on http://127.0.0.1:PORT" to stderr.
+- fin/api.py (new): HTTP layer on ThreadingHTTPServer bound to 127.0.0.1. Each request becomes argv parsed by fin.__main__.build_parser and runs through core.execute. GET routes: accounts, transactions, balances, reports/income, reports/balance-sheet, reports/aging, invoices, invoices/ID, audit. POST routes: transactions (201), invoices (201), invoices/ID/issue, invoices/ID/payments. POST needs X-User (401 if missing/unknown, 403 by role). UserError -> its status with {"error": ...}; unknown path -> 404; unexpected -> 500.
+- fin/core.py: MODULES now includes "serve" (the one allowed core edit; logged in .claude/team/changes.md).
+- tests/test_api.py (new): 12 tests (reads, POST 201/400/401/403/404, closed period, invoice flow, negative payment, audit, subprocess `serve` test with SIGINT -> exit 0). Passes: `python3 -m unittest tests.test_api` (12 OK).
+- README.md (new): usage for every command, how to run tests, Assumptions section grounded in the code.
+- Full suite: `python3 -m unittest discover -s tests` -> Ran 172 tests, OK (about 32 s).
+- Nothing committed. No shared file other than core.py touched.
+
+In progress
+- Nothing open. Task complete pending the lead's review.
+
+Next step
+- Lead: review, then commit when ready. To run the server by hand: `python3 -m fin --db PATH serve --port 8000`.
+- Optional follow-up (not done, out of scope): the API has no routes for bills, imports, budgets, reconcile, ledger, networth, trial-balance, loan schedule or report tax. README says so under Assumptions.
+
+Do not redo
+- Verified the argv "--" trick for `invoice pay` with a negative amount: test_negative_payment_is_400_not_an_option passes (400 with error, not an argparse option error). No fallback needed.
+- The ResourceWarnings from unclosed HTTPError bodies and subprocess pipes were fixed (with e: in call(); addCleanup closes proc pipes). Re-run is clean for test_api.
+- Checked closed-period enforcement: all postings go through core.post_txn -> check_open, so invoices, bills, payments, imports and recurring runs are covered.
+- Checked import dedupe key (account, date, description, amount), recurring occurrence numbering, aging buckets, bill ref uniqueness per vendor: as written in README Assumptions.

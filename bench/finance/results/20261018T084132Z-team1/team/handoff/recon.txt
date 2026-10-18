@@ -1,0 +1,23 @@
+Done
+- Created fin/recon.py: SCHEMA (table recon_cleared(account, txn_id), PRIMARY KEY(account, txn_id)); COMMANDS = [(("reconcile",), setup_reconcile, reconcile, "write")].
+  Args: positional account; --date, --balance (required), --clear (append, dest clear). Uses core.get_account, parse_date, D/q2, fmt, ctx.audit("reconcile", account).
+  Cleared IDs are validated first (must have a posting to ACCOUNT dated <= DATE); any failure raises UserError so nothing is marked. Non-integer ids are a user error (not argparse), so exit 2 with "error: " on stderr.
+- Created tests/test_recon.py: 20 tests (reconcile math, cleared marks kept across runs, later txns ignored, invalid clears atomic, unknown account/txn/date/balance, permissions viewer/missing/unknown/editor, audit entry written and not written on failure, works in closed period).
+- Checks: `python3 -m unittest tests.test_recon tests.test_books` -> 64 tests OK. `python3 -m unittest discover -s tests` -> 128 tests OK (at the time of run, includes the other teammates' test files).
+- No edits to shared files; changes.md not touched.
+
+Assumptions (for README)
+- reconcile matches postings to ACCOUNT exactly (not descendants), as the spec says "a posting to ACCOUNT".
+- cleared_balance sums the ACCOUNT postings of cleared transactions dated <= DATE; statement balance is rounded to cents.
+- A reconcile with no --clear still runs and writes an audit entry (it is a data-changing command).
+- The reconcile command works in closed periods (it posts nothing).
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- None for recon. Lead can run: python3 -m unittest tests.test_recon tests.test_books
+
+Do not redo
+- Checked fin/core.py execute(): write perm rejects viewer (403) and missing/unknown user (401); test_recon covers these and they pass.
+- Did not EnterWorktree: this checkout is shared with the other teammates' files (fin/books.py, fin/imports.py, fin/reports.py), and the lead assigned me this directory. Edits were made in place.

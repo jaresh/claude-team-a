@@ -1,0 +1,22 @@
+Done
+- fin/invoicing.py (new): SCHEMA for tax_codes, customers, vendors, invoices, invoice_lines, invoice_payments, bills, bill_lines, bill_payments. COMMANDS for tax add/list, customer add/list, vendor add/list, invoice create/issue/pay/show/list, bill create/pay/show/list, report aging (--payables), report tax. Public helper invoice_json(conn, id) (plus bill_json, doc_json). Imports check_name from fin/books.py.
+- tests/test_invoicing.py (new): 32 test methods covering tax/customer/vendor lists, invoice create/issue/pay/show/list, numbering (per year), status transitions, aging buckets and boundaries, bill create/pay/show/list, duplicate ref, payables aging, tax report, closed periods, permissions (viewer, editor), audit entries, atomicity of failed create.
+- Checks: `python3 -m unittest tests.test_invoicing tests.test_books` → 76 tests OK. `python3 -m unittest discover -s tests` → 160 tests OK (24 s).
+- No shared files edited (changes.md untouched). Nothing committed. Program not launched.
+
+Design choices to review
+- Payments: invoice_payments and bill_payments tables hold date, amount, account, txn_id. Invoice/bill status is stored and updated by pay (partial/paid).
+- Bill line accounts must be expense or asset AND in the book currency (post_txn balances per currency, so a foreign account would fail with a confusing message).
+- Pay account must be an asset account in the book currency (same reason).
+- Aging and tax report skip status 'draft' invoices. Bills have no draft status.
+- Aging counts docs dated <= --at and includes only payments dated <= --at.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review the design choices above, then commit with the rest of the wave. Command to re-verify: cd /home/jaca/claude-team-a/bench/work/finance-team1-2 && python3 -m unittest discover -s tests
+
+Do not redo
+- Full suite already run and green (160 tests). Import, function-name and argparse-dest checks against fin/core.py (post_txn pair format, get_account dict, ensure_account, txn_json postings shape, ACCOUNT_TYPES names) were verified by reading core.py. Aging bucket boundaries computed by hand: 30 days past due is 1-30, 31 is 31-60; these match the tests.
+- Spec sections 13-15 output shapes were checked against the code; no mismatch found.

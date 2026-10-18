@@ -1,0 +1,21 @@
+**Done**
+- Files changed (only my own): fin/books.py (new), tests/test_books.py (new).
+- No shared files edited, so no rows added to .claude/team/changes.md. No core edits.
+- Commands implemented (spec 1, 2, 3, 4, 11, 12): init (perm init), user add (admin), user list (read), audit list (read, --by), account add (write, --currency), account list (read), txn add (write, --date/--desc/--posting append), txn list (read, --account/--from/--to), balance (read, --at), fx add (write), convert (read, --at required), period close (admin), period status (read).
+- Check: `python3 -m unittest tests.test_books` gives Ran 44 tests, OK. (The sandbox has no `python` binary, only `python3`.)
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/finance-team1-2 && python3 -m unittest tests.test_books` to confirm, then review and commit at your discretion. I did not commit.
+- Other teammates needing `--from` on report commands: argparse dest `from_` (see books.py setup_txn_list) because `from` is a keyword. Reuse the same pattern.
+
+**Do not redo**
+- EnterWorktree is not in my tool list, so I worked in place in the repo directory, as the instructions allow when it fails.
+- Positional metavars: fx add and convert use dests src/dst with metavar FROM/TO, because `from`/`to` are not valid dests for positionals.
+- Output shapes (verified by tests): fx add returns {"date","from","to","rate"} and audits "fx.add" with target "USD/EUR". convert returns {"amount","currency"} with amount via core.fmt. init returns {"currency","admin"} and audits "init" with target currency.
+- period close with a month not later than the stored one returns the stored value and writes no audit row (tested).
+- Errors leave nothing behind: an unbalanced txn, unknown account, or bad init gives exit 2, empty stdout, and no rows (tested). Ids restart at 1 after rollback (tested).
+- Currency per posting follows the account currency. Multi-currency txns must balance per currency (tested).
+- Test helpers are fin_run (module level), BookTestCase.ok and BookTestCase.expect_error. No test helper shadows a unittest method.

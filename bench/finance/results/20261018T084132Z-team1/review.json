@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 9,
+    "tests": 8,
+    "consistency": 8
+  },
+  "overall": 7,
+  "issues": [
+    "fin/serve.py serve() runs the HTTP server as a normal command inside core.execute's transaction: it issues ROLLBACK and later BEGIN IMMEDIATE on the connection by hand, and it fails on a database that hasn't been initialised. The API's layering depends on this fragile workaround.",
+    "fin/__main__.py main() only catches core.UserError, so sqlite3 errors (a locked or unreadable database, a bad --db path) and other unexpected exceptions crash with a traceback instead of a clean message.",
+    "fin/reports.py balances() converts and rounds each account's per-currency sum separately. As the code's own comment admits, report_trial_balance totals and the balance-sheet equation (assets = liabilities + equity) can then differ by a few cents in multi-currency books.",
+    "fin/api.py imports build_parser from fin.__main__ and builds argv strings from the request, sending HTTP through argparse with stderr redirected under a global lock. It also hard-codes invoice-only payment routes (_pay_argv), so the HTTP and CLI layers are tightly coupled.",
+    "fin/core.py all_commands() and schemas() repeat the same import loop and silently skip missing modules. execute() has an unused `import json`, Ctx gets audit_user attached ad hoc through getattr, and fin/__main__.py has a dead `_Parser` class.",
+    "Each test module (tests/test_books.py, tests/test_api.py, ...) copy-pastes the fin_run/ok/expect_error harness. Some error paths are tested by expecting argparse's SystemExit (test_bad_role_is_rejected) rather than going through the documented exit-code contract."
+  ],
+  "strengths": [
+    "One core.execute wrapper handles permissions, the BEGIN IMMEDIATE/ROLLBACK transaction and audit queueing. Every command, from the CLI or the API, is atomic and audited the same way.",
+    "Money handling is careful: Decimal parsing that rejects non-finite values, q2/fmt half-up rounding that never shows -0.00, and amounts stored as TEXT. All SQL uses parameters; the only f-strings are table names from fixed constants.",
+    "Invoices and bills share code through the KINDS table (pay, doc_list, aging, tax report). The tests are behavioural, independent (a temporary database per test), and check edge cases such as rollback leaving no trace, closed periods, and month-end clamping."
+  ],
+  "review_cost": 0.5501
+}

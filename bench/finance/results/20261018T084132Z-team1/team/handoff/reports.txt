@@ -1,0 +1,31 @@
+DONE
+Files changed (only these two):
+- fin/reports.py (new): COMMANDS for report income, report balance-sheet, report networth, report trial-balance, report ledger, loan schedule. All perm "read". Shared helpers: balances() converts per account+currency at the report date, then rounds; SIGN maps account type to shown sign.
+- tests/test_reports.py (new): 22 tests, all passing. Covers income in book currency and with --currency USD, period filtering, missing rate error, from > to error, balance-sheet values at two dates, balance-sheet identity (assets = liabilities + equity), balance sheet in USD, networth month range, trial-balance rows and debit = credit, ledger opening and running balance, ledger on a parent account (descendants), ledger in account currency, unknown account error, loan zero-rate split with last-row zero balance, loan interest and last payment, loan months 0 and non-numeric errors, viewer and no-user read access.
+
+Checks:
+- python3 -m py_compile fin/reports.py tests/test_reports.py: OK
+- python3 -m unittest tests.test_reports: Ran 22 tests, OK
+- python3 -m unittest discover -s tests: Ran 108 tests, OK (includes the other teammates' files as they stand now)
+- No edits to shared files (changes.md not touched). No commits.
+
+IN PROGRESS
+Nothing open. The task is complete.
+
+NEXT STEP
+None required for reports. Lead can run: python3 -m unittest discover -s tests
+
+Known limitations to note for the lead:
+1. Multi-currency rounding: each account's per-currency sums are converted and rounded, then the rounded values are summed. When a report mixes currencies, totals can differ from unrounded totals by a few cents. The balance-sheet identity (assets = liabilities + equity) and trial-balance debit = credit hold exactly for single-currency books, and the tests cover that case. Documented in the balances() docstring.
+2. Retained earnings = sum of shown income minus sum of shown expenses up to --at, from the rounded per-account amounts. total_equity includes it.
+3. Loan schedule needs an initialised book, because the read perm goes through core.execute, which enforces the initialised check. The schedule itself does not use the book.
+4. from > to is a user error (exit 2, stderr "error: ..."). The networth command does the same check on months.
+5. Ledger converts each posting at the --to date (per-posting conversion), not at each posting's own date. Opening balance is also converted at --to.
+6. Balance sheet, networth and trial balance include only accounts that have postings in range. Parent accounts (auto-created by ensure_account) never appear as rows.
+
+DO NOT REDO
+- Checked core.get_account: it requires an exact account row. Ledger on a parent such as "Expenses" works because ensure_account creates parent accounts. Tested, passes.
+- Checked core.parse_posting: a posting with no amount is allowed (at most one per txn), so the fixtures using bare "Assets:Bank" are valid.
+- Checked core.add_months: it clamps to month end from the start date, so the loan dates 2026-01-31 -> 2026-02-28 -> 2026-03-31 -> 2026-04-30 are correct.
+- Hand-checked fixture numbers: Jan retained earnings 2190.00, Feb 2090.00, USD income 3433.33, Jan Bank USD 3444.44; all match the tests.
+- Did not call EnterWorktree: this checkout is already a worktree, and the untracked fin/ files would not carry into a new one.
