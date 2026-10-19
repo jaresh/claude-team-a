@@ -1,0 +1,22 @@
+Done
+- wms/catalog.py: user add/role/disable/list (admin for writes); product add/edit/show/list; import products; warehouse add/list; location add/list; audit list. Shared helpers check_product and insert_product are used by both product add and import products.
+- wms/parties.py: customer add/list; price set/list; promo add/list.
+- tests/unit_catalog.py: 16 tests, in-process through wms.cli.main with a temp db.
+- Checks: py_compile of both modules OK; `python3 -m unittest tests.unit_catalog 2>&1 | tail -5` -> Ran 16 tests, OK.
+- No shared files edited, so no lines added to .claude/team/changes.md. Nothing committed.
+- Verified: `audit list --user NAME` parses correctly next to the global --user (dest="by_user").
+
+In progress
+- Nothing. Section complete.
+
+Next step
+- Lead: review, then run `python3 -m unittest tests.unit_catalog`. Then the lead can commit.
+
+Do not redo
+- Validation rules as implemented (tests assert these):
+  SKU regex [A-Z][A-Z0-9-]{2,19}; product name 1-100 chars after strip; unit each|kg; tracking none|lot|serial; costing fifo|average; min/max optional, min <= max, min > 0.
+  Customer name 1-60 chars, unique; price list [A-Z0-9]{1,10}.
+  Price unit price: 4 decimal places, non-negative; min qty uses product unit, zero allowed; same list+SKU+min_qty replaces.
+  Promo code [A-Z0-9-]{1,20}; percent 0 < p <= 100 with at most 2 decimals; from <= to; order promo takes --threshold only, line promo takes --sku only.
+  Warehouse code [A-Z0-9]{2,6}; location code [A-Z0-9-]{1,20} with the warehouse prefix; location types storage|receiving (RECV and SHIP are created automatically).
+- Ruled out: "BOLT-M8X" is a valid SKU (8 chars). The first test failure was my test, not the code. Sorting: user list is sorted by name, so alice comes before root.

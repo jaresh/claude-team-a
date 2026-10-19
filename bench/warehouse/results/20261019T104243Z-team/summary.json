@@ -1,0 +1,138 @@
+{
+  "bench": "warehouse",
+  "mode": "team",
+  "arm": "team",
+  "claude_args": "",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "219b3f7797b5",
+  "kit": "3.13+experts",
+  "started": "2026-10-19T10:42:44Z",
+  "ended": "2026-10-19T11:39:44Z",
+  "accept_passed": 61,
+  "accept_total": 62,
+  "accept_tiers": {
+    "T1": [
+      30,
+      31
+    ],
+    "T2": [
+      21,
+      21
+    ],
+    "T3": [
+      10,
+      10
+    ]
+  },
+  "own_passed": 199,
+  "own_total": 199,
+  "python_lines": 6539,
+  "cost": 1.4248,
+  "cost_cold": 1.4248,
+  "lead_cost": 1.014,
+  "team_cost": 0.4108,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [
+    "tester",
+    "catalog",
+    "inventory",
+    "sales",
+    "purchasing",
+    "reports",
+    "api"
+  ],
+  "lead_messages": 29,
+  "lead_peak_ctx": 81723,
+  "lead_compactions": 0,
+  "team_peak_ctx": 66653,
+  "coverage": 0.952,
+  "least_covered": [
+    "wms/__init__.py (0%)",
+    "wms/__main__.py (75%)",
+    "wms/api.py (91%)"
+  ],
+  "quality": {
+    "app_files": 12,
+    "app_lines": 2262,
+    "test_files": 20,
+    "test_lines": 3108,
+    "test_functions": 294,
+    "test_to_app_ratio": 1.37,
+    "functions": 263,
+    "mean_function_lines": 7.8,
+    "max_function_lines": 61,
+    "functions_over_50_lines": 1,
+    "mean_complexity": 3.2,
+    "max_complexity": 26,
+    "functions_complexity_over_10": 11,
+    "most_complex": [
+      "wms/engine.py:void_movement (26)",
+      "wms/sales.py:_return_run (25)",
+      "wms/api.py:_route (24)"
+    ],
+    "docstring_coverage": 0.28,
+    "duplicate_share": 0.001,
+    "float_calls": 0,
+    "sql_built_from_strings": 2,
+    "bare_except": 0,
+    "broad_except": 3,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 6,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 6
+    },
+    "overall": 7,
+    "issues": [
+      "wms/engine.py void_movement and bring_in_transfer add serials back through _stock_add without checking whether the serial is in stock again (for example, scrap S1, receive S1, then void the scrap, or receive S1 while it is in transit), so the plain INSERT into serials raises sqlite3.IntegrityError and the user gets a traceback instead of 'error: ' and exit 2.",
+      "The order status logic is written twice, in wms/sales.py order_status and wms/reports.py order_status, and the net-received PO quantity is computed separately in purchasing._line_received, purchasing._po_show and reports.incoming_qty, so these copies can drift apart.",
+      "wms/core.py run takes a process-wide threading.RLock around every transaction, on top of BEGIN IMMEDIATE, so the 'parallel' ThreadingHTTPServer handles requests one at a time; wms/api.py _parser also builds its global parser lazily with no lock.",
+      "wms/sales.py _return_run checks only that a returned lot appeared on the line's ship movements, not how much of that lot was shipped or already returned, so a return can bring back more of a lot than was ever shipped on the line.",
+      "Validation is uneven across modules: warehouse_add and customer_add never strip or length-check names (customer names are not stripped either), po create checks only that the supplier is not blank, line numbers are parsed with _whole in sales but require_match in purchasing, and _serials/_noargs are copy-pasted into three modules.",
+      "The unit tests are named tests/unit_*.py, so default `unittest discover` (pattern test*.py) skips them, and several of them seed data with raw SQL and assert on internal tables (avgstate, layers), which ties them to the implementation rather than its behaviour."
+    ],
+    "strengths": [
+      "wms/engine.py is the only code that changes stock, layers and average state, and it records layer deltas and average snapshots on each movement, so voids, transfer cancels and the --at views can be rebuilt exactly.",
+      "Money and quantities are Decimal throughout with explicit half-up round2/round4 helpers; all SQL uses parameters, and core.run wraps each command in one BEGIN IMMEDIATE transaction that rolls back on any error, including reservation expiry.",
+      "The HTTP API turns each route into the CLI's own argv and runs the same command handlers, so rules and audit entries cannot differ between CLI and HTTP; the acceptance tests run the real CLI as a subprocess, check the exact JSON shapes, and include a concurrency test."
+    ],
+    "review_cost": 1.1569
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 6,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 6
+      },
+      "review_cost": 1.1569
+    }
+  ],
+  "review_alt": {
+    "model": "sonnet",
+    "overall": 6,
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 5,
+      "error_handling": 7,
+      "data_safety": 7,
+      "tests": 8,
+      "consistency": 6
+    },
+    "review_cost": 0.3923
+  }
+}

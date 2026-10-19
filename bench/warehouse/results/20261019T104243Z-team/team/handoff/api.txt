@@ -1,0 +1,33 @@
+DONE
+- wms/api.py (new): `serve [--port N]` (raw Command, default 8080, 127.0.0.1, ThreadingHTTPServer, prints its URL), make_server(db, port=0), Handler for GET/POST/PATCH.
+  Routes: GET /products (search, limit 1-100 default 50, after=SKU cursor -> {"items","next"}), GET /products/SKU (ETag), PATCH /products/SKU (If-Match required: 428 missing, 412 mismatch, 200 with new ETag), POST /receipts (201), POST /sales-orders (201), GET /sales-orders/SO, POST /sales-orders/SO/confirm (200, optional hold), GET /stock (warehouse, sku), GET /valuation (warehouse). Anything else: 404.
+  Every route is turned into argv and parsed by cli.build_parser; the command's own run(ctx, ns) does the work, so rules and audit are the CLI's. Each request is one core.run transaction as X-User; X-Now is parsed with core.parse_time.
+  Idempotency-Key (POST only): key, path and canonical body stored in `idempotency`; replay returns the stored status and body; same key with other path/body -> 409 (not stored, nothing changes).
+  Refusals before a command runs (401/403 from core.run, 404 unknown path, 400 bad JSON or bad body fields) are stored under the key too, in their own core.run transaction with role None (see _keep).
+  Command errors (UserError from run) are stored under the key, with the request's own changes rolled back by a SAVEPOINT.
+- tests/unit_api.py (new): 12 tests, all pass. Covers reads, receipt 201, qty as JSON number -> 400, unknown field and bad JSON -> 400, 401, 403, 404, PATCH ETag/If-Match (428/412/200), sales order create + confirm, idempotency replay + 409, stored command-error replay, stored 403/404 replay for the same key, and 5 parallel confirms (no over-reserve: 8 <= reserved <= 10).
+- Check: `python3 -m unittest tests.unit_api 2>&1 | tail -5` -> OK (12 tests, ~8 s).
+- Spec check: section 14 (lines 122-200) compared with the code. Envelopes, ETag, 201s, {"error"} bodies and the 404 rule match. stock and valuation are "like stock/valuation", so they reuse those run functions.
+- Shared files: none edited, so changes.md is untouched.
+- Not committed.
+
+IN PROGRESS
+- Nothing open.
+- Not checked by a test: the X-Now header path, the 500 path, and /stock and /valuation response shapes beyond "200 OK".
+
+NEXT STEP
+- Lead: run the server by hand to check it end to end: `python3 -m wms --db DB serve --port 8080`, then `curl -H 'X-User: root' localhost:8080/products`.
+- If the acceptance tests disagree with a shape, fix wms/api.py only (the `_route` / `_*` builders or `_products_list` shape), then re-run `python3 -m unittest tests.unit_api 2>&1 | tail -5`.
+
+DO NOT REDO
+- argparse accepts `--` before positionals through the top-level subparser (the `-- SKU` routes pass). No change needed.
+- Confirm without a price returns 400 "no price for SKU1 in list none or STANDARD". The test setup sets the STANDARD price via `price set`. This is expected, not a bug.
+- Concurrency is serialized by core.run's global lock; the parallel-confirm test shows no over-reservation. No extra locking was added.
+- The idempotency refusal design was decided: refusals are stored via _keep, not by changing core.run. Changing core.run is out of scope.
+
+ASSUMPTIONS (for README)
+- Unknown body fields -> 400. Quantities, amounts, costs are JSON strings; numbers -> 400.
+- hold accepts an int or a digit string (hours). Booleans are rejected.
+- Idempotency: the first request with a key keeps its status and body, including 400/401/403/404/command errors. A same key with another path or body -> 409, unstored.
+- A replay is answered with the stored response whoever sends it. A replay that fails the user or role check (or hits an unknown path or bad body) is caught in _answer, and _keep returns the stored answer for that key. So a same-key replay by a user without the role gets the first answer (for example 201), not a new 403.
+- 500 for unexpected exceptions; the transaction is rolled back.

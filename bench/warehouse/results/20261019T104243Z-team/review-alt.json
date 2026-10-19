@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 5,
+    "error_handling": 7,
+    "data_safety": 7,
+    "tests": 8,
+    "consistency": 6
+  },
+  "overall": 6,
+  "issues": [
+    "wms/engine.py void_movement and _moved_later: a void of an increasing fifo movement zeroes layers and leaves the transfer-in/out layer chain unchecked. The average-costing 'later movement' test only counts movements that cross the warehouse boundary, so a later in-warehouse move or a void is ignored.",
+    "wms/reports.py _state_at and _movements_upto: the `--at` valuation and stock views replay every movement on each call and filter on the `at` string. Movements are ordered by id rather than time, so out-of-order `--now` values give inconsistent results, and cost grows with history.",
+    "wms/sales.py and wms/reports.py: order_status is implemented twice, with different logic. sales.py counts picked stock explicitly, reports.py uses a combined reserved count, so the two can drift apart. Helpers like _serials, _sum and available_qty are also duplicated across modules.",
+    "wms/sales.py _reserve: serial and lot reservation scans the whole stock and serials tables in Python and calls reserved_qty once per row (an N+1 pattern). It also uses lots[r[1]] with no guard for a missing lot, and `taken` ignores warehouse and location scoping.",
+    "wms/core.py run and wms/api.py _run_request: a single global threading.RLock serializes all requests and holds it while opening the DB. The `BEGIN IMMEDIATE` and rollback-on-BaseException logic is spread across core and the API's SAVEPOINT idempotency handling, which is fragile. Handler._serve turns unexpected exceptions into a 500 that leaks the exception text.",
+    "wms/cli.py and wms/core.py: init is special-cased in main (deleting the db file on failure) and in run. The CLI writes JSON with indent=2 when --json is absent. The `import re` inside init, the dead `schema_extra` function and the optional-module ModuleNotFoundError swallowing in load_commands are leftover rough edges."
+  ],
+  "strengths": [
+    "Money and quantities are handled as Decimal throughout, with centralized round2/round4/fmt helpers, parameterized SQL everywhere, and quantities stored as text so there is no float path.",
+    "Every command runs as one BEGIN IMMEDIATE transaction through a single `core.run` runner, with a uniform Command registry that the CLI and HTTP API share. This gives all-or-nothing behaviour, one role check, and reservation expiry applied before every command.",
+    "The tests are broad. Acceptance tests cover costing edge cases (rounding once over the slice sum, per-warehouse layers, adjust cost from the newest layer) with explicit time arguments, and there are separate unit tests per module plus HTTP tests."
+  ],
+  "review_cost": 0.3923,
+  "model": "sonnet"
+}

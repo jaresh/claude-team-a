@@ -1,0 +1,18 @@
+Done
+- wms/engine.py (new): stock and costing engine. Contract functions: receive_stock, shift_stock, remove_stock, bring_in_transfer, mv_dict, get_stock, reserved_qty, product_unit, wh_of. Additions beyond the contract, for the lead to move if wanted: require_unreserved(ctx, sku, location, qty, lot="", serials=None), void_movement(ctx, mv_id, reason), tracking_key(p, qty, lot, serials) -> (lot_key, serial_list).
+- wms/inventory.py (new): commands receive, move, adjust, scrap (role clerk), movement void (role manager). Audit: receive/move/adjust/scrap with the movement id; movement.void with the voided id.
+- tests/unit_inventory.py (new): 21 tests, in-process through wms.cli.main on a temp db. Covers receive/move/adjust/scrap rules, FIFO and average costing and rounding, lot and serial rules, failed commands changing nothing, and void rules (double void, consumed FIFO layer, average later movement, serial reserved, clerk refused).
+- Check: `python3 -m unittest tests.unit_inventory 2>&1 | tail -5` -> OK, Ran 21 tests.
+- No shared files edited, so changes.md is untouched. Nothing committed. Program not launched.
+
+In progress
+- Nothing open in my files. `movement list` (section 4) is not implemented: it is outside my task.
+
+Next step
+- Lead: run `python3 -m unittest tests.unit_inventory 2>&1 | tail -5` again after any change to wms/engine.py. Other modules (so, po, transfer, return) call the engine functions above; their tests are theirs.
+
+Do not redo
+- Layers are not consumed by moves: a move keeps the FIFO layer's full qty, since costing is per warehouse. Checked in test_move_rules_and_value.
+- Void of a 10-unit receipt at 1.00 has value 10.00 (not 1.00). Checked by test_void_receipt_then_double_void_refused.
+- adjust has no --expires option, so the open question in the earlier notes is moot: argparse rejects it. Lot expiry is only checked on receive.
+- Lot and serial rules are checked by tracking_key before require_unreserved, so the messages name the real problem.

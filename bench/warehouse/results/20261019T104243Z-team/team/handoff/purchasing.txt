@@ -1,0 +1,26 @@
+Done
+- wms/purchasing.py (new): COMMANDS for po create, po receive, po close, po show, po list, transfer create, transfer receive, transfer cancel, transfer show, transfer list. Roles per spec: po create / po close / transfer cancel = manager; po receive / transfer create / transfer receive = clerk; show and list = viewer.
+- tests/unit_purchasing.py (new): 16 tests, all pass.
+- Check: `python3 -m unittest tests.unit_purchasing 2>&1 | tail -5` -> "Ran 16 tests ... OK".
+- No shared files edited, so .claude/team/changes.md is unchanged. Nothing committed. No scratch files.
+
+Behaviour and assumptions (for the lead to confirm against the spec)
+- PO status is derived: closed if closed; received if every line has received >= ordered; partial if any received; else open. Receipts from voided movements are excluded.
+- Receive cap per line: ordered * 1.05, rounded down to the unit precision (each = integer, kg = 3 decimals). Total received on a line may not exceed it.
+- po receive: the location must be in the PO's warehouse. The movement is a "receive" with ref = PO id and extra {"line": N}; a po_receipts row is written in the same transaction.
+- po close: allowed only when open or partial. A received PO is a user error ("only an open or partial PO can be closed"), following the spec's literal wording.
+- Audit targets for po.* and transfer.* are the document id (PO-0001, TR-0001). po receive audits "po.receive" with the PO id, and returns the movement dict.
+- po create, po show, po close return the PO show object; po list returns a list of them, filterable by --status.
+- transfer create: source must be storage, destination storage or receiving, in a different warehouse. Stock check via engine.require_unreserved, then engine.remove_stock ("transfer-out"); a transfers row is stored with out_mv.
+- transfer receive: engine.bring_in_transfer(restore=False) to the destination. transfer cancel: restore=True back to the source. Both return the transfer show object and need the transfer to be in_transit.
+- Line argument format is SKU:QTY:UNITCOST, split from the right, so a SKU that contains ":" would not parse.
+
+In progress
+- Nothing. The task is complete.
+
+Next step
+- None for purchasing. The lead can run: python3 -m unittest tests.unit_purchasing 2>&1 | tail -5
+
+Do not redo
+- Checked that every core helper and engine function the module uses exists with the signature used: Q3, ZERO, D, NotFound, fmt2, fmt4, fmt_qty, parse_money, parse_qty, require_match, ctx.product/warehouse/location/next_doc_id/audit, engine.wh_of/receive_stock/remove_stock/bring_in_transfer/tracking_key/require_unreserved. Confirmed the table columns (pos, po_lines, po_receipts, transfers, movements.value/extra).
+- Not covered by my tests: a transfer blocked by a reservation (only through require_unreserved, which the inventory tests cover); and the whole-suite run, which is not my module's check.

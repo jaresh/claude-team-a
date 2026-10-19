@@ -1,0 +1,20 @@
+Done
+- wms/reports.py: commands movement list, stock, valuation, aging, available, reorder (role viewer).
+  Helpers exported: available_qty(ctx, sku, wh), incoming_qty(ctx, sku, wh), backordered_qty(ctx, sku, wh), order_status(ctx, order_id), all returning Decimal (order_status returns str).
+  --at replay rebuilds stock, serials, fifo layers (from movement extra deltas) and avg state; in-transit at T comes from transfers.
+  aging covers fifo products only; buckets 0-30 / 31-90 / 91+.
+- tests/unit_reports.py: 9 tests (stock now/as-of, serial and lot rows, movement list filters, valuation fifo/average/as-of, transfers in transit, aging buckets and fifo-only, available/incoming/backordered, reorder, derived order status).
+- Check: `python3 -m unittest tests.unit_reports 2>&1 | tail -5` -> Ran 9 tests, OK.
+- No shared files edited, so no changes.md rows. Nothing committed.
+
+In progress
+- Nothing open. Cross-checks against sales/purchasing code not done: order_status and backordered_qty are derived inside reports.py, not read from sales.
+
+Next step
+- Lead: run `python3 -m unittest tests.unit_reports 2>&1 | tail -5` again after merging sales and purchasing, then the full suite.
+- Open question for sales: assumes ship removes the picked reservation rows and sets order_lines.shipped. If sales keeps reservation rows after ship, backordered_qty and order_status over-count reserved quantity. Check with the sales expert.
+
+Do not redo
+- Verified every name imported from wms.core and wms.engine exists, and ctx.today is set in Ctx.__init__.
+- The first test failure (movements.user NOT NULL) came from running the transfer seed without a user. Fixed in the test helper, not in engine or core.
+- Aging skip rule was fixed to use costing != "fifo" (spec: fifo only).

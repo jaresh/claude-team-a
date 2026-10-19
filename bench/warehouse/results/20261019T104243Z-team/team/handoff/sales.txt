@@ -1,0 +1,19 @@
+Done
+- wms/sales.py (new): spec sections 7 (pricing at confirm), 8 (so create/confirm/allocate/pick/ship/cancel/show/list, reservations and expiry), 10 (return create/list). Commands: so create (manager), so confirm (manager), so allocate (manager), so pick (clerk), so ship (clerk), so cancel (manager), so show (viewer), so list (viewer), return create (manager), return list (viewer).
+- tests/unit_sales.py (new): 21 tests, in-process, covering pricing tiers and fallback, line and order promos, backorder and allocate, lot expiry, pick and ship, partial ship and cancel refusal, cancel release, list filter, reservation expiry (including undo on a failed command), returns (good, damaged, lot, serial), roles, and no-change on user error.
+- Check: `python3 -m unittest tests.unit_sales 2>&1 | tail -5` gives "Ran 21 tests ... OK".
+- Bug fixed during the run: _covered in wms/sales.py iterated a sqlite cursor twice (reserved, then picked), so picked always read 0. Now uses fetchall().
+- No shared files edited; .claude/team/changes.md untouched. Nothing committed.
+
+In progress
+- Nothing. Task complete unless the lead wants changes.
+
+Next step
+- Lead runs: cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest tests.unit_sales 2>&1 | tail -5
+- Lead may run the whole suite: python3 -m unittest discover -s tests 2>&1 | tail -5 (not run by me; other teammates' modules may affect it).
+
+Do not redo
+- Confirmed by run: reservation rows are correct after pick (WH1/SHIP, state picked, expires NULL); the earlier failure was the cursor bug only, not the pick logic.
+- Confirmed by read: parties.py already provides customer, price and promo commands; tests seed those tables with SQL instead, so they don't depend on it.
+- Confirmed: core.run calls expire_reservations first, and the audit user is "system".
+- Scratch: .claude/team/scratch/sales/ is created and empty. The stray tmp folder I made under scratch/ was removed; scratch/tester/ belongs to the tester teammate and was left alone.
