@@ -23,8 +23,9 @@ cache. Quality is judged first and cost second.
   - "One teammate at a time" gives more consistent code at the same cost, in twice the time.
   - A Haiku lead costs half as much and misses slightly more spec details.
   - An Opus lead shows no measurable gain, at 2.7 times the cost.
-- **Warehouse benchmark** (new and harder, 62 hidden tests, runs in progress): scores now
-  spread out. So far the team is level or ahead on quality, but the cost saving has gone.
+- **Warehouse benchmark** (new and harder, 62 hidden tests, 2 runs per arm so far): scores now
+  spread out. The team is level or ahead on quality in both runs. Its cost varies: one team run
+  cost about as much as solo, the other 37% less.
 
 ## How a run is measured
 
@@ -119,33 +120,46 @@ The hidden tests come in three tiers:
 - **T2** tests features combined (21).
 - **T3** tests robustness: atomicity, permissions, HTTP and concurrency (10).
 
-A reference implementation passes all 62. Both arms use kit 3.13. Team run 2 is still running,
-and this page will be updated when it finishes.
+A reference implementation passes all 62. Both arms use kit 3.13, with two runs per arm so far.
 
 | Run | Hidden (T1 / T2 / T3) | Review: Opus / Sonnet | Readability, Opus | Cost $, cold | Minutes | Turns | Own tests |
 |---|---|---|---|---|---|---|---|
 | Solo 1 | 59 (30 / 21 / 8) | 7 / 6 | 5 | 1.513 | 10 | 13 | 14, 82% coverage |
 | Solo 2 | **62** (31 / 21 / 10) | 6 / 6 | 6 | 1.679 | 10 | 18 | 11, 85% coverage |
 | Team 1 | 61 (30 / 21 / 10) | 7 / 7 | 7 | 1.582 | 30 | 28 | 108, 93% coverage |
-| Team 2 | running | | | | | | |
+| Team 2 | 61 (30 / 21 / 10) | 7 / 7 | 8 | **1.002** | 50 | 19 | 129, 92% coverage |
+| **Solo, median** | 60.5 | 6.5 / 6 | 5.5 | 1.596 | 10 | 15.5 | |
+| **Team, median** | 61 | 7 / 7 | 7.5 | 1.292 | 40 | 23.5 | |
 
 Early reading, which is not yet a result (that needs 4 runs per arm):
 
 - **The scores spread now.**
   - Reviews land at 6-7, with sub-scores from 4 to 9.
-  - Each run fails a different hidden test:
+  - The hidden tests catch real misses:
     - Solo 1 let the read-only `viewer` role write stock.
-    - Team 1 kept serial numbers unsorted.
+    - Both team runs returned a receipt's serial numbers unsorted, while solo sorted them both
+      times. The spec asks for this only through its general rule ("where nothing is stated,
+      … ascending").
+    - The team's miss looks like finance's misses: a spec-wide rule that doesn't reach the
+      teammate writing that one command. It's the next thing to look at in the kit.
 - **Tests and reviews catch different defects.**
   - Solo 2 passed every hidden test, yet both reviewers scored it 6.
   - They found a crash with a traceback when a voided scrap brings back a serial that is
     already in stock.
   - They also found short names, star imports, and the CLI and HTTP layers tangled together.
-- **The team writes cleaner code by the metrics.** Peak function complexity was 19, against 46
-  and 27 for the solo runs, and the team wrote four times as many test lines.
-- **Cost is level.** On the bigger spec, solo writes the whole app in 13-18 large turns. The
-  lead's 28 turns cost $1.33, close to a whole solo run, so the teammates' $0.26 comes on top.
-  Wall time is three times solo's.
+- **The team's code is better structured.**
+  - Review structure was 7 in both team runs and 6 in both solo runs, and the difference holds
+    when either run is left out.
+  - The team had 8 and 6 functions above complexity 10, against 14 and 12 for solo.
+  - It wrote 1,200-1,300 test lines, against about 280.
+  - Coverage of its own tests was 92-93%, against 82-85%.
+- **Cost depends on the lead's turns, as on finance.**
+  - Team 1: the lead took 28 turns ($1.33), and the run cost $1.58, as much as solo.
+  - Team 2: the lead took 19 turns ($0.72), and the run cost $1.00, 37% below the solo median.
+  - Teammates cost $0.26-0.28 in both runs. Solo writes the whole app in 13-18 large turns.
+- **Wall time:** the team takes 3-5 times as long, 30 and 50 minutes against 10.
+- **Leave-one-out with 2 runs per arm:** structure, coverage and cost favour the team and hold;
+  hidden tests and review overall flip. Two runs is below the method's minimum.
 
 ## Current recommendation
 
@@ -158,8 +172,8 @@ Early reading, which is not yet a result (that needs 4 runs per arm):
 
 **Open questions:**
 
-- Does the team's cost advantage survive bigger specs? The warehouse runs suggest it may not;
-  4 runs per arm will settle it.
+- Does the team's cost advantage survive bigger specs? On warehouse, one team run cost as much
+  as solo and one 37% less; 4 runs per arm will settle it.
 - Haiku lead and solo Haiku need their own 4-run checks: a second solo Haiku run with an
   advisor failed completely, with 0/42 hidden tests.
 - Still untested:
