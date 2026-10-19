@@ -105,7 +105,7 @@ ended=$(cat "$ws/.bench-end")
 # Score: the app's own tests, then the hidden acceptance tests (never in the workspace).
 (cd "$ws" && timeout 900 python3 -m unittest discover -s tests > "$out/own-tests.txt" 2>&1) || true
 python3 "$repo/bench/coverage.py" "$ws" --json "$out/coverage.json" > /dev/null || echo '{}' > "$out/coverage.json"
-FIN_DIR="$ws" timeout 900 python3 -m unittest discover -s "$here/accept" -v > "$out/accept.txt" 2>&1 || true
+APP_DIR="$ws" FIN_DIR="$ws" timeout 1200 python3 -m unittest discover -s "$here/accept" -v > "$out/accept.txt" 2>&1 || true
 python3 "$repo/team_kit.py" cost --project "$ws" --session "$id" --until "$ended" \
   --label "bench $bench $mode model=$model effort=$effort prompt=$version" --json "$out/cost.json" \
   > "$out/cost.txt"
@@ -154,9 +154,9 @@ rm -f "$out"/review-raw-*.json
 rm -rf "$(dirname "$rev")"
 lines=$(cd "$ws" && git ls-files --others --exclude-standard --cached -- '*.py' | xargs cat 2>/dev/null | wc -l)
 
-python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$ended" "$lines" "$kit" "$arm" "${CLAUDE_ARGS:-}" <<'EOF'
-import json, os, re, sys
-out, bench, mode, model, effort, version, started, ended, lines, kit, arm, claude_args = sys.argv[1:]
+python3 - "$out" "$bench" "$mode" "$model" "$effort" "$version" "$started" "$ended" "$lines" "$kit" "$arm" "${CLAUDE_ARGS:-}" "$here" <<'EOF'
+import ast, glob, json, os, re, sys
+out, bench, mode, model, effort, version, started, ended, lines, kit, arm, claude_args, here = sys.argv[1:]
 def tally(path):
     text = open(path).read()
     ran = re.search(r"Ran (\d+) test", text)
@@ -164,6 +164,16 @@ def tally(path):
     n = int(ran.group(1)) if ran else 0
     return n, max(n - bad, 0)
 acc, own = tally(f"{out}/accept.txt"), tally(f"{out}/own-tests.txt")
+# Hidden tests per tier: class names start with T1, T2, T3 (benchmarks without tiers get none).
+tiers, failed = {}, set(re.findall(r"^(?:FAIL|ERROR): \w+ \([\w.]*?\.(\w+)\.(\w+)\)", open(f"{out}/accept.txt").read(), re.M))
+for path in glob.glob(f"{here}/accept/*.py"):
+    for node in ast.parse(open(path).read()).body:
+        m = re.match(r"(T\d)", node.name) if isinstance(node, ast.ClassDef) else None
+        if m:
+            tests = [f.name for f in node.body if isinstance(f, ast.FunctionDef) and f.name.startswith("test")]
+            t = tiers.setdefault(m.group(1), [0, 0])
+            t[1] += len(tests)
+            t[0] += sum((node.name, n) not in failed for n in tests)
 cost = json.load(open(f"{out}/cost.json"))
 lead = [a for a in cost["agents"] if a["role"] == "lead"]
 team = [a for a in cost["agents"] if a["role"] == "teammate"]
@@ -174,6 +184,7 @@ more = json.load(open(f"{out}/reviews.json")) if os.path.exists(f"{out}/reviews.
 s = {"bench": bench, "mode": mode, "arm": arm, "claude_args": claude_args, "model": model,
      "effort": effort, "prompt": version, "kit": kit,
      "started": started, "ended": ended, "accept_passed": acc[1], "accept_total": acc[0],
+     "accept_tiers": {k: tiers[k] for k in sorted(tiers)} if acc[0] else {},
      "own_passed": own[1], "own_total": own[0], "python_lines": int(lines),
      "cost": round(cost["total_cost"], 4), "cost_cold": round(cost["cold_start_cost"], 4),
      "lead_cost": round(sum(a["cost"] for a in lead), 4),

@@ -18,6 +18,7 @@ scored three ways, then recorded in `results/`, and the built app is deleted:
 | Benchmark | What | Hidden tests |
 |---|---|---|
 | `finance` (v2.1) | a small-business finance system: ledger, FX, import, budgets, recurring, reports, loans, users and audit, closed periods, invoices, bills, tax, reconciliation, ledger reports, an authenticated HTTP API (Python, stdlib) | 42 |
+| `warehouse` | inventory and orders: FIFO and average costing, lots and serials, reservations that expire, purchase orders with an over-receipt limit, transfers in transit, returns at cost, voids, as-of reports, promotions, an HTTP API with ETags, idempotency keys and concurrent requests (Python, stdlib). Built to be hard enough that scores spread | 62 in three tiers: T1 one feature (31), T2 features combined (21), T3 robustness (10) |
 | `finance/v1` (archived) | the first ten sections only; too small: Sonnet alone built it in 9 turns | 25 |
 
 ```
@@ -28,6 +29,11 @@ bench/spread.py bench/finance/results            # medians, ranges, noise floor,
 REVIEWS=3 bench/run.sh finance solo              # three independent reviews of one build
 python3 team_kit.py cost --compare <run>/cost.json <run>/cost.json   # cost details
 ```
+
+Hidden tests are only trusted once they pass against a reference implementation:
+`warehouse/reference/` (never shown to the arms) passes all 62:
+`APP_DIR=bench/warehouse/reference python3 -m unittest discover -s bench/warehouse/accept`.
+Runs record `accept_tiers` (passed and total per tier), and `spread.py` prints a row per tier.
 
 Rules for comparable results:
 

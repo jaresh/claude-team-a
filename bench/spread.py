@@ -49,7 +49,14 @@ def minutes(r):
 
 # (label, value, better, review key): better is "high" or "low"; a review score is compared
 # within its noise floor
+def tier(t):
+    return lambda r: ((r.get("accept_tiers") or {}).get(t) or [None])[0]
+
+
 METRICS = [("Hidden tests passed", lambda r: r["accept_passed"], "high", None),
+           ("Hidden T1 (one feature)", tier("T1"), "high", None),
+           ("Hidden T2 (combined)", tier("T2"), "high", None),
+           ("Hidden T3 (robustness)", tier("T3"), "high", None),
            ("Review overall", overall, "high", "overall"),
            ("Review consistency", score("consistency"), "high", "consistency"),
            ("Review tests", score("tests"), "high", "tests"),
@@ -95,7 +102,10 @@ def main():
     print("| Metric | " + " | ".join(f"{k} (n={len(groups[k])})" for k in names) + " |")
     print("|" + "---|" * (len(names) + 1))
     for label, f, _, _ in METRICS:
-        print(f"| {label} | " + " | ".join(stats(groups[k], f)[1] for k in names) + " |")
+        cells = [stats(groups[k], f)[1] for k in names]
+        if label.startswith("Hidden T") and set(cells) == {"-"}:
+            continue   # a benchmark without tiers
+        print(f"| {label} | " + " | ".join(cells) + " |")
 
     noisy = [r for r in runs if len(r.get("reviews") or []) > 1]
     floor = {key: max((max(review_value(x, key) for x in r["reviews"]) -
