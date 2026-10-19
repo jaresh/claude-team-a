@@ -158,6 +158,15 @@ Early reading, which is not yet a result (that needs 4 runs per arm):
   - Team 2: the lead took 19 turns ($0.72), and the run cost $1.00, 37% below the solo median.
   - Teammates cost $0.26-0.28 in both runs. Solo writes the whole app in 13-18 large turns.
 - **Wall time:** the team takes 3-5 times as long, 30 and 50 minutes against 10.
+- **Specialized experts (variant `experts`, one run).**
+  - Teammates were area experts with word-for-word spec briefs, plus a tester writing tests from
+    the spec alone.
+  - Result: 61/62 again, reviews 7 / 6, $1.42, 57 minutes. It doesn't hold as built.
+  - The tester did catch the unsorted-serials bug, but the lead judged the test wrong and
+    loosened it.
+  - The expert writing `receive` had the sorting rule in its brief and still missed it.
+  - The lead gave each expert only one task, so knowledge was never reused.
+  - Details: `warehouse/results/REFERENCE.md`.
 - **Leave-one-out with 2 runs per arm:** structure, coverage and cost favour the team and hold;
   hidden tests and review overall flip. Two runs is below the method's minimum.
 
@@ -176,6 +185,9 @@ Early reading, which is not yet a result (that needs 4 runs per arm):
   as solo and one 37% less; 4 runs per arm will settle it.
 - Haiku lead and solo Haiku need their own 4-run checks: a second solo Haiku run with an
   advisor failed completely, with 0/42 hidden tests.
+- Experts, version 2: a tester failure counts as a code bug unless the lead quotes the spec
+  sentence it contradicts, and the fix goes to the owning expert. Knowledge prepared ahead pays
+  off only across several tasks on one project, which needs a sequential benchmark.
 - Still untested:
   - The workflow variant, which needs dynamic workflows enabled.
   - A benchmark on an existing codebase rather than an empty repo.
