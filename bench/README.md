@@ -1,5 +1,7 @@
 # Benchmarks
 
+Results so far, in one page: `SUMMARY.md`.
+
 A fixed prompt built two ways in a fresh empty repo: by the team (`team_kit.py`, a Sonnet lead
 with Haiku teammates) and by one model working alone. Each run is measured (tokens, USD) and
 scored three ways, then recorded in `results/`, and the built app is deleted:

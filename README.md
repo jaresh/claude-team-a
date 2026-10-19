@@ -3,6 +3,8 @@
 A one-file team kit for Claude Code, `team_kit.py`, and the testbed that tunes it: a browser
 roguelike (`game/`) built by agent teams, with every run's cost measured (`results/`).
 
+Benchmark results so far (solo vs team, lead models, options): `bench/SUMMARY.md`.
+
 ## The kit
 
 The session you start is the lead. Type `/team <task>` (or ask for "the team") and it:
