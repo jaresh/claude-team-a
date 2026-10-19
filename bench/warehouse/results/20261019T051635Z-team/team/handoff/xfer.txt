@@ -1,0 +1,21 @@
+Done
+- wms/commands/xfer.py (new): transfer create/receive/cancel/show/list, return create/list, reorder. Audit actions transfer.create, transfer.receive, transfer.cancel, return.create.
+- tests/test_xfer.py (new): 15 tests, all pass.
+- Done check: `python3 -m unittest tests.test_xfer 2>&1 | tail -5` gives "Ran 15 tests ... OK" with no skips. py_compile of xfer.py passes.
+- wms/reserve.py exists now, so the reorder test ran (not skipped). wms/commands/sales.py does not exist yet, so return tests build the shipped order with SQL inserts (orders, order_lines, doc_moves) after stock.issue_stock(..., "ship", ref=order, check_reserved=False). Switch to the sales commands once they land.
+- Files changed: only wms/commands/xfer.py and tests/test_xfer.py. No shared files touched, so changes.md has no new row. Nothing committed.
+- Worktree: the cwd was already a git worktree, so EnterWorktree was not called. Work was done in place.
+
+In progress
+- Nothing. Task is complete for the done check.
+
+Next step
+- When wms/commands/sales.py lands, optionally replace _ship_order in tests/test_xfer.py with `python3 -m wms ... so create/confirm/allocate/pick/ship` calls, then rerun `python3 -m unittest tests.test_xfer 2>&1 | tail -5`.
+- Lead to decide whether to commit (xfer does not commit).
+
+Do not redo
+- Ran full test file: first run failed on `location add WH2/RECV` because `warehouse add` already creates the RECV receiving location. Fixed by removing that line from _book.
+- A `return list` viewer-role check was wrong in my test (not a clerk failure). Replaced with a clerk `return create` denial.
+- The manager "receive" check was wrong: manager inherits clerk, so it is allowed. Removed that assertion.
+- `_ship_order` passed a tuple to split_serials, which only accepts a string or None. Changed the default to None.
+- Checked util.split_serials: None gives [], strings split on commas, and it rejects duplicates.

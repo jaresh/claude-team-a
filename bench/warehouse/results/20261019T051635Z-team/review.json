@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 7,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "wms/http_api.py _write: the Idempotency-Key lookup and `_store` each use their own connection outside the command's transaction, so a crash or a concurrent CLI writer between the command's COMMIT and the store can leave a request that ran with no saved key, and a retry would run it again; `_edit_product` likewise reads the version in one transaction and edits in another, so a version change from the CLI in between returns 400 instead of 412.",
+    "Domain helpers live inside command modules: `price_for`/`promo_percent` are in commands/customers.py, `incoming` is in commands/po.py (imported lazily by sales.py and xfer.py), and xfer.py also holds returns and reorder, so command modules depend on each other instead of on a domain layer; the HTTP layer goes further and rebuilds CLI argv strings, which ties the API to the argparse grammar.",
+    "wms/core.py main/run_command catch only UserError, so non-user failures such as sqlite3.OperationalError (`init --db` into a missing directory, 'database is locked' after the 60 s timeout) or sqlite3.DatabaseError (a non-SQLite file) end in a Python traceback instead of a clean `error:` message.",
+    "Error and validation conventions vary: commands/po.py `_po` raises a plain UserError for an unknown PO while every other lookup raises NotFound; `stock --sku` and `movement list --sku` silently accept unknown SKUs while `--warehouse` is validated; stockcmds `_reason` checks the trimmed text but stores it untrimmed; imports.py builds its multi-line output by joining errors with '\\nerror: ', which leaks the CLI prefix into the exception text.",
+    "wms/stock.py movement_dict and xfer.py `_transfer_dict` print `qty` straight from the stored text instead of through fmt_qty, so the kg 3-decimal format depends on every writer storing a correctly quantized Decimal string; xfer.py `_return_run` checks that a returned lot was shipped on the line but not that the quantity fits within what was shipped from that lot.",
+    "tests: test_stock.py test_transfer_api drives stock.transfer_out/transfer_in on a raw connection with a fake ref and no transfer row, so it tests internals; test_sales.py `stock_at` sums quantities as floats; `bad()` checks the exit code and stderr but never that nothing changed; test_integration.py has only one test, and returns, reorder, import and the expiry audit get thin coverage compared with sales and HTTP."
+  ],
+  "strengths": [
+    "Every command runs inside one BEGIN IMMEDIATE transaction in `run_command`, which rolls back on any exception, and the HTTP server uses the same path, so CLI and API share all-or-nothing behaviour, the role checks, reservation expiry and the audit.",
+    "Money and quantities are stored as text and handled as Decimal throughout, with round2/round4 half-up and quantity parsing centralised in util.py; all SQL uses parameters.",
+    "stock.py keeps the costing rules (FIFO layers with a layer_use ledger, average Q/V/last_a) in one place with clear docstrings, which lets voids, transfer cancels and point-in-time replay restore exact layers cleanly."
+  ],
+  "review_cost": 0.9858
+}

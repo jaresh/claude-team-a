@@ -1,0 +1,28 @@
+**Done**
+- Files: `wms/commands/po.py` (new), `tests/test_po.py` (new). No shared files edited; `.claude/team/changes.md` untouched.
+- Commands in `po.py`: `po create` (manager), `po receive` (clerk), `po close` (manager), `po show` (viewer), `po list [--status]` (viewer).
+- Helpers exported from `wms/commands/po.py`:
+  - `po_dict(ctx, po_id)` returns the `po show` object.
+  - `incoming(ctx, wh, sku)` returns a Decimal: open quantity of the product on the warehouse's non-closed POs (per line, ordered minus net received, never below 0).
+- Receipts: `po receive` calls `stock.receive_stock(..., ref=PO id)` and then inserts `doc_moves(doc=PO id, line, mv)`. Received quantity and value count only movements with `voided_by IS NULL`.
+- Check: `python3 -m unittest tests.test_po 2>&1 | tail -5` gives `Ran 25 tests ... OK`. This ran against the current stock.py and catalog commands in the worktree.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: decide the open point below, then run `python3 -m unittest discover -s tests -t . 2>&1 | tail -15`.
+
+**Assumptions and open points (please confirm)**
+1. `po close` accepts only status `open` or `partial`, as the spec literally says. A fully received PO (status `received`) therefore cannot be closed. If you want it closable, change the check in `_close_run` to also allow `received`.
+2. The `po.receive` audit target is the movement id as a string (same as `receive`). The spec does not state it explicitly.
+3. The supplier name is limited to 60 characters via `check_text`. The spec gives no limit.
+4. The 5% over-receipt limit is cumulative per line: `floor_to(ordered * 1.05, unit)` minus net received. For example, 10 ordered gives a maximum of 10, and 100 gives 105.
+5. `po create` requires at least one `--line`. Each line's unit cost is accepted as 0 or more (`parse_money(..., 4)`).
+6. `value_received` is the sum of the stored `value` of the non-voided receipts, formatted with `fmt2`.
+7. There is no kg-unit test for PO quantities. Rounding is covered only for `each`.
+
+**Do not redo**
+- Checked `wms/core.py` (SCHEMA: `pos`, `po_lines`, `doc_moves`, `movements.voided_by`) and `wms/stock.py` `void_movement`: it sets `movements.voided_by` on the original movement, which is what the received-quantity query relies on.
+- Checked `wms/util.py`: `parse_qty`, `parse_money`, `floor_to`, `fmt_qty`, `fmt2`, `fmt4`, `split_serials`, `check_text` are used as-is. No helper was written.
+- `tests/helpers.py` has no `bootstrap` user roles, so the tests create `carol` (clerk), `dave` (manager) and `vera` (viewer) with `user add`.

@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 6,
+    "error_handling": 7,
+    "data_safety": 8,
+    "tests": 6,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "wms/core.py main(): only UserError is caught, so an unexpected exception (sqlite3.OperationalError from a locked database, a malformed row, an argparse type error) ends in a traceback and not 'error: ' with exit code 2.",
+    "wms/http_api.py _write: the idempotency record is stored in a separate connection after the command has committed, so a crash between the two leaves the effect committed with no key stored. Also, GETs bypass the server lock and always go through the shared run_command path.",
+    "wms/stock.py stock_at/values_at/layers_at: --at replays every movement and layer_use row from the beginning on each call, which is O(history). Average-costed valuation at a past time is rebuilt by summing movement values, a derivation that is fragile for voids and transfers.",
+    "wms/commands/sales.py _status/so_dict: status and the per-line totals are recomputed with several queries per line, and so_list repeats that for every order, giving N+1 query patterns. Related logic (open_qty, line_totals, shipped) is spread between sales.py and reserve.py.",
+    "wms/core.py: the SCHEMA is parsed by stripping '--' comments with a regex and splitting on ';', and there is no migration or version table. Money and quantities are stored as TEXT, and the schema has no CHECK constraints, so correctness depends only on Python code.",
+    "wms/stock.py void_movement/_void_in_cost: the void rules are checked after _record has already inserted the void movement. This is safe only because the whole transaction is rolled back. The checks for 'later movement' on average products rely on a last_mv marker that other paths must keep correct."
+  ],
+  "strengths": [
+    "Clear layering: core.py holds the Command registry, transaction wrapper and role check, while stock.py and reserve.py hold the domain logic. Command modules are thin, and the HTTP API reuses run_command, so rules, roles, atomicity and audit are the same as on the CLI.",
+    "Money and quantities are handled consistently with Decimal and explicit ROUND_HALF_UP helpers (round2/round4/fmt2/fmt4/fmt_qty). All SQL uses bound parameters, and every command runs inside one BEGIN IMMEDIATE transaction that rolls back on any error.",
+    "Reservation expiry runs before every command inside the same transaction, and FIFO layer consumption is recorded in layer_use. That makes voids and transfer cancels restore the exact layers they consumed."
+  ],
+  "review_cost": 0.3677,
+  "model": "sonnet"
+}

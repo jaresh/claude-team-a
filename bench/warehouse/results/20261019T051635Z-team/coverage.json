@@ -1,0 +1,31 @@
+{
+  "coverage": 0.918,
+  "covered_lines": 1942,
+  "executable_lines": 2116,
+  "tests_passed_under_coverage": true,
+  "least_covered": [
+    "wms/__init__.py (0%)",
+    "wms/__main__.py (0%)",
+    "wms/commands/__init__.py (0%)"
+  ],
+  "per_file": {
+    "wms/__init__.py": 0.0,
+    "wms/__main__.py": 0.0,
+    "wms/commands/__init__.py": 0.0,
+    "wms/commands/audit.py": 0.95,
+    "wms/commands/customers.py": 0.975,
+    "wms/commands/imports.py": 0.958,
+    "wms/commands/po.py": 0.992,
+    "wms/commands/products.py": 0.96,
+    "wms/commands/sales.py": 0.981,
+    "wms/commands/stockcmds.py": 0.968,
+    "wms/commands/users.py": 0.982,
+    "wms/commands/warehouses.py": 0.978,
+    "wms/commands/xfer.py": 0.984,
+    "wms/core.py": 0.856,
+    "wms/http_api.py": 0.849,
+    "wms/reserve.py": 0.939,
+    "wms/stock.py": 0.837,
+    "wms/util.py": 0.876
+  }
+}

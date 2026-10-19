@@ -1,0 +1,27 @@
+{
+  "app_files": 18,
+  "app_lines": 2277,
+  "test_files": 9,
+  "test_lines": 1338,
+  "test_functions": 129,
+  "test_to_app_ratio": 0.59,
+  "functions": 252,
+  "mean_function_lines": 8.0,
+  "max_function_lines": 60,
+  "functions_over_50_lines": 1,
+  "mean_complexity": 3.0,
+  "max_complexity": 28,
+  "functions_complexity_over_10": 6,
+  "most_complex": [
+    "wms/commands/xfer.py:_return_run (28)",
+    "wms/stock.py:receive_stock (14)",
+    "wms/commands/customers.py:_promo_add_run (14)"
+  ],
+  "docstring_coverage": 0.51,
+  "duplicate_share": 0.002,
+  "float_calls": 0,
+  "sql_built_from_strings": 1,
+  "bare_except": 0,
+  "broad_except": 3,
+  "parse_errors": []
+}

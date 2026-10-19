@@ -1,0 +1,27 @@
+**Done**
+- wms/stock.py: full Stock API (receive_stock, move_stock, issue_stock, transfer_out, transfer_in, onhand, reserved_qty, movement_dict) plus helpers adjust_stock, void_movement, as_of, stock_at, layers_at, values_at, in_transit_at, wh_of.
+- wms/commands/stockcmds.py: COMMANDS for receive (clerk), move (clerk), adjust (clerk), scrap (clerk), movement list (viewer), movement void (manager), stock (viewer), valuation (viewer), aging (viewer). Audit called once per command (receive/move/adjust/scrap = movement id; movement.void = voided id).
+- tests/test_stock.py: 13 tests, all passing. Covers hand-computed FIFO (multi-step, void restore), average (multi-step, rounding 3.14 / 7.86), void rules, roles, move, adjust, serials, point-in-time (stock/valuation --at), aging buckets, movement list filters, direct transfer_out/transfer_in API (same-warehouse cancel not included; cross-warehouse receive tested).
+- Check: `python3 -m unittest tests.test_stock 2>&1 | tail -5` -> "Ran 13 tests ... OK".
+- Shared files: none edited. wms/util.py, core.py, helpers.py untouched. No foundation change needed.
+- Worked in place in the existing worktree (no EnterWorktree); files are untracked, nothing committed.
+
+**In progress**
+- Nothing open. Task complete.
+
+**Next step**
+- Lead: run the full suite `cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest discover -s tests -t . 2>&1 | tail -15` (other waves may still be in progress).
+- Lead: add these assumptions to README.md (spec asks for them):
+  1. Reason text (adjust, scrap, movement void) is limited to 200 characters (check_text).
+  2. adjust --count is the target absolute count. An increase is costed like a receipt. For fifo, the unit cost is the newest layer ever in that warehouse. For average, it is the current average (or 0 if none).
+  3. aging --at DATE replays the book to the end of DATE and buckets each remaining layer by age in days from its original receipt day (0-30, 31-90, 91+). Products with no remaining layers are left out.
+  4. valuation/stock --at T use the last movement at or before T. In-transit at T comes from movements plus the transfers table.
+  5. A transfer-in into the source warehouse cancels the transfer-out (layers restored); into another warehouse it is a receive at the transferred value.
+  6. Serial products: adjust is not allowed (raises); use move/scrap with --serial.
+- Lead: move `MOVEMENT_TYPES` usage is fine as it is (it feeds the movement list --type choices).
+
+**Do not redo**
+- Ran tests/test_stock.py end to end: 13 tests, all OK on first run. No failures to chase.
+- Did not use EnterWorktree: the cwd is already the worktree and the new wms/ and tests/ files are untracked, so there was no carry-over issue to solve.
+- Did not touch wms/util.py, wms/core.py, tests/helpers.py, or other teammates' command files. Checked that users.py exists and that `user add` roles are used in tests (carl clerk, vera viewer, max manager).
+- stockcmds.py imports and COMMANDS keys were checked with a python import: the 9 keys load.

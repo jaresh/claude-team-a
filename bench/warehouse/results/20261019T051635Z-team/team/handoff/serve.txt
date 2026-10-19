@@ -1,0 +1,24 @@
+**Done**
+- wms/http_api.py (new): serve(db_path, port) and make_server(db_path, port) (ThreadingHTTPServer on 127.0.0.1, port 0 allowed; returns the server unstarted). Routes per spec section 14: GET /products (search, limit 1..100 default 50, after; {"items","next"}), GET/PATCH /products/SKU (ETag from product version; PATCH needs If-Match: 428 without, 412 stale; null min/max clears), POST /receipts (201), POST /sales-orders (201), POST /sales-orders/SO/confirm (200, hold must be a JSON integer), GET /sales-orders/SO, GET /stock, GET /valuation. Every route calls core.run_command, so roles, rules and audit are the command-line ones. X-User missing/unknown/disabled -> 401 (from core), role too low -> 403, unknown path or object -> 404, user error -> 400, JSON number where a string is required -> 400. Idempotency-Key on POST: first status+body kept and replayed; same key with other path or body -> 409; 500 responses not kept. POST/PATCH run under one server lock.
+- tests/test_http.py (new): 29 tests (auth, errors, body validation, paging, ETag/If-Match, receipts/sales/stock/valuation, idempotency, concurrency). Concurrency test: 6 parallel receipts of 2 plus 8 parallel create+confirm of 3 each; asserts reserved total is between 10 and 22, and available + reserved == 22 at the end.
+- Done check: `python3 -m unittest tests.test_http 2>&1 | tail -5` -> "Ran 29 tests ... OK". Concurrency test also passed 3 extra runs.
+- No shared files edited; changes.md not touched. Nothing committed.
+
+**In progress**
+- Nothing. Work is complete for this task.
+
+**Next step**
+- Lead: run `python3 -m unittest discover -s tests -t . 2>&1 | tail -15` for the whole suite, then `python3 -m wms --db X serve --port 8080` or the equivalent entry point to check the server starts (not done by me; program launch is the lead's job).
+
+**Do not redo**
+- Receipt body field `at` is a LOCATION (WH/LOC), passed to `receive --at`, which the stock command treats as a location (stockcmds.py _receive_run calls split_loc(a.at)). The timestamp comes from X-Now. The spec example for receipts uses "at" the same way as the CLI, so I kept that mapping. Tests use "WH1/A-01".
+- Confirm returns 200 even when the order ends `backordered` (reserved short). That is the sales module's behaviour (verified by hand: 4th order of 3 with 10 on hand gives status backordered, reserved 1). The concurrency test asserts on reserved quantities, not on confirm codes.
+- Sequential confirms are correct (checked with a probe); the earlier concurrent failure was my test counting 200s as confirmed, not an over-reservation.
+- Unknown SKU on POST /receipts returns 404 (NotFound from ctx.product), not 400.
+
+**Known limitations / assumptions for README (lead)**
+- The idempotency row is written in its own transaction after the command commits (core owns the command transaction). A crash between the two could re-run the command on retry. Not fixed; would need core support to share one transaction.
+- The server lock makes check-then-run atomic only inside one server process. SQLite's BEGIN IMMEDIATE still serialises writes across processes, but two processes could both miss an idempotency key at once.
+- Wrong method on a known path returns 404 (spec wording "404 for an unknown path").
+- PATCH with an empty body -> 400 "nothing to change". Hold must be a JSON integer (a string "24" -> 400). Unknown query parameters are ignored. Unknown body fields -> 400.
+- Receipt "at" is a location (see above); the request time is X-Now.

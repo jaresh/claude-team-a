@@ -1,0 +1,21 @@
+Done
+- wms/reserve.py (new): storage_locs, ship_loc, line_totals, open_qty, available_qty, backordered, reserve_line (serial and lot-expiry-aware reservation; lots expired before ctx.today are skipped; untracked stock sorted by location only).
+- wms/commands/sales.py (new): so create, so confirm (--hold 1..720, default 48), so allocate, so pick, so ship, so cancel, so show, so list (--status), available (--warehouse). COMMANDS registered with roles per spec. so_dict(ctx, id) is the shared order view.
+- tests/test_sales.py (new): 23 tests on WmsCase, covering pricing (customer list, STANDARD fallback, missing price), line and order promos (and threshold), confirm reserves and sets expiry, double confirm, hold range, backordered then allocated, lot expiry order, expired lots skipped, serial reservation order, pick then ship, partial ship, pick/ship state errors, cancel (and cancel after ship), reservation expiry via the now argument, list status filter, clerk role check, available/incoming/backordered.
+- Check: `python3 -m unittest tests.test_sales 2>&1 | tail -5` -> Ran 23 tests, OK. `python3 -m py_compile` on the three files: clean.
+- Not run: the full test suite and the program (per rules).
+- Changes to shared files: none (no changes.md rows needed).
+- Note: no EnterWorktree tool was among my tools; I worked in place in the existing worktree (cwd already a git worktree). No commit made.
+
+In progress
+- Nothing open in my section.
+
+Next step
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest discover -s tests -t . 2>&1 | tail -5` to check the whole suite with po.py and the other modules in place. po.incoming is imported lazily in available; test_available_and_incoming_and_backordered exercises it and passed, so po.py exists in this tree.
+- If the lead wants `so show` to include the hold for draft orders, that is a design choice: currently hold is null until confirm.
+
+Do not redo
+- Ran the module tests after fixing two test-ordering bugs (price set before product add in test_expired_lots_are_skipped and test_serials_reserved_in_location_order). Both now pass; no source change was needed for them.
+- Checked the untracked reservation sort key: location-only, per spec "for other products by location". The earlier (lot, loc) key was a bug and is fixed.
+- Checked that `_status` returns "shipped" only when every line has shipped >= qty; partially shipped needs any line with shipped > 0. Tests cover both.
+- Checked that cancel refuses when doc_moves exist for the order (via test_cancel_after_ship_is_error).
