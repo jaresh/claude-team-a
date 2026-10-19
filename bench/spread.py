@@ -119,7 +119,10 @@ def main():
         print("\nNoise floor (a difference this size or smaller is a tie): " +
               ", ".join(f"{key} {v}" for key, v in floor.items()))
 
-    kits = sorted({r.get("kit") for r in runs if r["mode"] == "team"}, key=lambda v: [int(x) for x in v.split(".")])
+    def kit_key(v):   # "3.12+intake-hook" sorts after "3.12"
+        base, _, variant = (v or "0").partition("+")
+        return [int(x) for x in base.split(".")], variant
+    kits = sorted({r.get("kit") for r in runs if r["mode"] == "team"}, key=kit_key)
     kit = sys.argv[sys.argv.index("--kit") + 1] if "--kit" in sys.argv else kits[-1]
     other = f"team, kit {sys.argv[sys.argv.index('--vs') + 1]}" if "--vs" in sys.argv else "solo"
     arm = sys.argv[sys.argv.index("--arm") + 1] if "--arm" in sys.argv else "team"
