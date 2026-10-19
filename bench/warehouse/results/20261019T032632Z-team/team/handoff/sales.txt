@@ -1,0 +1,33 @@
+Done
+- wms/sales.py: commands so create, so confirm, so allocate, so pick, so ship, so cancel, so show, so list.
+  Helpers: _order, _lines, _customer, _hold, _ship_loc, _parse_line, _group, _candidates, _reserve_missing, _money, so_json.
+  Audit actions so.create, so.confirm, so.allocate, so.pick, so.ship, so.cancel.
+  Stock changes go only through engine.post (pick: loc -> WH/SHIP, unreserved=False; ship: from WH/SHIP, to None).
+- tests/test_sales.py: 26 test methods, all through the CLI, with SQL reads for stock, reservations and audit.
+  Fixed test_list_filters_by_status (lines 242-243): expectations are now ['SO-0001', 'SO-0002'] for the full list and ['SO-0002'] for --status draft.
+  That edit was made in this session. Before it, the file on disk had ['SO-0001', 'SO-0001'] and ['SO-0001'], which were wrong. I did not check who changed them.
+- Check: `python3 -m unittest tests.test_sales tests.test_core` from the worktree root gives Ran 29 tests, OK (26 sales + 3 core).
+- No shared files edited, so no rows in .claude/team/changes.md. Nothing committed.
+- Scratch folder: .claude/team/scratch/sales/ (debug script removed).
+
+Design choices (spec-consistent; verify if the lead disagrees)
+- DEFAULT_HOLD = 48 hours; --hold must be 1 to 720.
+- Pick sets the reservation's line only when the picked group holds one order line; multi-line groups keep line None.
+- Cancel is refused when anything shipped, or when already cancelled. Picked stock stays in WH/SHIP and the order's picked rows are deleted (spec: "picked stock stays in SHIP").
+- Expiry: confirm sets reservation expiry to now + hold; allocate resets unpicked reservations to now + hold; picked rows get expires NULL.
+- so show: prices null before confirm; expires = MIN(expires) of 'reserved' rows, or null.
+
+In progress
+- Nothing. Done check passes.
+
+Next step
+- Lead: review tests/test_sales.py lines 242-243 if you want to confirm the edit, then run from /home/jaca/claude-team-a/bench/work/warehouse-team:
+    python3 -m unittest tests.test_sales tests.test_core
+  Expected: Ran 29 tests, OK.
+
+Do not redo
+- engine.post, stock_sub, reserved_qty (counts reserved and picked rows), serials_at, reserved_serials, lot_expiry, price_order(ctx, customer, lines, today), fmt_qty, and so_status / so_line_qtys were checked against sales.py. No changes needed.
+- The shipping location type is 'shipping' (catalog.py).
+- The lot and serial tests need STANDARD prices. First-order ids are SO-0001.
+- The list assertion failure was a wrong test expectation, not a sales.py bug: the CLI returns SO-0001 and SO-0002.
+- Spec section 8 cancel and pick rules (spec.md lines 91-94) match sales.py.

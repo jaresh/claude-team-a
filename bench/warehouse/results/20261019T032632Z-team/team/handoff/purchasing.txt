@@ -1,0 +1,21 @@
+**Done**
+- Files: wms/purchasing.py (new), tests/test_purchasing.py (new, 11 tests with test_core: all pass).
+- Commands: po create (manager), po receive (clerk), po close (manager), po show (viewer), po list [--status] (viewer).
+- Check: `python3 -m unittest tests.test_purchasing tests.test_core` -> Ran 11 tests, OK.
+- Shared files: none edited, so no changes.md rows.
+- Helper: `po_json(ctx, po_id)` is public in wms/purchasing.py (the object shape of spec section 6); other modules may import it.
+- Audit: po.create, po.receive, po.close (target PO id). Receipts also write the usual `receive` movement with ref PO id, line N.
+- Uses engine.do_receive(..., ref=PO, line=N) and status.po_status / po_line_received; value_received = sum of non-voided receive movement values with ref PO.
+- 5% overage: limit = ordered * 1.05 quantized DOWN to 1 (each) or 0.001 (kg); received incl. this receipt must be <= limit.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for this task. Lead: run `python3 -m unittest discover -s tests -t .` once all wave-1 modules exist.
+
+**Do not redo**
+- Kg zero prints as "0.000" (format per spec section 1), so the closed-PO test expects '0.000' for kg lines.
+- Supplier: spec gives no rule; I only reject empty or whitespace-only names (no length limit, stored as given). Lead may want a spec rule added.
+- Receive into a SHIP location is rejected by engine.do_receive (receiving/storage only), tested.
+- No other checks were needed; po close only accepts open/partial (per spec); a received PO cannot be closed.

@@ -1,0 +1,19 @@
+**Done**
+- Created wms/server.py: `serve` command (--port, default 8080), make_server, Handler (GET/POST/PATCH), routing and auth (401/403/404), body helpers, ETag/If-Match for PATCH /products/SKU, idempotency for POST under LOCK with a separate connection, and the routes from spec section 14: GET /products, GET /products/SKU, PATCH /products/SKU, POST /receipts, POST /sales-orders, GET /sales-orders/SO, POST /sales-orders/SO/confirm, GET /stock, GET /valuation.
+- Created tests/test_server.py: 30 tests (auth, 403, 404s, pagination, ETag, PATCH 428/412/200, null clears min/max, JSON-number 400, receipts, orders and confirm, failed request changes nothing, idempotency replay/409/stored-400 replay, concurrent confirms never over-reserve).
+- Check: `python3 -m unittest tests.test_server` -> Ran 30 tests, OK (about 50 s).
+- Shared files: none edited. No entry added to .claude/team/changes.md. Nothing committed. Did not launch `python3 -m wms serve` end to end.
+
+**In progress**
+- Nothing. Work is complete for the server section.
+
+**Next step**
+- Lead: run `python3 -m unittest tests.test_server` once more after the core and other modules are merged, and run `python3 -m wms --db /path/t.db serve --port 8080` once manually to confirm app.main dispatches `serve` to `wms.server.serve`. The serve command handler itself raises UserError (its real work is in serve(args)), so app.main must call serve(args) before run().
+
+**Do not redo**
+- `receive --at` is a location code (WH1/A-01), not a time. The receipts body field `at` is passed to `--at` as the location; the movement time comes from the X-Now header. I checked this against stock.py `_setup_receive` and the do_receive call. An earlier draft of the tests used a timestamp for `at`, which gave 404 (unknown location).
+- Test setup goes through the CLI via `self.ok(...)` (in Wms.basic), so every test spends about 1.5 s on subprocesses. The 50 s run time is from that, not from the server. Speed-up option: build the fixture in-process with wms.app.execute.
+- Concurrency: five 4-unit orders against 10 BOLT. The test asserts all confirms return 200, every line reserved in 0..4, and the sum is exactly 10. Shortfalls become backorders, so losing orders are not errors.
+- Idempotency: the row is written after execute, in a separate autocommit connection, both under LOCK. A crash between the commit and the INSERT would leave the command applied without a stored response. This is a known window, not handled.
+- Decisions to review (not spec-mandated): a malformed If-Match returns 412 (not 400); unknown query params are ignored; unknown body keys return 400; any UserError starting with `unknown ` returns 404 (this also covers an unknown SKU in a receipt body and an unknown customer in SO create); a method with no matching route returns 404 (no 405).
+- Only files I changed: wms/server.py, tests/test_server.py, this handoff. Nothing else in the repo was touched.

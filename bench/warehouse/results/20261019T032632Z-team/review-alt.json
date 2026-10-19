@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 7,
+    "correctness_risks": 6,
+    "error_handling": 8,
+    "data_safety": 8,
+    "tests": 6,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "wms/server.py `_run_request` maps user errors to 404 with `str(e).startswith('unknown ')`, so the HTTP status depends on message wording and any reworded error silently becomes a 400.",
+    "wms/server.py routes build CLI argv lists and call `app.execute`, which re-parses them with argparse. The HTTP layer is coupled to CLI flag syntax, and values such as serials containing ',' or ':' need ad-hoc rejection.",
+    "wms/server.py and wms/app.py serialize every request, including reads, behind one global `LOCK`. `handle` also writes the idempotency record on a separate connection after the request has committed, so a crash between the two loses the key.",
+    "wms/reports.py `_replayed_levels` and `_in_transit` rebuild history for `stock --at` and `valuation --at` by replaying all movements. This is O(n) per call and relies on movement `at` ordering matching id order. `_backordered` and `_available` also pull whole tables and filter them in Python.",
+    "wms/engine.py `post` and `void_movement` are long and hold branching for every movement type and costing method, with the costing side effects (`cost_in`, `cost_out`, `snap`, `costfn` closures) entangled. The fifo/average void rules are hard to verify by reading.",
+    "tests/test_core.py `test_fifo_scrap_void` contains a dead `... if False else None` statement. Tests lean on a shared `basic()` helper, and from the part I read, edge cases (expiry, partial receipts, concurrency, rounding) are thinly covered."
+  ],
+  "strengths": [
+    "Money and quantities are Decimal throughout and stored as TEXT. SQL is always parameterized, and the half-up rounding helpers are centralized in util.py.",
+    "Each command runs in a single BEGIN IMMEDIATE transaction that rolls back on any exception. UserError maps uniformly to `error: ` on stderr with exit code 2, and reservation expiry is applied up front inside that same transaction.",
+    "Command registration through a registry with per-command roles keeps modules cohesive (catalog, products, purchasing, sales, transfers, returns, reports). The HTTP and CLI paths share one execution path and one permission check."
+  ],
+  "review_cost": 0.3509,
+  "model": "sonnet"
+}

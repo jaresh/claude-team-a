@@ -1,0 +1,23 @@
+**Done**
+- Created wms/reports.py: commands `stock` (viewer), `available` (viewer), `valuation` (viewer), `aging` (viewer), `reorder` (viewer). Shared private helpers: _available, _incoming, _backordered, _levels_now, _levels_at, _in_transit, _current_levels, _replayed_levels.
+- Created tests/test_reports.py: class Reports(Wms) with 6 tests (stock current, stock --at replay, available/incoming/backordered, valuation now/--at/in-transit, aging buckets, reorder). Includes UserError cases: unknown warehouse, unknown SKU, bad --at, bad date. Helper method is named `sql` (direct SQLite insert for PO/SO/reservation/transfer rows owned by other teammates).
+- Check: `python3 -m py_compile wms/reports.py tests/test_reports.py` OK. `python3 -m unittest tests.test_reports tests.test_core` -> Ran 9 tests, OK.
+- No shared files edited (changes.md untouched). No commits.
+
+**In progress**
+- Nothing in progress. Task complete.
+
+**Next step**
+- Lead: run `python3 -m unittest discover -s tests -t .` once all teammates finish, and commit with the other teammates' work.
+- Optional follow-up not covered by my tests: serial-tracked stock in `stock` / `stock --at` (serials JSON parsing in _replayed_levels assumes a JSON list in movements.serials), lot-tracked rows (lot_out maps '' to null), and fifo valuation via mv_wh for non-trivial costs.
+
+**Do not redo**
+- Column names checked against wms/db.py SCHEMA (locations.name/wh/type, movements.frm/to_, transfers.frm/to_/status/out_mv/in_mv, layers.wh/at/remaining/unit_cost, po.closed, so.state, reservations.state). All match the code.
+- Helper signatures checked: engine.reserved_qty(ctx,sku,loc,lot=NO_LOT) with NO_LOT=''; engine.serials_at(ctx,sku,loc) -> sorted list; engine.wh_state(ctx,sku,wh); engine.get_mv(ctx,id) -> row; util.parse_time/parse_date return the validated string; fmt_qty accepts a string or Decimal.
+- Assumptions (not in spec text, decided by me):
+  - `stock --at` output has no `reserved`/`available` keys (replay has no reservation history).
+  - `aging` counts only fifo products (average costing has no layers) and uses days = report date − layer date; <=30 includes negative ages (layers dated after --at); 0-30 / 31-90 / 91+ by age.
+  - `available`: backordered counts only SO lines of orders with state 'confirmed' (derived statuses partially_shipped/backordered are included through this state); closed POs are excluded from incoming.
+  - `valuation` total = sum of stock values (rounded per row, round2) + in-transit transfer values; rows with qty <= 0 are omitted.
+  - `reorder` only lists products with min set and projected < min; suggest = (max if set, else min) − projected; `max` is null in output when unset.
+- The lead's own test_core.py passes unchanged with my module loaded.

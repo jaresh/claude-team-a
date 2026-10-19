@@ -1,0 +1,24 @@
+**Done**
+- Created wms/returns.py: `return create` (manager) and `return list [--order SO]` (viewer). Output objects follow spec section 10: id, order, line, sku, qty, condition, to, lot, serials, unit_cost, value, credit.
+- Good return: validates --to as a storage location of the order's warehouse, posts engine.post(ctx, 'return', ...) with ref=RT id and line, and stores value = the movement value. Damaged return: no movement, value "0.00", unit_cost still computed and shown; --to with damaged is rejected.
+- unit_cost = round4(sum of the line's ship movement values / shipped qty). credit = round2(qty * so_lines.net / so_lines.qty).
+- so_lines.returned is incremented by qty for both conditions. Returnable qty is capped at shipped minus returned for the line. For lot products the lot must be shipped on that line and not over-returned. For serial products the serials must be shipped on that line and not already returned.
+- Audit entry `return.create` with target = RT id.
+- Created tests/test_returns.py: 9 tests (good return costs and credit, damaged return, cumulative cap, location rules, unknown order/line, lot rules with two lots, serial rules, tracking-arg rules, return list with --order filter).
+- Check: `python3 -m unittest tests.test_returns` -> Ran 9 tests, OK.
+- No shared files edited; changes.md untouched. Nothing committed. Scratch folder not used.
+- Working directory: the cwd was already a git worktree (warehouse-team); I did not call EnterWorktree.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: review wms/returns.py and tests/test_returns.py, then run `python3 -m unittest discover -s tests -t .` for the whole suite (not run by me).
+- Optional follow-up not covered by tests: the audit row for return.create (no audit-list test here) and the viewer role on `return list` (tests run as admin).
+
+**Do not redo**
+- Checked engine.post: returns the movement row (get_mv is a raw row, so `['value']` works). get_loc returns the locations row with name, wh, code, type.
+- Checked check_tracking_args: untracked products fail with "X is not tracked: no --lot/--serial"; lot-tracked products need --lot and --expires on receive.
+- Lot-level and line-level caps: the line-level message ("only N of line L can be returned") fires first, so the lot-level cap is only reached when a line was shipped from more than one lot (test covers it).
+- Expected value check: unit cost is a line average, so a partial lot return is not necessarily lot cost times qty (test expects 3.1667 unit cost and 6.33 value for 2 units).
+- Assumption: damaged returns do not restore stock and do not touch the reservation or stock tables. A movement-list check for "no return movement on damaged" was not written.

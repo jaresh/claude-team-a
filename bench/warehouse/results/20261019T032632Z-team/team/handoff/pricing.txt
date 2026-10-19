@@ -1,0 +1,21 @@
+**Done**
+- Created `wms/pricing.py`: `price_order(ctx, customer, lines, today)` per the contract. Helpers: `customer_list`, `list_price`, `unit_price`, `line_percent`, `order_percent`. Pure, no writes. Returns `{'lines': [{'unit_price','gross','discount','net'}...], 'subtotal','order_discount','total'}`, all Decimal, in input order.
+- Created `tests/test_pricing.py`: 8 tests (standard price, customer tiers and STANDARD fallback, no price error, unknown customer error, line promo max and date inclusivity, order promo threshold on subtotal after line discounts and expiry, half-up rounding per line and per order, line order and empty order). Rows are inserted by SQL on a temp DB via `wms.db.connect` and `create_schema`; no CLI needed.
+- Check: `python3 -m unittest tests.test_pricing tests.test_core` -> Ran 12 tests, OK.
+- No shared files edited; no changes.md line needed.
+
+**Assumptions**
+- An unknown customer name raises `UserError('unknown customer: NAME')` inside `price_order`. Sales can rely on this or check first.
+- A line with no price in the customer's list or STANDARD raises `UserError('no price for SKU')`.
+- The customer's list is skipped when `price_list` is NULL. A list that has a SKU price only above the line qty falls back to STANDARD, per spec section 7.
+- Totals use `round2` over the sum of nets, so an empty order gives `'0.00'`.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for pricing. Sales can call `from wms.pricing import price_order` and use `price_order(ctx, customer, [(sku, qty), ...], ctx.today)`.
+
+**Do not redo**
+- Ran the two test modules: all 12 pass. The pricing module was not run through the CLI because there is no `price set` or `promo add` command yet (catalogue is still in progress), so only the SQL-seeded path is covered.
+- Checked the tie-break for `order_percent` on threshold equal to subtotal: the threshold is inclusive (`<=`), per spec, and is covered by `test_order_promo_threshold_uses_subtotal_after_line_discounts`.

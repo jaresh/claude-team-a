@@ -1,0 +1,139 @@
+{
+  "bench": "warehouse",
+  "mode": "team",
+  "arm": "team",
+  "claude_args": "",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "219b3f7797b5",
+  "kit": "3.13",
+  "started": "2026-10-19T03:26:32Z",
+  "ended": "2026-10-19T03:56:39Z",
+  "accept_passed": 61,
+  "accept_total": 62,
+  "accept_tiers": {
+    "T1": [
+      30,
+      31
+    ],
+    "T2": [
+      21,
+      21
+    ],
+    "T3": [
+      10,
+      10
+    ]
+  },
+  "own_passed": 108,
+  "own_total": 108,
+  "python_lines": 4013,
+  "cost": 1.5822,
+  "cost_cold": 1.5822,
+  "lead_cost": 1.3257,
+  "team_cost": 0.2565,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [
+    "sales",
+    "catalogue",
+    "purchasing",
+    "transfers",
+    "pricing",
+    "reports",
+    "returns",
+    "server"
+  ],
+  "lead_messages": 28,
+  "lead_peak_ctx": 94788,
+  "lead_compactions": 0,
+  "team_peak_ctx": 65458,
+  "coverage": 0.93,
+  "least_covered": [
+    "wms/__init__.py (0%)",
+    "wms/errors.py (67%)",
+    "wms/__main__.py (75%)"
+  ],
+  "quality": {
+    "app_files": 21,
+    "app_lines": 2068,
+    "test_files": 11,
+    "test_lines": 1206,
+    "test_functions": 108,
+    "test_to_app_ratio": 0.58,
+    "functions": 238,
+    "mean_function_lines": 7.8,
+    "max_function_lines": 41,
+    "functions_over_50_lines": 0,
+    "mean_complexity": 3.3,
+    "max_complexity": 19,
+    "functions_complexity_over_10": 8,
+    "most_complex": [
+      "wms/catalog.py:add_product (19)",
+      "wms/engine.py:do_receive (19)",
+      "wms/returns.py:_check_shipped (18)"
+    ],
+    "docstring_coverage": 0.22,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 0,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 7,
+      "data_safety": 9,
+      "tests": 6,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "wms/server.py routes do not call the domain layer directly: each request is rebuilt as a CLI argv list and sent through app.execute and argparse, so the HTTP layer depends on CLI option syntax (for example the '--opt=value' tricks and the bans on ':' in SKUs and ',' in serials).",
+      "wms/server.py _run_request decides between 404 and 400 by checking whether the UserError message starts with 'unknown ', which is fragile: 'unknown role' and 'unknown status' come back as 404, and any reworded message silently changes the status code.",
+      "wms/engine.py void_movement, on an average-costed receipt, subtracts q and v but keeps the old last_avg, so when Q drops to 0 a later increasing adjust is still costed with an average that includes the voided receipt.",
+      "tests/test_core.py has only three tests for the whole stock, movement, costing and void section (section 4/5 edge cases such as fifo void after consumption, lot expiry conflicts, and adjusts below reserved are untested) and contains a dead `... if False else None` assertion line.",
+      "wms/products.py import_products puts several row errors into one UserError by joining them with '\\nerror: ', which ties domain code to the CLI's stderr format and gives the HTTP API odd messages; product commands are also split oddly between catalog.py and products.py with a deferred import to avoid a cycle.",
+      "The global RLock in app.py/server.py serialises every request, so the 'parallel' server is effectively single-threaded, and only UserError is caught in app.main, so any unexpected sqlite or Decimal exception escapes as a traceback instead of a clean error."
+    ],
+    "strengths": [
+      "All stock changes go through one place (engine.post, cost_in/cost_out/restore_out), with fifo consumption slices recorded explicitly, which makes voids, transfers and cancellations reverse costing exactly.",
+      "Money and quantities are stored as Decimal strings and parsed with strict regex/precision checks, every SQL statement is parameterised, and each command runs inside a single BEGIN IMMEDIATE transaction that rolls back on any error.",
+      "A small command registry declares each command's role and argument setup, so permission checks happen in one place; most tests drive the real CLI and HTTP server end to end, including idempotency replay and concurrent confirms."
+    ],
+    "review_cost": 1.0965
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 7,
+        "data_safety": 9,
+        "tests": 6,
+        "consistency": 7
+      },
+      "review_cost": 1.0965
+    }
+  ],
+  "review_alt": {
+    "model": "sonnet",
+    "overall": 7,
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 6,
+      "error_handling": 8,
+      "data_safety": 8,
+      "tests": 6,
+      "consistency": 7
+    },
+    "review_cost": 0.3509
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "app_files": 21,
+  "app_lines": 2068,
+  "test_files": 11,
+  "test_lines": 1206,
+  "test_functions": 108,
+  "test_to_app_ratio": 0.58,
+  "functions": 238,
+  "mean_function_lines": 7.8,
+  "max_function_lines": 41,
+  "functions_over_50_lines": 0,
+  "mean_complexity": 3.3,
+  "max_complexity": 19,
+  "functions_complexity_over_10": 8,
+  "most_complex": [
+    "wms/catalog.py:add_product (19)",
+    "wms/engine.py:do_receive (19)",
+    "wms/returns.py:_check_shipped (18)"
+  ],
+  "docstring_coverage": 0.22,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 0,
+  "bare_except": 0,
+  "broad_except": 2,
+  "parse_errors": []
+}

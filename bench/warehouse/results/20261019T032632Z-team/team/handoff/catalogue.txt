@@ -1,0 +1,23 @@
+Done
+- wms/products.py: product show, product list [--search], product edit (--version check and bump, --min/--max, 'none' clears, max >= min), import products FILE (utf-8-sig, csv, all row errors collected into one UserError), warehouse list, location list WH. product_obj kept unchanged.
+- wms/commerce.py (new): customer add/list, price set/list (--list filter), promo add/list.
+- tests/test_catalogue.py (new): 13 tests, all pass.
+- Check: `python3 -m unittest tests.test_catalogue tests.test_core` -> 13 tests OK (about 14 s).
+- Audit: product.edit, import (target products), customer.add, price.set (LIST/SKU), promo.add.
+- No shared files edited, so changes.md has no entry from me. Nothing committed.
+
+Assumptions
+- Customer names and CSV cell values are stripped; empty cells become None; fully blank CSV rows are skipped.
+- Files are read as utf-8-sig. Row numbers come from csv reader.line_num.
+- Zero unit prices are allowed; min qty 0 is the default.
+- Prices are stored canonically (fmt_qty / fmt4) so equal values share one primary key.
+
+In progress
+- Nothing.
+
+Next step
+- Lead runs: cd <repo> && python3 -m unittest tests.test_catalogue tests.test_core
+
+Do not redo
+- Ran the full done check; the only failure was a wrong expected audit target in my own test, now fixed.
+- Did not touch catalog.py, admin.py, engine.py, util.py or any other module.

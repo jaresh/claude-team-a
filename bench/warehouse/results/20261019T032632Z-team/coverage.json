@@ -1,0 +1,34 @@
+{
+  "coverage": 0.93,
+  "covered_lines": 1820,
+  "executable_lines": 1956,
+  "tests_passed_under_coverage": true,
+  "least_covered": [
+    "wms/__init__.py (0%)",
+    "wms/errors.py (67%)",
+    "wms/__main__.py (75%)"
+  ],
+  "per_file": {
+    "wms/__init__.py": 0.0,
+    "wms/__main__.py": 0.75,
+    "wms/admin.py": 0.855,
+    "wms/app.py": 0.884,
+    "wms/catalog.py": 0.885,
+    "wms/commerce.py": 0.988,
+    "wms/db.py": 0.974,
+    "wms/engine.py": 0.895,
+    "wms/errors.py": 0.667,
+    "wms/pricing.py": 0.977,
+    "wms/products.py": 0.979,
+    "wms/purchasing.py": 0.981,
+    "wms/registry.py": 0.9,
+    "wms/reports.py": 0.981,
+    "wms/returns.py": 0.978,
+    "wms/sales.py": 0.981,
+    "wms/server.py": 0.9,
+    "wms/status.py": 0.976,
+    "wms/stock.py": 0.847,
+    "wms/transfers.py": 0.988,
+    "wms/util.py": 0.887
+  }
+}

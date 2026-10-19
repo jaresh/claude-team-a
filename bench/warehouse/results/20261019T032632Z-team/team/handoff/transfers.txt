@@ -1,0 +1,34 @@
+Done
+- wms/transfers.py (new): transfer create (clerk), transfer receive (clerk), transfer cancel (manager),
+  transfer show (viewer), transfer list (viewer, --status in_transit|received|cancelled, ORDER BY id).
+  Uses engine.post for transfer-out / transfer-in, transfer_in_cost / transfer_back_cost for the costing,
+  check_tracking_args / check_serial_count for lot and serial rules. Audit transfer.create|receive|cancel,
+  target = TR id.
+- tests/test_transfers.py (new): 7 CLI tests (class Transfers(Wms)): FIFO round trip keeps unit cost,
+  cancel restores stock and layers (scrap 100 at WH1/A-01 = 12.00), average transfer (V=30 Q=20 -> 4kg = 6.00,
+  cancel path), reserved stock cannot leave (98 reserved, 3 rejected, 2 accepted), locations/roles/errors,
+  lot and serial (count must match, serials move with the transfer), audit entries.
+- Check: `python3 -m unittest tests.test_transfers tests.test_core` -> Ran 10 tests in 13.231s, OK.
+- No shared-file edits; .claude/team/changes.md not touched. Nothing committed. Did not launch the program.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- Lead: review wms/transfers.py and tests/test_transfers.py, then run
+  `cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest discover -s tests -t .`
+  for the whole suite (other teammates' modules not checked by me).
+
+Do not redo
+- Checked: helpers.Wms.cli passes --user through, so the user= role checks in the tests really exercise roles.
+- Checked: reservations schema (so, line, sku, loc, lot, serial, qty, expires, state) matches the SQL insert in the test.
+- Checked: no name shadows a unittest method (helpers are second_warehouse, fifo_setup).
+- Checked: no unused imports in wms/transfers.py.
+- Note: I wrote files in the shared checkout without calling EnterWorktree (the write succeeded). The lead should know.
+
+Assumptions
+- Unknown --status value and unknown TR id in show/receive/cancel are UserError (exit 2).
+- Destination may be a storage or receiving location in another warehouse; shipping is rejected.
+- Source must be storage; same-warehouse transfers are rejected (use move).
+- Only unreserved stock can be transferred (enforced by engine.post).
+- transfers.in_mv is set on receive and on cancel (the value written by the cancel movement).
