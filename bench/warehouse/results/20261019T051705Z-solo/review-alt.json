@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 6,
+    "correctness_risks": 5,
+    "error_handling": 7,
+    "data_safety": 7,
+    "tests": 4,
+    "consistency": 6
+  },
+  "overall": 6,
+  "issues": [
+    "wms/cmds_a.py cmd_movement_void: the average-cost void check scans all later movements of the SKU and only compares src/dst warehouses. It misses later adjusts, returns and cost changes, and it reverses fifo layers with ad-hoc logic that is hard to verify. Voiding a move or an adjust is also not checked against reservations or lots.",
+    "wms/cmds_b.py cmd_so_ship and cmd_so_pick: cost_out is applied per (line, lot) group, and so_status derives 'shipped' from line quantities. Partial shipments, and picks that cover only part of an order, are fragile. Reservation expiry is matched with `expires<=?` on string timestamps, with no per-order hold handling for partially picked orders.",
+    "wms/cmds_a.py cmd_valuation and replay: `--at` replays the whole movements table in Python and rebuilds layer state from layer_events. This is O(n) per call and duplicates the costing logic. The average-cost value comes from summing movement values, which can drift from the real V when voids and transfers are involved.",
+    "wms/server.py _handle and the cli module: the server takes a global threading.Lock and opens a new connection per request. Idempotency is bolted on with manual BEGIN/ROLLBACK/COMMIT juggling, and server.py imports check_user from cli.py. The HTTP layer is therefore tangled with the CLI layer, and the transaction code is duplicated in cli.run_command.",
+    "tests/test_wms.py: all the tests are broad, multi-assertion flow tests in a single 306-line file. Whole sections have no direct tests: returns of damaged goods, promotions and pricing tiers, rounding, price lists, reservation edge cases, void rules for average costing, most HTTP endpoints, and concurrency beyond one scenario.",
+    "wms/cmds_a.py and wms/cmds_b.py: all quantities and money are stored as TEXT columns and re-parsed with D() everywhere. Functions use very short names (q, q1, x, c, a, p, L), and the code relies on star imports (`from .core import *`). Handlers take loose dicts, and the CLI and HTTP layers pass differently named keys (frm, serial vs serials), which hurts readability and consistency."
+  ],
+  "strengths": [
+    "Decimal is used consistently with explicit half-up quantize helpers, and all SQL is parameterized. Each command runs in a single BEGIN IMMEDIATE transaction that rolls back on any UserError, so commands are atomic.",
+    "The CLI uses a declarative command table that holds role, handler and options, with central user and permission checks and a uniform 'error: ' / exit code 2 path.",
+    "Costing is kept in cost layers, consumption records (cons table) and layer events, so voids and transfers can restore the exact layers. The tests also include a snapshot check that failed commands change nothing."
+  ],
+  "review_cost": 0.3791,
+  "model": "sonnet"
+}

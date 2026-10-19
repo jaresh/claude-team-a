@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 6,
+    "correctness_risks": 6,
+    "error_handling": 6,
+    "data_safety": 8,
+    "tests": 6,
+    "consistency": 6
+  },
+  "overall": 6,
+  "issues": [
+    "cmds_a.cmd_movement_void and cmds_b.cmd_return_create call core.ser_insert without checking whether the serial was received again in the meantime, so voiding a scrap or returning a serial that is back in stock raises sqlite3.IntegrityError, and cli.run only catches UserError, so the user gets a traceback instead of an `error:` line with exit code 2.",
+    "Lookups in core (get_product, get_wh, parse_loc) and cmds_b (get_so, get_tr) raise a plain UserError instead of the existing NotFound subclass, so server._handle returns 400 rather than 404 for unknown SKUs, customers and warehouses in POST /receipts and POST /sales-orders; the routes that do return 404 each work around this with their own pre-check.",
+    "The layers leak into each other: cmds_a.incoming_qty and cmds_a.backordered_qty import cmds_b inside the function to get around a circular import, server.py imports check_user from cli.py, and server.r_receipt repeats the audit call from cmds_a.cmd_receive instead of sharing one command function.",
+    "core.increase_unit picks the 'newest layer ever' by sorting non-voided layers by their original time, so layers that came in by transfer (which keep their source time) and voided layers can give the wrong unit cost for an increasing adjust.",
+    "cmds_a.cmd_import_products builds the multi-row error report by joining messages with \"\\nerror: \" so that it lines up with the prefix cli.run adds, which ties the domain code to how the CLI formats errors; also, cli.run ignores `--json` and always prints JSON.",
+    "Reports scale badly: cmds_a.cmd_valuation runs one layer_events query per layer and replays every movement, cmd_reorder rebuilds po_lines_info for every PO for every product, and mv_obj/tr_obj/rt_obj each run one query per row to look up the unit."
+  ],
+  "strengths": [
+    "Decimal is used everywhere, with a single half-up quantize helper (util._q) and parsing that checks the string format, so a JSON number or a float can never get in; every SQL statement is parameterised.",
+    "Each command runs inside one BEGIN IMMEDIATE transaction that rolls back on any exception and runs expire_reservations first; the HTTP server adds a lock and records idempotency results even for requests that failed.",
+    "The test helper `bad` snapshots every table before and after a failing command, so each user-error test also checks that nothing changed; the tests cover FIFO and average costing, voids, lots and serials, expiry, transfers, idempotency and a concurrency case."
+  ],
+  "review_cost": 0.9822
+}

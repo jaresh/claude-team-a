@@ -1,0 +1,4 @@
+agent          model       effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:6c348aca  sonnet-5-5            18     21     36   124411  1599579   86121        0    124413         10            0  1.6788
+TOTAL          sonnet-5-5            18     21     36   124411  1599579   86121        0    124413         10            0  1.6788
+total $1.6788
