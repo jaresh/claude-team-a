@@ -1,0 +1,27 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 5,
+    "correctness_risks": 6,
+    "error_handling": 8,
+    "data_safety": 8,
+    "tests": 5,
+    "consistency": 7
+  },
+  "overall": 6,
+  "issues": [
+    "wms/core.py: `Base` holds users, products, locations, stock, costing, movements and reports in one 800-line class, and `post()` is a long function that branches on the movement type for costing, so the domain layer is hard to follow or extend.",
+    "wms/server.py: `handle` runs the Idempotency-Key lookup, the command and the response save in separate SQLite connections under one global `LOCK`. A crash between the command and the save leaves a committed change with no stored response. The lock also serialises every request, including reads.",
+    "wms/core.py `aging`: it reads the current `remaining` of each layer, so `--at DATE` in the past is wrong whenever stock has been consumed since. `valuation --at` and `stock --at` rebuild history from `valhist` and the movements instead, so the three are inconsistent.",
+    "wms/docs.py `_avail_parts` and `_so_status`: they run per-order and per-line SQL in Python loops (N+1 queries). The reservation-sum query is repeated in `_reserve`, `_so_status` and `_avail_parts`. The reserved-quantity SQL is duplicated across modules.",
+    "wms/docs.py: `next_doc` derives the next PO/SO/TR/RT id from `COUNT(*)`, which is fragile. `so_pick` and `so_ship` fire `post()` once per group with ad-hoc grouping and sorting. `return_create` mixes validation, costing and persistence in one long function.",
+    "tests/test_wms.py: all tests sit in one file and drive everything through the CLI. There are few edge cases for reservation expiry, lots and serials, partial shipments, transfers, returns, and idempotency or concurrency. Several tests chain many assertions, so a failure is hard to pin down."
+  ],
+  "strengths": [
+    "Money and quantities use Decimal and integer thousandths throughout (`pq`, `fq`, `r2`, `r4`), with no floats, and every SQL statement is parameterised.",
+    "`execute` in wms/app.py runs each command in one `BEGIN IMMEDIATE` transaction, rolls back on any exception, and `UserError` maps cleanly to exit code 2 or the HTTP status.",
+    "The costing design is coherent: FIFO layers and slices let transfers and voids restore the exact layers, and the `valhist` snapshots support `--at` queries."
+  ],
+  "review_cost": 0.3945,
+  "model": "sonnet"
+}

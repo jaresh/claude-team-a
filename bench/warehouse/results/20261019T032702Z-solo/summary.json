@@ -1,0 +1,130 @@
+{
+  "bench": "warehouse",
+  "mode": "solo",
+  "arm": "solo",
+  "claude_args": "",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "219b3f7797b5",
+  "kit": "3.13",
+  "started": "2026-10-19T03:27:02Z",
+  "ended": "2026-10-19T03:36:53Z",
+  "accept_passed": 59,
+  "accept_total": 62,
+  "accept_tiers": {
+    "T1": [
+      30,
+      31
+    ],
+    "T2": [
+      21,
+      21
+    ],
+    "T3": [
+      8,
+      10
+    ]
+  },
+  "own_passed": 14,
+  "own_total": 14,
+  "python_lines": 2217,
+  "cost": 1.5126,
+  "cost_cold": 1.5126,
+  "lead_cost": 1.5126,
+  "team_cost": 0,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [],
+  "lead_messages": 13,
+  "lead_peak_ctx": 118112,
+  "lead_compactions": 0,
+  "team_peak_ctx": 0,
+  "coverage": 0.817,
+  "least_covered": [
+    "wms/__main__.py (0%)",
+    "wms/__init__.py (50%)",
+    "wms/db.py (50%)"
+  ],
+  "quality": {
+    "app_files": 9,
+    "app_lines": 1685,
+    "test_files": 1,
+    "test_lines": 282,
+    "test_functions": 14,
+    "test_to_app_ratio": 0.17,
+    "functions": 134,
+    "mean_function_lines": 11.3,
+    "max_function_lines": 55,
+    "functions_over_50_lines": 2,
+    "mean_complexity": 5.1,
+    "max_complexity": 46,
+    "functions_complexity_over_10": 14,
+    "most_complex": [
+      "wms/server.py:_route (46)",
+      "wms/docs.py:return_create (34)",
+      "wms/core.py:stock (27)"
+    ],
+    "docstring_coverage": 0.03,
+    "duplicate_share": 0.001,
+    "float_calls": 0,
+    "sql_built_from_strings": 0,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 6,
+      "readability": 5,
+      "correctness_risks": 7,
+      "error_handling": 6,
+      "data_safety": 8,
+      "tests": 6,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "wms/server.py handle: one global threading.LOCK serialises every request, so ThreadingHTTPServer runs nothing in parallel, and the idempotency row is written in its own connection after the command commits, so the response record is not atomic with the change it describes.",
+      "wms/server.py _route: body validation, the 428/412 If-Match checks and 404 path matching all run before execute() authenticates X-User, so an unknown or disabled user can get 400/404/428 instead of 401.",
+      "wms/cli.py main and wms/app.py execute: only UserError is caught, so sqlite3.Error/OSError (locked or unreadable db, a directory as --db) end in a traceback, and sqlite3.connect creates an empty database file even when init then fails validation, so a failed init still changes something.",
+      "wms/core.py Base.post is a catch-all with many flags (orig, xfer, ignore_reserved, unit_cost) that branches on movement type for stock, costing and valuation snapshots; together with cost_void and cost_transfer_in it is the hardest code to follow and the most fragile.",
+      "wms/core.py cost_void deletes the fifo layer when a receipt is voided, which loses the 'newest layer the product ever had' history that adjust_cost relies on, and adjust_cost orders by layer time, so layers moved in by a transfer (which keep their original time) are never picked as the newest.",
+      "Readability and consistency: cryptic helper names (q, q1, x, pq, fq, r2, whof), star imports in docs.py/app.py/server.py, DocsMixin implicitly depending on Base, untracked lots stored as '' but printed as null, po_show adding up value_received through GROUP_CONCAT and splitting the string, and N+1 queries in so_list/_avail_parts/mvobj."
+    ],
+    "strengths": [
+      "Quantities are stored as integer thousandths and money as Decimal strings, with ROUND_HALF_UP r2/r4 helpers, and every SQL value goes in as a parameter.",
+      "Each command runs in a single BEGIN IMMEDIATE transaction with rollback on any exception, so commands are all-or-nothing, concurrent writes are serialised, and reservation expiry is undone when a command fails.",
+      "The cost-layer/slice design keeps fifo transfers, transfer cancels and voids of decreases exact, and the valhist snapshots make valuation --at simple; the tests check real numbers (fifo/average values, pricing, idempotency, concurrent reservation)."
+    ],
+    "review_cost": 0.9491
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 6,
+        "readability": 5,
+        "correctness_risks": 7,
+        "error_handling": 6,
+        "data_safety": 8,
+        "tests": 6,
+        "consistency": 7
+      },
+      "review_cost": 0.9491
+    }
+  ],
+  "review_alt": {
+    "model": "sonnet",
+    "overall": 6,
+    "scores": {
+      "structure": 6,
+      "readability": 5,
+      "correctness_risks": 6,
+      "error_handling": 8,
+      "data_safety": 8,
+      "tests": 5,
+      "consistency": 7
+    },
+    "review_cost": 0.3945
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "coverage": 0.817,
+  "covered_lines": 1322,
+  "executable_lines": 1618,
+  "tests_passed_under_coverage": true,
+  "least_covered": [
+    "wms/__main__.py (0%)",
+    "wms/__init__.py (50%)",
+    "wms/db.py (50%)"
+  ],
+  "per_file": {
+    "wms/__init__.py": 0.5,
+    "wms/__main__.py": 0.0,
+    "wms/app.py": 0.906,
+    "wms/cli.py": 0.937,
+    "wms/core.py": 0.795,
+    "wms/db.py": 0.5,
+    "wms/docs.py": 0.818,
+    "wms/server.py": 0.833,
+    "wms/util.py": 0.833
+  }
+}

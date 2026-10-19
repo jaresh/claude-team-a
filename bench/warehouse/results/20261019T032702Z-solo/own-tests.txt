@@ -1,0 +1,23 @@
+/home/jaca/claude-team-a/bench/work/warehouse-solo/tests/test_wms.py:84: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp9fsvn5sf/p.csv' mode='w' encoding='UTF-8'>
+  open(f, "w").write("sku,name,unit,tracking,costing,min,max\nAAA,One,,,,,\nBBB,Two,kg,lot,average,1,2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/jaca/claude-team-a/bench/work/warehouse-solo/tests/test_wms.py:86: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp9fsvn5sf/p.csv' mode='w' encoding='UTF-8'>
+  open(f, "w").write("sku,name,unit,tracking,costing,min,max\nCCC,One,,,,,\nCCC,Dup,,,,,\nddd,x,,,,,\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+....../usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 428: 'Precondition Required'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 412: 'Precondition Failed'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 401: 'Unauthorized'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 404: 'Not Found'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+/usr/lib/python3.14/tempfile.py:484: ResourceWarning: Implicitly cleaning up <HTTPError 409: 'Conflict'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+........
+----------------------------------------------------------------------
+Ran 14 tests in 4.467s
+
+OK
