@@ -1,0 +1,125 @@
+{
+  "bench": "warehouse",
+  "mode": "team",
+  "arm": "team",
+  "claude_args": "",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "219b3f7797b5",
+  "kit": "3.14",
+  "started": "2026-10-21T18:40:39Z",
+  "ended": "2026-10-21T19:31:17Z",
+  "accept_passed": 62,
+  "accept_total": 62,
+  "accept_tiers": {
+    "T1": [
+      31,
+      31
+    ],
+    "T2": [
+      21,
+      21
+    ],
+    "T3": [
+      10,
+      10
+    ]
+  },
+  "own_passed": 124,
+  "own_total": 124,
+  "python_lines": 4622,
+  "cost": 1.0509,
+  "cost_cold": 1.0872,
+  "lead_cost": 0.6933,
+  "team_cost": 0.3575,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [
+    "setup",
+    "views",
+    "engine",
+    "po",
+    "orders",
+    "transfers",
+    "api",
+    "returns"
+  ],
+  "lead_messages": 21,
+  "lead_peak_ctx": 67675,
+  "lead_compactions": 0,
+  "team_peak_ctx": 66691,
+  "coverage": 0.947,
+  "least_covered": [
+    "wms/__init__.py (0%)",
+    "wms/__main__.py (0%)",
+    "wms/engine.py (87%)"
+  ],
+  "quality": {
+    "app_files": 13,
+    "app_lines": 2295,
+    "test_files": 12,
+    "test_lines": 1516,
+    "test_functions": 124,
+    "test_to_app_ratio": 0.66,
+    "functions": 265,
+    "mean_function_lines": 7.8,
+    "max_function_lines": 53,
+    "functions_over_50_lines": 1,
+    "mean_complexity": 3.0,
+    "max_complexity": 18,
+    "functions_complexity_over_10": 8,
+    "most_complex": [
+      "wms/cli.py:execute (18)",
+      "wms/cmd_setup.py:_import_products (17)",
+      "wms/cmd_returns.py:_check_lot_and_serials (16)"
+    ],
+    "docstring_coverage": 0.34,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 0,
+    "bare_except": 0,
+    "broad_except": 2,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 6,
+      "error_handling": 7,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 7
+    },
+    "overall": 7,
+    "issues": [
+      "wms/cmd_returns.py _create refuses any return on an order that has the same SKU on two lines, which the spec allows, because ship movements don't record their line; the unit cost and the lot/serial checks are taken over every ship of that SKU on the order rather than over the one line.",
+      "wms/cmd_serve.py Api.idempotent writes the idempotency record on a separate autocommit connection after the command's transaction has already committed, so a crash between the two leaves the change applied with no key stored, and a retry would apply it a second time.",
+      "wms/cli.py main only catches UserError, so a bad --db path, a database still locked after the 30 s timeout, or any unexpected exception crashes with a Python traceback instead of a clean error and exit code.",
+      "wms/cmd_orders.py _figures re-implements the PO received/open quantity calculation that already exists in cmd_po._lines, and the orders module also holds the available and reorder commands, which mixes responsibilities.",
+      "wms/cmd_views.py valuation --at rebuilds value by adding up movement values, while the current valuation adds up FIFO layers and rounds once, so the same moment can be valued a cent differently depending on whether --at is used.",
+      "wms/cmd_setup.py _import_products builds its multi-line stderr by joining messages with \"\\nerror: \" inside the domain code (a CLI formatting detail leaking into it); wms/engine.py _qty repeats core.parse_qty's checks, and core.movement_json contains dead code (`unit = None`, the qty_fmt branch)."
+    ],
+    "strengths": [
+      "The stock engine (engine.py) is the one place for stock and cost changes: FIFO layers, consumption records for exact restores on void or transfer cancel, and average state are handled consistently, with Decimal stored as text and parameterised SQL throughout.",
+      "Each command runs in one BEGIN IMMEDIATE transaction that is rolled back on any error, including reservation expiry; on top of that, a single API lock serialises HTTP requests, so commands are all-or-nothing and stock can't be reserved twice.",
+      "The tests are behaviour-focused and broad, run on a fresh database per test, and include rule and edge-case checks, roles, rollback-on-error, idempotency replays and concurrent HTTP confirms; a weak spot is that a few tests insert rows directly with SQL, and there are two duplicate helper modules (tests/helpers.py and tests/util.py)."
+    ],
+    "review_cost": 1.1253
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 8,
+        "correctness_risks": 6,
+        "error_handling": 7,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 7
+      },
+      "review_cost": 1.1253
+    }
+  ]
+}

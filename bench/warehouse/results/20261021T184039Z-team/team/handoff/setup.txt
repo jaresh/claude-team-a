@@ -1,0 +1,26 @@
+**Done**
+- Files created: /home/jaca/claude-team-a/bench/work/warehouse-team/wms/cmd_setup.py and /home/jaca/claude-team-a/bench/work/warehouse-team/tests/test_setup.py.
+- Commands registered in cmd_setup.py: init; user add|role|disable|list; product add|show|edit|list; warehouse add|list; location add|list; customer add|list; price set|list; promo add|list; import products; audit list.
+- Shared file change (logged in .claude/team/changes.md): wms/core.py SCHEMA. Three CREATE statements (products, layers, orders) had a trailing `-- comment` after `);` on the same line, so cli.execute's `split(";\n")` put two statements in one chunk and init failed with "You can only execute one statement at a time". Each comment now sits on its own line. No SQL text changed.
+- Check results: `python3 -m unittest tests.test_setup tests.test_core` runs 17 tests, OK. A ResourceWarning about an implicitly cleaned-up TemporaryDirectory is printed during the run. It is a warning, not a failure, and I have not traced its source.
+- Assumptions for README.md (not yet written there; the lead or the README owner must add them):
+  1. Min and max quantities must be greater than zero. Zero is rejected.
+  2. `product edit SKU --min none` or `--max none` clears the value.
+  3. The SHIP location type is `shipping`. RECV is `receiving`. `location add` accepts `storage|receiving`.
+  4. `customer add --price-list` is optional.
+  5. `user disable` on an already disabled user is a silent no-op that still writes an audit entry.
+  6. The last enabled admin cannot be disabled or demoted.
+  7. `price set` upserts on LIST+SKU+min_qty. A kg product with no min_qty is stored as "0.000".
+
+**In progress**
+- Nothing is open. The task is complete.
+
+**Next step**
+- Run `cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest tests.test_setup` and confirm it still passes. Then run the full check `python3 -m unittest discover -s tests -t .`. Other tasks' tests may still fail, and that is outside this task.
+- Add the assumptions above to README.md.
+- Note for the lead: /home/jaca/claude-team-a/bench/work/warehouse-team/wms/cmd_admin.py is stale and untracked. It is not in core.COMMAND_MODULES, and it imports a `Command` name from cli, `check` and `USER_RE` from core, and calls `ctx.all`. None of those exist. It is not mine and I did not edit it. Consider deleting it.
+
+**Do not redo**
+- Schema split: the cause was the trailing comments on `);` lines, not cli.py. The SCHEMA lines were split on `";\n"`. I checked the chunks after the fix. The only chunks with a `;` are comment-only text or a leading comment before a CREATE, and sqlite accepts both. The tests confirm this.
+- I did not edit cli.py or other teammates' cmd_ files.
+- No commit was made. Not applicable to this task (team rule).

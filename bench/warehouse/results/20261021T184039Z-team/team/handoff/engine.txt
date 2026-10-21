@@ -1,0 +1,22 @@
+**Done**
+- wms/engine.py: receive, move_stock, remove_stock, adjust_stock, void_movement, transfer_in; reads on_hand, reserved_qty, serials_at, wh_qty_value; helpers reason_text, _check_out, _add/_drop, fifo layers (_plan_fifo, _apply_plan, _restore_layers, _newest_unit_cost), average (_avg, _avg_unit, _avg_save).
+- wms/cmd_stock.py: receive (clerk), move (clerk), adjust (clerk), scrap (clerk), movement void (manager). Audit actions receive, move, adjust, scrap (target = movement id) and movement.void (target = voided id).
+- tests/test_engine.py: 12 tests, all pass: `python3 -m unittest tests.test_engine` -> Ran 12 tests, OK.
+- No core.py change, so .claude/team/changes.md not touched. Nothing committed.
+
+**In progress**
+- Nothing open in my files.
+- Not covered by tests yet: void of an increasing adjust; average void blocked by a later movement crossing the warehouse boundary; serial void; void blocked by reservation; transfer_in from average costing.
+
+**Next step**
+- `cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest tests.test_engine`
+- Once the other teammates are done: `python3 -m unittest discover -s tests -t .` (cmd_admin.py may break discovery, see below).
+
+**Do not redo**
+- Checked: parse_date returns the text, so cmd_stock passes --expires through. parse_qty already handles each/kg rules; I rely on it plus engine._qty.
+- Reason for adjust/scrap/void is validated (non-empty) but not stored: movements has no reason column. Decision for README: reason is required and checked, not kept.
+- Move's same-warehouse and not-to-SHIP checks live in cmd_stock (_move), as the plan says. Engine move_stock only checks same location and stock.
+- transfer_in rejects a shipping destination (engine). Calling transfer_in twice for one out movement is not guarded here; the transfers task must guard it.
+- adjust is allowed at any location, including SHIP (spec only says WH/LOC). Mention in README if wanted.
+- Average void of a receipt/increasing adjust: blocked when any later movement of the product crossed the warehouse boundary (includes void rows). Implemented in engine._later_crossing.
+- Not my file, flagged: wms/cmd_admin.py looks stale (imports Command from wms.cli and check/USER_RE from core, which do not exist). It is outside my task; do not edit it here; the lead should remove or fix it, or discovery may fail.

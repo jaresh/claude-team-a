@@ -1,0 +1,7 @@
+......................../usr/lib/python3.14/tempfile.py:961: ResourceWarning: Implicitly cleaning up <TemporaryDirectory '/tmp/tmp3dm7na35'>
+  _warnings.warn(warn_message, ResourceWarning)
+....................................................................................................
+----------------------------------------------------------------------
+Ran 124 tests in 13.994s
+
+OK

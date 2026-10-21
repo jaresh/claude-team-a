@@ -1,0 +1,28 @@
+**Done**
+- wms/cmd_views.py (new): commands `stock` [--warehouse, --sku, --at], `movement list` [--sku, --warehouse, --type, --since, --until], `valuation` [--warehouse, --at], `aging` --warehouse WH [--at DATE]. All registered with role "viewer".
+  - stock without --at: rows from `stock` with reserved = reservations (state reserved or picked) at the same sku/loc/lot, available = on_hand - reserved, serials from `serials`.
+  - stock --at: replays `movements` up to TIME (from_loc -qty, to_loc +qty, serials moved). Only qty > 0 rows, no reserved/available keys.
+  - valuation: now = fifo layers `remaining * unit_cost` plus avgcost.v, qty from `stock`; in_transit from transfers.status = 'in_transit'. --at = movement values replayed per warehouse; in_transit = transfers whose transfer-out is at or before TIME and with no transfer-in ref at or before TIME.
+  - aging: fifo layers with remaining > 0, bucketed 0-30 / 31-90 / 91+ by whole days from layer date to DATE (default ctx.today), round2 per bucket.
+- tests/test_views.py (new): 11 tests, direct-SQL fixture (2 warehouses, 3 products, 4 movements, layers, avgcost, transfer TR-0001 in transit, reservation SO-0001). Covers stock now/filters/--at, movement list order and filters, valuation now/--warehouse/--at, aging buckets and errors.
+- Check: `python3 -m unittest tests.test_views` -> Ran 11 tests, OK.
+- No shared files edited, so .claude/team/changes.md is unchanged. Nothing committed.
+
+**In progress**
+- Nothing in progress. The module and tests are complete for the views task.
+
+**Next step**
+- Lead: once cmd_setup exists, run `python3 -m unittest discover -s tests -t .` to check my test file alongside the others. My fixture does not depend on init.
+- Lead, optional: if wms/engine.py gets wh_qty_value, switch valuation_now() in wms/cmd_views.py to call it (the two functions return the same (qty, value) per sku/warehouse for current stock). Also reserved_qty could replace the reservations query in stock_now(). Both are local helpers today.
+
+**Do not redo**
+- Checked wms/core.py signatures: parse_time(text, what), parse_date(text, what), D, round2, fmt2, fmt_qty(d, unit), format_movement(row with unit column), wh_of, ZERO, UserError, command all exist and match use.
+- Checked spec: in-transit status is 'in_transit'; transfer-in ref is the transfer id; transfer-out has to=null. Matches the code.
+- Did not use `python3 -I` for repo code (it drops cwd from sys.path). Run from the worktree as `python3 -m ...`.
+- Did not import wms.engine: it does not exist yet. Duplication is noted above.
+
+**Notes for lead (not fixed, not my files)**
+- wms/cmd_admin.py imports `Command` from wms.cli, which no longer exists, and it is not in COMMAND_MODULES. It looks stale. It is not imported by anything I touched; please decide whether to delete it.
+- tests/util.py Env.init() calls `init` and `warehouse add`, which need wms/cmd_setup.py. My tests do not use init, so they do not depend on it.
+- Assumptions to list in README.md: (a) aging: a layer dated after DATE (negative age) is counted in 0-30. (b) fifo value at --at is the sum of movement values, while current fifo value comes from layers; they can differ by a cent from rounding. (c) stock --at omits zero-qty rows and reserved/available keys, as the spec says.
+- Scratch files: none written to .claude/team/scratch/views/.

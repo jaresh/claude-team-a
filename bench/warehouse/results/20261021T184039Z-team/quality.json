@@ -1,0 +1,27 @@
+{
+  "app_files": 13,
+  "app_lines": 2295,
+  "test_files": 12,
+  "test_lines": 1516,
+  "test_functions": 124,
+  "test_to_app_ratio": 0.66,
+  "functions": 265,
+  "mean_function_lines": 7.8,
+  "max_function_lines": 53,
+  "functions_over_50_lines": 1,
+  "mean_complexity": 3.0,
+  "max_complexity": 18,
+  "functions_complexity_over_10": 8,
+  "most_complex": [
+    "wms/cli.py:execute (18)",
+    "wms/cmd_setup.py:_import_products (17)",
+    "wms/cmd_returns.py:_check_lot_and_serials (16)"
+  ],
+  "docstring_coverage": 0.34,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 0,
+  "bare_except": 0,
+  "broad_except": 2,
+  "parse_errors": []
+}

@@ -1,0 +1,35 @@
+**Done**
+Files changed (only my two files; no shared file edited, so no line added to .claude/team/changes.md):
+- wms/cmd_orders.py: so create, so confirm, so allocate, so pick, so ship, so cancel, so show, so list, available, reorder. Pricing (spec 7), reservations, status derivation and availability (spec 6, 8, 11).
+- tests/test_orders.py: 20 tests (pricing and price breaks, line and order promos, location and lot and serial reservation order, expiry of holds, pick, ship, partial shipment then allocate, cancel, list filter, available with PO incoming, reorder with negative projected).
+Checks:
+- python3 -m unittest tests.test_orders: Ran 20 tests, OK.
+- python3 -m unittest discover -s tests -t .: Ran 92 tests, OK. The run also prints a ResourceWarning about an unclosed TemporaryDirectory. It comes from the tempfile use in tests/util.py (a shared helper, not my file) and does not fail the run. The lead may want to add cleanup there.
+- Syntax check of wms/cmd_orders.py passes.
+Environment note: EnterWorktree was not available in this session (ToolSearch could not load it). I worked in place in /home/jaca/claude-team-a/bench/work/warehouse-team, as I told the lead earlier. Nothing is committed.
+
+Assumptions (spec left these open):
+- so list prints a JSON array of so show objects, sorted by id, filtered by the derived status when --status is given. Invalid status is a user error.
+- so pick picks entries carry sku, from, lot (null for non-lot products), serials (sorted), qty (string). Sorted by source location, then SKU, then lot.
+- Lot order: earliest lot expiry first, then lot, then location. Lots with no expiry sort last. Lots that expired before today are skipped.
+- Serial order takes the lowest serial numbers first within each location.
+- Status: partially_shipped takes precedence over confirmed (spec order), so an order with a shipment and all lines reserved stays partially_shipped until fully shipped.
+- allocate and confirm reserve only at storage locations of the order's warehouse. Stock already reserved by other open orders is skipped.
+- Receiving a PO does not reserve stock for backordered orders; that happens only when allocate runs.
+- so ship sets order_lines.shipped; reservations in state picked are deleted after ship. Cancel deletes all reservation rows and leaves physically picked stock in WH/SHIP, as the spec says.
+- Hold: integer hours 1 to 720, default 48. Expiry is ctx.now + hold hours, stored in ISO format (same format as to_dt/from_dt).
+- Backordered for available: sum over stored-confirmed orders (which covers derived backordered and partially_shipped) of qty not reserved, picked or shipped, for the SKU.
+
+**In progress**
+Nothing. All tasks in the section are done and the checks pass.
+
+**Next step**
+The lead can run the done check: cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest discover -s tests -t . (expect Ran 92 tests, OK). Then review the diff for wms/cmd_orders.py and tests/test_orders.py before committing. Nothing has been committed.
+
+**Do not redo**
+- Lot key for non-lot products is '' (engine._tracked). cmd_orders uses that for stock and reservation rows, so there is no need to change it.
+- Serial products need a serial list whose length equals qty, and lot None. The pick and ship paths always pass a non-empty list for serial products.
+- Helpers used from core and engine exist with the signatures in the summary: move_stock, remove_stock, reserved_qty, serials_at, fmt_qty, need_re, from_dt and to_dt. The earlier move_stock_placeholder import is gone.
+- po create, po receive and po close already exist in wms/cmd_po.py. The orders tests use them, and they pass.
+- The price list fallback is STANDARD. Lines with no price on either list are a user error at confirm.
+- Test helper names are receive, order, confirm and available. None is named after a unittest method.

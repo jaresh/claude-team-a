@@ -1,0 +1,39 @@
+DONE
+- wms/cmd_transfer.py (new): transfer create (clerk), transfer receive (clerk), transfer cancel (manager),
+  transfer show (viewer), transfer list (viewer, --status in_transit|received|cancelled).
+  - create: same-warehouse, non-storage source, and bad destination type are rejected; the TR id is
+    taken before engine.remove_stock("transfer-out", ref=TR id); the transfers row stores value and the
+    out movement id.
+  - receive/cancel: _in_transit guard raises UserError "transfer X is <status>, not in_transit" before
+    engine.transfer_in is called, so a second receive or cancel is refused with no stock change.
+  - Lot is stored as '' when untracked and shown as null.
+- tests/test_transfer.py (new): 11 tests, all pass. Covers create shape/value/movement/audit, show and list
+  (including --status filter and unknown status), fifo layer age kept through receive, receive-twice and
+  receive-after-cancel guards, cancel restoring stock and layers, average costing, serial move, lot expiry
+  kept, error cases leaving nothing changed, and roles.
+- Checks run:
+  - python3 -m unittest tests.test_transfer: Ran 11 tests, OK.
+  - python3 -m unittest discover -s tests -t . : Ran 72 tests, OK (state of the tree at the time of the run).
+- No shared files edited, so .claude/team/changes.md is untouched. Nothing committed.
+
+IN PROGRESS
+- Nothing open. Task is complete unless the lead asks for changes.
+
+NEXT STEP
+- Lead review, then the lead's own run:
+  cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest discover -s tests -t .
+
+DO NOT REDO
+- Transfer status guard lives in wms/cmd_transfer.py (_in_transit). engine.transfer_in is not guarded (engine
+  handoff says so). Verified by test_receive_twice_or_after_cancel_is_error.
+- warehouse add already creates WH/RECV and WH/SHIP (wms/cmd_setup.py:261-262). Tests must not add them again
+  (the duplicate caused every setUp to fail, fixed).
+- Receive into a receiving location is allowed (test_create_errors_change_nothing relies on it).
+- Role ranks: manager outranks clerk, so a manager may also create/receive. Only cancel is manager-only.
+  test_roles checks viewer refused for create/receive, clerk refused for cancel.
+- Not tested: a serial that was received elsewhere while the transfer was in transit. transfer receive is
+  expected to fail with the engine's serial error and roll back, but no test covers it.
+- A ResourceWarning ("Implicitly cleaning up TemporaryDirectory") shows in the discover output. I did not trace
+  it. It does not come from tests.test_transfer, which runs clean on its own.
+- wms/cmd_admin.py: the engine handoff says it is stale (imports Command from wms.cli and check/USER_RE from
+  core, which do not exist). Not my file, not touched. The full discover run did not fail on it in this run.

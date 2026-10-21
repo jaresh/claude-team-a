@@ -1,0 +1,23 @@
+**Done**
+- wms/cmd_serve.py (new): HTTP API of spec section 14, stdlib only. Api class (db path, one threading.Lock around every request, ensure_schema at start), Handler (BaseHTTPRequestHandler, JSON in and out, no request log), make_server(db, port) (ThreadingHTTPServer on 127.0.0.1), and the `serve` command (@command("serve", "viewer"), --port default 8080, validated 0..65535).
+- Routes: GET /products (limit 1..100, default 50; after=SKU; search=TEXT; next=SKU or null), GET /products/SKU (ETag), PATCH /products/SKU (If-Match required; name, min, max; JSON null clears min or max), POST /receipts (201), POST /sales-orders (201), GET /sales-orders/SO (200), POST /sales-orders/SO/confirm (200, body {"hold": HOURS}), GET /stock (warehouse, sku), GET /valuation (warehouse).
+- Every request runs through cli.execute with X-User and X-Now headers. Errors: UserError 400, NotFound 404, Unauthorized 401, PermissionDenied 403, API's own 412 (ETag mismatch), 428 (no If-Match), 409 (idempotency key reused with other path or body), 500 (any other exception).
+- Idempotency: POST with Idempotency-Key is stored in table idem (key, path, body, status, response) for any status. Same key, path and canonical body (JSON re-encoded with sorted keys) replays the stored status and body. Different path or body gives 409. Runs under the global lock.
+- tests/test_api.py (new): 23 tests against a real server thread on port 0 with urllib. Covers pagination, limits, search, ETag and PATCH (428, 412, 200, null clearing, 400, 403), receipts (201, number qty 400, 401 for missing, unknown and disabled user, 403 for viewer, failed request changes nothing), sales order create, show, confirm and errors, stock and valuation equal to the CLI output, 404 for unknown paths and methods, idempotency (replay, spacing and key order, 409 for other body or path, failed response replayed, 8 concurrent POSTs with one key run once), 12 concurrent confirms never reserve more than on-hand, missing X-User gives 401.
+- Checks: `python3 -m unittest tests.test_api` gives 23 OK. `python3 -m unittest discover -s tests -t .` gives 124 tests OK (all teammates' tests included at the time of the run).
+- Files changed: wms/cmd_serve.py, tests/test_api.py, this handoff. No shared files edited, so changes.md has no new line. No commits.
+
+**In progress**
+- Nothing in progress. Real `serve` command is not run or tested: it is blocked by the cli.py issue below.
+
+**Next step**
+- Lead decision needed in wms/cli.py (not my file): `cli.execute` wraps every handler in BEGIN IMMEDIATE and COMMIT. The `serve` handler calls serve_forever inside that transaction, so the write lock is held for the whole server life and every API request's own cli.execute waits for the 30s sqlite timeout and fails. Proposed fix: in cli.execute, before BEGIN IMMEDIATE, if the command words are ("serve",), run the handler directly with a ctx outside any transaction (or move the serve dispatch to wms/cli.main). Then check: `python3 -m wms serve --port 8099 &` followed by `curl -H 'X-User: admin' http://127.0.0.1:8099/stock`. The `ctx.one("PRAGMA database_list")` call in `_serve` is also untested for the same reason.
+- Nothing else is needed from me for the api task.
+
+**Do not redo**
+- Short stock does not raise in confirm: _reserve takes what is free and the order shows the shortfall. The concurrency test relies on this.
+- split_serials accepts a list as well as a string, so serials_arg passes a list.
+- valuation's --warehouse is optional in the CLI, so GET /valuation without warehouse returns 200 for all warehouses (as `valuation` does). Spec says ?warehouse=WH; I kept it optional rather than invent an error.
+- Unknown location, product or order gives 404 (from core.NotFound), not 400. Test expectations were corrected to match.
+- Pytest-free; ResourceWarning lines in the run output come from tempfile cleanup in tests/util.py, not from failures. Not my file.
+- Decisions for README (lead): unknown query parameters and unknown body keys are 400; a body that is not a JSON object is 400; unknown path or unsupported method (e.g. DELETE) is 404 with an error body; 428 is checked before body parsing and before auth, so an unknown user with no If-Match gets 428; the idem row is written after the command's transaction commits (so a crash between the two could re-run a POST, stock is not affected); the idempotency key is global (not per user), as the spec's key+path+body rule implies; X-Now absent means real time; min and max in PATCH take JSON null (the literal string "none" is rejected).

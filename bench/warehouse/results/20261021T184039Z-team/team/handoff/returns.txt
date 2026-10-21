@@ -1,0 +1,30 @@
+**Done**
+- wms/cmd_returns.py (new): `return create` (manager) and `return list [--order SO]` (viewer), registered through the existing COMMAND_MODULES entry `wms.cmd_returns`.
+- tests/test_returns.py (new): 9 tests, all passing (good/damaged, average costing, storage-location and --to rules, quantity limits and roles, lot rules, serial rules, duplicate-SKU refusal, list filter, audit).
+- Done check: `python3 -m unittest discover -s tests -t .` gives Ran 101 tests, OK.
+- No shared files edited (core.py, cli.py, engine.py, cmd_orders.py untouched). changes.md not touched. Nothing committed.
+- Error messages were spot-checked by hand for the main rejections (over-return, missing --to, wrong warehouse, unknown line, lot not shipped).
+
+**In progress**
+- Nothing in progress for my task.
+- Open design issue for the lead (not fixed, needs a decision): ship movements do not record their order line. cmd_orders._ship writes movements with ref = order id, sku, lot, serials, but no line. So the per-line ship value and shipped serials/lots are only identifiable when the SKU appears on one line of the order.
+  - Current handling: `return create` raises UserError "has <SKU> on more than one line; its ship movements cannot be told apart". This means returns are refused for those orders, which is a limitation against spec §10 (the spec assumes per-line values).
+  - Exact fix, if the lead wants it: add to core.SCHEMA a table `ship_lines(movement_id INTEGER PRIMARY KEY, order_id TEXT, line INTEGER)`, mirroring po_receipts. Then cmd_orders._ship inserts one row per ship movement (it has the movement dict from remove_stock). My code would then join on ship_lines instead of the SKU guard. That change is in cmd_orders.py (orders teammate's file) plus core.py (log in changes.md). I did not make it.
+
+**Next step**
+- Only if the lead accepts the ship_lines fix: orders teammate adds the insert in cmd_orders._ship; then I switch `_shipments` in wms/cmd_returns.py to `SELECT m.lot, m.value, m.serials FROM movements m JOIN ship_lines s ON s.movement_id=m.id WHERE s.order_id=? AND s.line=? AND m.voided=0` and drop the duplicate-SKU guard and its test (test_order_with_the_sku_on_two_lines_is_refused). Then rerun `python3 -m unittest tests.test_returns`.
+- Otherwise: nothing. The guard is in place and the suite passes.
+- Assumptions for README.md (the lead should copy these, I did not edit README):
+  - A damaged return needs no --to and rejects --to; its unit cost is recorded, value "0.00", credit still computed.
+  - Returned quantity counts good and damaged returns together against the shipped quantity.
+  - Good returns of lot products go back into the same lot, with the existing lot expiry (no --expires).
+  - A serial returned in any condition cannot be returned again.
+  - The good-return location must be type storage in the order's warehouse (stricter than receive, which also accepts receiving).
+  - Credit = round2(QTY × line net / line qty) for both conditions.
+
+**Do not redo**
+- Read tests/util.py and tests/test_orders.py for base class and flow (receive, so create, so confirm, so pick, so ship); the test file follows them.
+- Checked spec §10 text and §5 costing against the code: unit cost = round4(sum of ship values / shipped), value via engine.receive(mtype="return", ref=RT id), so fifo layers and average updates come from the engine and are not reimplemented.
+- Checked that wms/core.py COMMAND_MODULES already lists wms.cmd_returns; no edit needed.
+- Checked there is no `ship_lines` table or column in core.SCHEMA or cmd_orders.py today (grep); the guard is therefore required.
+- Checked the engine's _lot_expiry accepts an existing lot with expires None (used by the lot return path); tests pass on that path.
