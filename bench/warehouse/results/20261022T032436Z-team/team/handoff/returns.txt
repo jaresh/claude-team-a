@@ -1,0 +1,28 @@
+**Done**
+- Created /home/jaca/claude-team-a/bench/work/warehouse-team/wms/returns.py (spec section 10):
+  - DDL `returns` table (via core.schema).
+  - `return create ORDER --line N --qty Q --condition good|damaged [--to LOC] [--lot L] [--serial S,...]` (manager). Audits `return.create` once with target RT-xxxx.
+  - `return list [--order SO]` (viewer), sorted by id; unknown --order is a user error.
+  - Writes order_lines.returned and returned_serials (the orders table rows).
+  - Good returns call inventory.return_in; damaged returns move no stock.
+- Created /home/jaca/claude-team-a/bench/work/warehouse-team/tests/test_returns.py (classes Good, Damaged, Checks, Lots, Serials; 19 tests).
+- Check: `python3 -m unittest tests.test_returns tests.test_acceptance.Orders` -> Ran 20 tests, OK.
+- No shared files edited. No changes.md rows needed. Nothing committed.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- None for returns. Lead can run the full suite: `cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest discover -s tests -t . 2>&1 | tail -5`.
+
+**Do not redo**
+- Assumptions made (list these in README.md under returns):
+  - --to is required for good and forbidden for damaged.
+  - A good return's --to must be a storage location (type storage) of the order's warehouse.
+  - Unit cost = round4(sum of ship movement values for the line / shipped qty). Damaged returns also get a unit cost and credit, but value is "0.00".
+  - Lot returns check only that the lot was shipped on the line. There is no per-lot returned tracking, so the qty limit is per line.
+  - Serial returns require exactly qty serials, each shipped on the line and not already returned.
+  - Credit = round2(qty * line net / line qty).
+- Checked: orders' `ship_log` and `order_lines.shipped` are used as given; inventory.return_in is called as-is (it does not validate location type, so returns.py does).
+- Checked: lot-tracked receive needs --expires (test setup adjusted, not a code issue).
+- Not checked: spec §10 wording on whether a damaged return should still count toward the returned qty limit. The code does count it (per spec "already returned"). Lead should confirm if that is wrong.

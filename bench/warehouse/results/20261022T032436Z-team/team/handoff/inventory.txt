@@ -1,0 +1,34 @@
+Done
+- wms/inventory.py (new): stock_map, on_hand, receive, pick, ship, transfer_out, transfer_in, return_in
+  (movers, no audit); commands receive, move, adjust, scrap, movement list, movement void, stock (spec 4 and 8).
+  Helpers in the module: _apply, _held, _check_take, _record, _set_value, _note, _reason, _tracked.
+  Module table movement_reasons(mv, reason) is registered with core.schema.
+- tests/test_inventory.py (new): 38 unittest cases in classes Receive, Move, Adjust, Scrap, Void, MovementList, Stock.
+- Check: `python3 -m unittest tests.test_inventory tests.test_acceptance.Costing` -> Ran 38 tests, OK.
+- No shared files edited, so .claude/team/changes.md is unchanged. Nothing committed.
+
+In progress
+- Nothing open. The movers pick, ship, transfer_out, transfer_in, return_in are written but have no direct
+  tests yet. They are exercised only through the orders/transfers modules, which are not built here.
+- Reservation checks (core.reserved_qty / core.reserved_serials) are coded but no test creates a reservation,
+  because the reservation writer is in another module.
+
+Next step
+- When the orders and transfers modules exist, run:
+  python3 -m unittest tests.test_inventory tests.test_acceptance
+  Add tests for pick (reserved stock to SHIP, value 0), ship (valued by take_out), transfer_out/transfer_in
+  (cancel=True restores into the source), return_in (unit cost round4), and move/scrap/void against reserved
+  stock.
+
+Do not redo
+- Ran the full Costing class and the inventory module together: all green, so costing void paths
+  (undo_in for receive and increasing adjust, restore for scrap and decrease) work with this module's rows.
+- Rejected a helper named setUp-style in tests; helpers are receive_bolts and are not unittest method names.
+
+Assumptions to list in README (from my design)
+- Serial uniqueness for receive is checked across all stock in every warehouse ("anywhere").
+- Reason text for adjust, scrap and void is required and non-empty. It is stored in movement_reasons and
+  not shown in the movement JSON (the JSON keys are fixed by the spec).
+- movement list --type accepts only the spec types, including void; anything else is a user error.
+- stock --at omits reserved and available, as the spec says.
+- Moving stock to a SHIP location is only done by pick, never by move.

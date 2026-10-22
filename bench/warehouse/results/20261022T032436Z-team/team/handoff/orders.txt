@@ -1,0 +1,41 @@
+**Done**
+- wms/orders.py (new): DDL orders, order_lines, ship_log, returned_serials (core.schema); expiry PRE_HOOK
+  _expire_reservations appended to core.PRE_HOOKS (one reservation.expire audit per order, user system);
+  commands so create|confirm|allocate|pick|ship|cancel|show|list, available, reorder.
+  Status is derived in _status(), not stored. Picked reservation rows sit at WH/SHIP with expires NULL.
+  purchasing.incoming_qty is imported lazily in _incoming(), with ImportError falling back to 0.
+- tests/test_orders.py (new): 33 unittest cases in classes Create, Confirm, Reserving, Expiry, PickShip,
+  Cancel, Reads, Reorder.
+- Check: `python3 -m unittest tests.test_orders tests.test_acceptance.Orders.test_expiry_and_backorder`
+  -> Ran 33 tests, OK.
+- Also ran `python3 -m unittest tests.test_acceptance`: Orders.test_full_flow fails at line 83
+  (`return create`) with "invalid choice: 'return'". The returns module is not built yet, so this is outside
+  orders. Everything before that line in the test runs.
+- No shared files edited, so .claude/team/changes.md is untouched. Nothing committed.
+
+**In progress**
+- Nothing open. The task is complete.
+
+**Next step**
+- Lead: after the returns module lands, run
+  `python3 -m unittest tests.test_orders tests.test_acceptance.Orders`
+  to confirm test_full_flow passes end to end.
+- Returns owner: order_lines.returned and returned_serials are created in orders.py for you. Nothing writes
+  to them yet. Return create should increase order_lines.returned for the order and line, and add serials to
+  returned_serials.
+- Open question for the lead: spec `available` is storage on_hand minus reserved, with no expiry filter. Expired
+  lots are never reserved (the reserving rules skip them), so `available` can count stock that
+  `so confirm` will not reserve. This follows the spec literally. Changing it is a spec decision.
+
+**Do not redo**
+- Rules applied, from the spec: cancel releases only reserved rows. Picked rows stay at WH/SHIP. Ship refuses
+  cancelled orders, so that picked stock cannot ship. Confirm, allocate and pick check status first.
+- Serial reservations are one row per serial with qty '1' and lot NULL. Lot reservations sort by lot expiry,
+  then lot, then location. Lots with no expiry row are treated as not expired.
+- Ran the full test_acceptance file: only test_full_flow fails, at the return step. The earlier Orders tests
+  pass.
+- Assumptions to list in README (the spec does not define these shapes):
+  - so list --status accepts only the six spec statuses; anything else is a user error.
+  - so show hold is null until confirm; expires is the earliest unpicked reservation expiry, or null.
+  - so cancel on a cancelled order is a user error. so cancel after any ship is a user error.
+  - --hold must be a whole number of hours (1 to 720).

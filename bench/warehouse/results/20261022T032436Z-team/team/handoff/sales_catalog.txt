@@ -1,0 +1,28 @@
+**Done**
+- Files: wms/sales_catalog.py (new), tests/test_sales_catalog.py (new). No shared file edited; changes.md untouched (no shared edits).
+- Commands: customer add|list, price set|list, promo add|list, and price_lines(ctx, customer, lines) as in the contract.
+- Tables (created via core.schema): customers(name PK, price_list), prices(list, sku, min_qty, unit_price; PK list+sku+min_qty), promos(code PK, kind, sku, threshold, percent, from_date, to_date).
+- Check: `python3 -m unittest tests.test_sales_catalog` -> Ran 13 tests, OK.
+- The tests build their own fixture by SQL (currency, users alice=admin and carl=clerk, products BOLT-M8 each and NAILS-1 kg), so they do not depend on users/catalog being finished.
+
+**In progress**
+- Nothing. Task complete.
+
+**Next step**
+- Lead: nothing needed from this task for the check. Once users and catalog land, run `python3 -m unittest tests.test_sales_catalog tests.test_acceptance.Orders` later as part of the whole-project check.
+- Notes for the orders and http_api owners:
+  - `price_lines` returns Decimals (format with core.fmt4 for unit_price, core.fmt2 for the amounts). It raises UserError `unknown customer: X` or `no price for SKU`.
+  - `promo add --order` is a store_true option. The handler tests truthiness (`if a.order:`), so http_api should pass True or leave it out, never the string "false".
+- Assumptions to list in README (spec does not give output shapes for the write commands):
+  - `customer add` returns `{"name", "price_list"}`.
+  - `price set` returns the price row `{"list", "sku", "min_qty", "unit_price"}`.
+  - `promo add` returns the `promo list` object.
+  - `customer list` is sorted by name; `promo list` by code.
+  - Unit price 0 and threshold 0 are allowed; min quantity 0 means "from any quantity".
+  - Customer name is stripped and must be 1-60 characters; any other characters are allowed.
+  - A customer may name a price list that has no prices; pricing then falls back to STANDARD.
+
+**Do not redo**
+- Did not call EnterWorktree: the environment says this checkout is already a git worktree, and the other teammates write into this same directory, so a separate worktree would hide my files from them.
+- Did not use the catalog or users modules in tests; the in-process Wms driver (tests/helpers.py) is used with SQL fixtures, which needs only wms/core.py.
+- Did not change core.py or helpers; price_lines reuses core.round2, core.fmt_qty, core.parse_qty, core.parse_money, core.parse_date, core.check_re, core.get_product, core.Ctx.

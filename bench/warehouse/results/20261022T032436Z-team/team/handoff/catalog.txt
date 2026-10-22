@@ -1,0 +1,28 @@
+Done
+- wms/catalog.py: product add, product show, product list (--search), product edit (--version check, --name/--min/--max, 'none' clears a limit); warehouse add (creates RECV and SHIP locations), warehouse list; location add (--type storage|receiving), location list WH. Public helpers: validate_product(conn, fields, pending=()) and insert_product(ctx, row).
+- wms/importer.py: command `import products FILE` (manager). Header must be exactly sku,name,unit,tracking,costing,min,max. Blank lines skipped. Every bad row is reported as `row N: MESSAGE` (N is the file line, header is line 1), nothing is imported if any row is bad, and success returns {"imported": N}.
+- tests/test_catalog.py: 12 tests, all pass.
+- Check results: `python3 -m unittest tests.test_catalog` -> Ran 12 tests, OK.
+  `python3 -m unittest tests.test_acceptance.PoImport.test_import tests.test_acceptance.Users` -> Ran 3 tests, OK (only ResourceWarnings about unclosed files in test_acceptance.py lines 130 and 132, which are not my code).
+- No shared files edited, so changes.md is unchanged. Nothing committed.
+
+Assumptions (for README)
+- Warehouse name is 1 to 100 characters after trimming. Warehouse code is [A-Z0-9]{2,6}.
+- Location code is [A-Z0-9-]{1,20}. location add --type accepts only storage or receiving (default storage). Reserved RECV and SHIP cannot be added again.
+- min and max may be 0. max must not be below min. Quantities follow the unit: each takes whole numbers, kg takes decimals.
+- product edit with none of --name, --min, --max is a user error ("nothing to edit"). Unit, tracking and costing never change after creation.
+- product edit --min none / --max none clears the limit.
+- validate_product's second argument is `pending`, a set of SKUs already accepted earlier in the same import. The plan's contract said "errors context". I read that as this set, so a duplicate SKU within one file is reported as "SKU appears more than once in file". Lead: please confirm this matches the contract.
+- import products writes its single audit entry (action import, target products) even when the file has zero data rows (returns {"imported": 0}). The plan does not say whether an empty import should be audited. Change to skip the audit if the lead prefers.
+- A blank line inside the import file is skipped. A line with the wrong number of columns is reported as "row N: expected 7 columns, got K".
+
+In progress
+- Nothing. The module is complete for the catalog section.
+
+Next step
+- Lead: run `cd /home/jaca/claude-team-a/bench/work/warehouse-team && python3 -m unittest tests.test_catalog` to confirm, then decide on the zero-row import audit noted above.
+
+Do not redo
+- The test file had three defects (two junk assertions and a missing BOLT-M8 seed in setUp, plus a wrong expected error count of 8, not 9). All were fixed. The full module now passes.
+- Test rows checked against the import file: row 7 (FFF-6, serial, each) is valid, so the 8 errors are rows 3, 4, 5, 6, 8, 9, 10 and 11.
+- Did not touch tests/test_acceptance.py, tests/helpers.py or other teammates' modules (wms/users.py, wms/sales_catalog.py).

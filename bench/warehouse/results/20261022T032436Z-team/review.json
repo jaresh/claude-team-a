@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 7,
+    "readability": 8,
+    "correctness_risks": 6,
+    "error_handling": 6,
+    "data_safety": 8,
+    "tests": 7,
+    "consistency": 8
+  },
+  "overall": 7,
+  "issues": [
+    "orders.so_cancel_cmd deletes only the order's 'reserved' rows, so its 'picked' reservation rows stay tied to the cancelled order. That stock in SHIP then counts as reserved forever: it blocks adjust and scrap, and `so show` still lists it as picked, although the spec says it is no longer the order's.",
+    "inventory.stock_map replays every movement in the book on each call, and it is called from _check_take, _held/on_hand, the serial clash check in receive, orders._free_stock (once per order line) and orders._available (once per product in reorder). Combined with per-row reserved_qty queries, most commands get slower as history grows, with quadratic cost in places.",
+    "cli.main catches only UserError and http_api.Handler._send has no catch-all, so any sqlite3 error (unwritable or locked DB, bad --db path) or unexpected exception prints a traceback instead of `error: ...`, or drops the HTTP connection without sending a status.",
+    "Module boundaries leak: transfers.py calls the private inventory._tracked; returns._identity re-implements the same lot/serial rules and returns._order duplicates orders._get_order; orders._incoming wraps the purchasing import in try/except ImportError; costing.in_transit probes sqlite_master for the transfers table; and http_api runs its own SQL for auth, ETag versions and 404 checks outside the command transaction.",
+    "In http_api.process the Idempotency-Key row is written in autocommit after the command's own transaction has committed, so a crash between the two leaves an applied request with no stored response; retrying it with the same key would run it a second time.",
+    "tests/test_costing.py tests the internals: it calls costing.add_in, take_out and undo_in directly and inserts fake movements with invalid types such as 'transfer_out'. These tests are tied to the implementation instead of checking behaviour through the CLI, unlike the other test files."
+  ],
+  "strengths": [
+    "Money and quantities are Decimal end to end and stored as TEXT. There is a single round2/round4/fmt_qty and parse_qty/parse_money layer, and every SQL statement uses parameters.",
+    "core.execute wraps each command in BEGIN IMMEDIATE/COMMIT/ROLLBACK. The reservation-expiry pre-hook runs inside that transaction, so every command, including the expiry step, is all-or-nothing.",
+    "A declarative @core.command registry with roles drives both the argparse CLI and the HTTP routes. Command handlers are short, consistently named and validate their own input, and the audit-list --user dest clash is handled deliberately."
+  ],
+  "review_cost": 1.1291
+}

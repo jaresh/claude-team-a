@@ -1,0 +1,11 @@
+...../home/jaca/claude-team-a/bench/work/warehouse-team/tests/test_acceptance.py:130: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpm6lx44gf/p.csv' mode='w' encoding='UTF-8'>
+  open(path, 'w').write('sku,name,unit,tracking,costing,min,max\nAAA-1,One,,,,,\nBBB-2,Two,kg,lot,average,1,5\n')
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/jaca/claude-team-a/bench/work/warehouse-team/tests/test_acceptance.py:132: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpm6lx44gf/p.csv' mode='w' encoding='UTF-8'>
+  open(path, 'w').write('sku,name,unit,tracking,costing,min,max\nCCC-1,One,,,,,\nbad,Two,,,,,\nCCC-1,Dup,,,,,\n')
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+..................................................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 199 tests in 34.346s
+
+OK

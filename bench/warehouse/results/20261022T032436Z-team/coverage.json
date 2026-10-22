@@ -1,0 +1,28 @@
+{
+  "coverage": 0.961,
+  "covered_lines": 1864,
+  "executable_lines": 1939,
+  "tests_passed_under_coverage": true,
+  "least_covered": [
+    "wms/__init__.py (0%)",
+    "wms/__main__.py (0%)",
+    "wms/cli.py (87%)"
+  ],
+  "per_file": {
+    "wms/__init__.py": 0.0,
+    "wms/__main__.py": 0.0,
+    "wms/catalog.py": 0.993,
+    "wms/cli.py": 0.87,
+    "wms/core.py": 0.936,
+    "wms/costing.py": 0.948,
+    "wms/http_api.py": 0.924,
+    "wms/importer.py": 0.949,
+    "wms/inventory.py": 0.971,
+    "wms/orders.py": 0.977,
+    "wms/purchasing.py": 0.992,
+    "wms/returns.py": 0.991,
+    "wms/sales_catalog.py": 0.992,
+    "wms/transfers.py": 0.986,
+    "wms/users.py": 0.987
+  }
+}

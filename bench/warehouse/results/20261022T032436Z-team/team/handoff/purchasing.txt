@@ -1,0 +1,29 @@
+Done
+- wms/purchasing.py (new): tables po, po_lines, po_receipts (via core.schema). Commands: po create (manager), po receive (clerk), po close (manager), po show (viewer), po list (viewer, --status filter). Public helper incoming_qty(conn, wh, sku) returns the open quantity on not-closed POs of a warehouse for a SKU, as Decimal.
+- Receipts call inventory.receive(ctx, sku, qty, at, unit_cost, lot, expires, serial, ref=PO id, only_wh=PO warehouse). The po_receipts row ties the movement to its PO line. Received per line = sum of qty of non-voided receipt movements.
+- Cap per line = floor(ordered * 1.05) to 1 for each, or to 0.001 for kg. Over the cap is a UserError.
+- tests/test_purchasing.py (new): 18 tests in classes Create, Receive, Close, Show. Covers create shape and PO counter, bad input, roles, wrong-warehouse location, cap at 105 and 106, kg cap, lot products, receive on received or closed PO, close rules, void reverting partial to open, list sort and filter, incoming_qty.
+- Check: python3 -m unittest tests.test_purchasing tests.test_acceptance.PoImport -> Ran 18 tests, OK (includes PoImport). py_compile of both files passes.
+- Shared files: none edited, so no lines added to .claude/team/changes.md.
+- Not committed.
+
+Assumptions (for README)
+- The po.receive and po.close audit target is the PO id. The spec does not name a target.
+- Supplier is stripped and must be 1 to 100 characters.
+- A PO needs at least one line. Duplicate SKUs on different lines are allowed.
+- Line format is SKU:QTY:UNITCOST, with unit cost up to 4 decimal places (Decimal, no floats).
+- A PO is closed by a closed column. Status is derived: closed > received > partial > open.
+- A received PO (every line at or over ordered) is status 'received'. Receiving on received or closed is refused. Close is allowed only from open or partial.
+- po receive rejects an unknown line number before any qty check. Validation runs before inventory.receive, so a failed receive writes nothing.
+
+In progress
+- Nothing. The task is complete.
+
+Next step
+- Lead: review the handoff, then run the full suite: python3 -m unittest discover -s tests (or the project's usual command). Any failure outside purchasing is not from this module.
+- Known noise: test_acceptance.py emits ResourceWarning for unclosed files at lines 130 and 132 (open(path, 'w').write(...)). That is the lead's file. Fix it there with a with-block if you want a clean run.
+
+Do not redo
+- A stock check returns rows with on_hand, not qty (inventory.py stock_cmd). The one failing assertion was a test mistake and is fixed.
+- The po receive error on a wrong-warehouse location comes from inventory.receive (only_wh check), not from purchasing. The test passes as written.
+- Nothing else was ruled out. All 18 tests and the PoImport acceptance test pass on the first full run after that fix.

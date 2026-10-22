@@ -1,0 +1,20 @@
+**Done**
+- Created wms/costing.py: tables cost_layers, cost_consumed, cost_avg, cost_snap (core.schema); contract functions add_in, adjust_in, take_out, restore, transfer_in, undo_in; helpers valuation_rows(conn, at=None, wh=None), in_transit(conn, at=None, wh=None), valuation(conn, at=None, wh=None); commands `valuation` [--warehouse, --at] and `aging` --warehouse (required) [--at] (both role viewer).
+- Created tests/test_costing.py: 11 unittest cases, driving the contract functions directly (no CLI for receive/scrap, since inventory.py and transfers.py are not written yet). Covers fifo layers and valuation with --at, aging buckets (0-30, 91+), restore after void, undo rules for fifo and average, adjust_in for fifo (newest layer, consumed or not) and average (last average, and error with no history), transfer_in keeping time and origin, in_transit with a fake transfers table.
+- Check: `python3 -m unittest tests.test_costing` gives Ran 11 tests, OK.
+- No shared files edited (changes.md untouched). Nothing committed.
+- Not run: tests/test_acceptance.py Costing cases (need inventory.py and the CLI commands receive/scrap/void).
+
+**In progress**
+- Nothing open. Task done.
+
+**Next step**
+- Lead: once inventory.py exists, run `python3 -m unittest tests.test_acceptance.Costing` and `python3 -m unittest tests.test_costing`. Inventory must call costing exactly once per (movement, sku, warehouse): cost_snap keys on (mv, sku, wh), so a second call in the same movement overwrites the first snapshot.
+- Inventory must write movements.value and movements.unit_cost, because undo_in reads qty and value from the original movement row.
+- Transfers must set transfers.out_mv on create and in_mv on receive or cancel; in_transit --at depends on these columns. Table columns used: id, sku, qty, from_loc, to_loc, status, value, out_mv, in_mv.
+
+**Do not redo**
+- Checked: core.command, core.schema, Ctx(conn, now, user) with .today, get_product, insert_movement, open_db (autocommit, Row factory), and parse_time/parse_date signatures all match what costing.py calls.
+- valuation_rows takes an extra optional wh argument beyond the plan's (conn, at), so the plan's helper is a superset of the contract.
+- Assumptions, to confirm in spec review: "newest layer" for adjust_in is ordered by at, then origin_mv, then id (DESC). Negative ages go in the 0-30 bucket. Aging reads the current state, not --at. An undone fifo receipt has its layer deleted. An average undo is refused if any later snapshot exists for that sku and warehouse.
+- Do not change the in_transit table check: it uses sqlite_master, so costing works before transfers.py creates the table.

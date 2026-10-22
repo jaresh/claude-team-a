@@ -1,0 +1,25 @@
+Done
+- wms/users.py (new): init, user add, user role, user disable, user list, audit list.
+- tests/test_users.py (new): 13 tests, all pass (python3 -m unittest tests.test_users).
+- Acceptance tests/test_acceptance.Users: test_roles_and_errors passes when run with an init-only setup (checked from scratch runner .claude/team/scratch/users/run_acc.py). test_product_version needs catalog's product commands and fails until catalog lands.
+- Plain `python3 -m unittest tests.test_acceptance.Users` still fails in tests/helpers.py Wms.setup(), which calls warehouse add / product add (catalog task). Not fixable inside users.
+- No shared files edited (changes.md untouched). Nothing committed.
+
+In progress
+- Nothing. Task complete.
+
+Next step
+- After catalog lands: python3 -m unittest tests.test_users tests.test_acceptance.Users
+
+Do not redo
+- Shared-helper fixture: tests/test_users.py uses its own Book fixture (init only) instead of helpers.Base, because Base.setup needs catalog commands. Verified by the scratch runner.
+- argparse clash: audit list --user has dest 'by_user'. A subcommand dest named 'user' would overwrite the global --user (acting user) in cli.main, because subparser namespaces overwrite parent attributes.
+- Helper quirk: tests/helpers.Wms.raw uses `user or self.user`, so user='' falls back to alice; you cannot run a command with no --user through it.
+
+Assumptions (for README)
+- init prints {"currency", "admin"}. user add/role/disable print the user object {"name","role","enabled"}.
+- user disable on an already disabled user is a user error (nothing changes).
+- user role to the same role is allowed (audited).
+- Last enabled admin: lowering its role or disabling it is a user error. Disabled admins do not count.
+- user add --role is required (no default).
+- Audit entries for init use user = the admin name, at ctx.now.

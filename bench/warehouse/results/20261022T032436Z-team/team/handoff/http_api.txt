@@ -1,0 +1,27 @@
+**Done**
+- wms/http_api.py (new): spec §14 JSON API. Registers the `serve` command (viewer, `--port`, default 8080; binds 127.0.0.1). ThreadingHTTPServer subclass `Server(db, port=0)`; `process()` runs each request on its own connection under core.lock(). Idempotency table `idempotency(key PK, path, body, status, response)` via core.schema.
+- tests/test_http.py (new): 21 tests, all pass. `python3 -m unittest tests.test_http` runs in about 4 s.
+  - Products: list paging (limit/after/next), limit bounds 400, GET ETag, unknown product 404, PATCH 428 / 412 / 200 with new ETag and stale-ETag 412, null clears min, unknown PATCH field 400.
+  - Orders: receipt 201 then stock, JSON-number qty 400 with nothing changed, create 201 then confirm 200 with `hold` as a JSON int, GET order, unknown order 404, valuation, unknown path 404, unknown customer 400.
+  - Access: missing / unknown / disabled user 401 (disable then re-check), viewer POST 403 with nothing changed.
+  - Idempotency: replay returns the first response and creates nothing new; a replayed 400 is kept; same key with another body or path 409.
+  - Concurrency: 8 threads confirm one order of qty 5 with stock 5 gives exactly one 200 and seven 400, reserved 5. Two orders of qty 3 with stock 5 both return 200 (the second is partly backordered, per orders._reserve_order), reserved is 5, available 0, statuses {confirmed, backordered}.
+- No shared file was edited, so changes.md is untouched.
+
+**In progress**
+- `serve` is NOT reachable from the CLI yet. core.MODULES (wms/core.py line 11-12) does not list 'http_api', so load_modules() never imports it and the command is not registered. The lead must add 'http_api' to core.MODULES (core.py is not in my scope). The tests do not depend on this: they use http_api.Server directly.
+
+**Next step**
+1. Lead: add 'http_api' to core.MODULES in wms/core.py, after 'importer'.
+2. Check the server by hand, outside the tests: `python3 -m wms --db wms.db serve --port 8080` (the lead runs it, not me), then `curl -H 'X-User: alice' http://127.0.0.1:8080/products`.
+3. Whole-project check: `python3 -m unittest discover -s tests -t .`
+
+**Do not redo**
+- Role/user checks: core.execute gives the same UserError for unknown user and for role failure, so http_api pre-checks in `_authorize` (401 vs 403). Do not remove it.
+- `hold` in the confirm body accepts a JSON integer or a string (a JSON int is converted to str). Spec only requires quantities, amounts and costs to be strings, so this is intentional.
+- Confirm is not all-or-nothing on stock: _reserve_order reserves what is available and backorders the rest. The competing-orders test asserts this, so it is not a double reservation. Do not "fix" it in http_api.
+- 404 for an unknown product or order in the URL, and 400 for an unknown SKU or customer in a body (judgment call; the spec only defines 404 for objects in the path).
+- PATCH: null for min or max maps to 'none'. name cannot be cleared (null becomes a string-type 400). Unknown keys 400. If-Match missing 428, mismatched 412, product checked before If-Match. `product edit` gets the version from the DB, so the handler checks it again inside the transaction.
+- Receipts: body `at` is the WH/LOC location (the CLI's --at), not a time. Time is X-Now. `serials` must be a list of strings without commas, and is joined with ','.
+- Known gap, not fixed: idempotency row is written after core.execute commits (core owns BEGIN/COMMIT, so it cannot share the transaction). A crash between the command commit and the INSERT means a retry re-runs the command. Fixing this needs core support.
+- `serve` handler takes ctx=None (cli.py calls it without the lock), and uses args.db and args.port.

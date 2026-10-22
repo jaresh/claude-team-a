@@ -1,0 +1,27 @@
+{
+  "app_files": 15,
+  "app_lines": 2088,
+  "test_files": 13,
+  "test_lines": 1894,
+  "test_functions": 199,
+  "test_to_app_ratio": 0.91,
+  "functions": 219,
+  "mean_function_lines": 8.3,
+  "max_function_lines": 39,
+  "functions_over_50_lines": 0,
+  "mean_complexity": 3.3,
+  "max_complexity": 17,
+  "functions_complexity_over_10": 6,
+  "most_complex": [
+    "wms/returns.py:_identity (17)",
+    "wms/inventory.py:receive (16)",
+    "wms/inventory.py:movement_list_cmd (15)"
+  ],
+  "docstring_coverage": 0.25,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 3,
+  "bare_except": 0,
+  "broad_except": 1,
+  "parse_errors": []
+}
