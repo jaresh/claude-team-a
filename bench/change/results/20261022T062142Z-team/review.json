@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 9,
+    "tests": 5,
+    "consistency": 7
+  },
+  "overall": 7,
+  "issues": [
+    "tests/test_archive_credit.py Archive.test_archive_cycle: the `so create` case uses customer C, which doesn't exist yet, so it fails as 'unknown customer' and never tests the archived-product check; `return create` on an archived product is not tested at all.",
+    "tests/test_archive_credit.py Credit.test_confirm_limit only covers confirmed and cancelled orders: nothing shows that backordered or partially_shipped orders count toward the limit, that shipped orders don't, or that an order discount lowers the total being checked.",
+    "wms/catalog.py product_archive imports from ledger, purchasing and orders inside the function to avoid a circular import, so the low-level catalog module depends on order and PO status logic; the blocker checks would sit better in a higher-level module.",
+    "wms/orders.py so_confirm runs the credit-limit check after it has already written the line prices (UPDATE so_lines) and repeats `subtotal - od` in two places; it only stays safe because session.run rolls back, and the check would read better as a helper called before any write.",
+    "wms/core.py Ctx.__init__ runs the MIGRATE DDL by splitting the text on newlines on every command, while the new tables are missing from SCHEMA, so the schema is defined in two places and the splitting breaks if a statement ever spans more than one line.",
+    "tests/test_archive_credit.py: the ArchiveHttp class comes after the `if __name__ == \"__main__\"` block, so running the file directly skips it; also, the archive blocker for a `partial` PO and the 412/428 interaction on an archived PATCH are not tested."
+  ],
+  "strengths": [
+    "The `--at` bug is fixed at its cause: reports.cut_for now uses `at<=?`, and both valuation and stock_report go through it, with a boundary test checking the second itself and the second before.",
+    "Booking on an archived product is blocked through one helper, Ctx.live_product, used in receive, adjust, po/so create, price set, promo add, return create and product edit, and the optional `archived` and `credit_limit` keys leave existing JSON output unchanged.",
+    "Commands stay atomic (BEGIN IMMEDIATE and rollback in session.run and http.process), money is Decimal with 2-decimal formatting via money(), and all new SQL uses parameters."
+  ],
+  "review_cost": 0.6041
+}

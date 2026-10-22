@@ -1,0 +1,78 @@
+{
+  "label": "bench change team model=sonnet effort=medium prompt=9d6c5a08832f",
+  "since": null,
+  "until": "2026-10-22T06:24:31Z",
+  "session": "a5be5c98",
+  "total_cost": 0.5625823999999999,
+  "cold_start_cost": 0.5989635999999999,
+  "by_model": {
+    "claude-sonnet-5-5": {
+      "msgs": 13,
+      "tools": 13,
+      "input": 25,
+      "cache_w": 71764,
+      "cache_r": 618132,
+      "output": 15185,
+      "out_est": 0,
+      "peak_ctx": 81340,
+      "over_100k": 0,
+      "compactions": 0,
+      "cost": 0.5625823999999999
+    }
+  },
+  "agents": [
+    {
+      "agent": "lead:a5be5c98",
+      "role": "lead",
+      "effort": "",
+      "file": "/root/.claude/projects/-home-jaca-claude-team-a-bench-work-change-team-2/a5be5c98-9f30-44ac-af71-94129dc25039.jsonl",
+      "session": "a5be5c98-9f30-44ac-af71-94129dc25039",
+      "started": "2026-10-22T06:21:47.233000+00:00",
+      "model": "claude-sonnet-5-5",
+      "msgs": 13,
+      "tools": 13,
+      "input": 25,
+      "cache_w": 71764,
+      "cache_r": 618132,
+      "output": 15185,
+      "peak_ctx": 81340,
+      "over_100k": 0,
+      "compactions": 0,
+      "cost": 0.5625823999999999,
+      "unpriced": 0,
+      "out_est": 0,
+      "advisor_calls": 0,
+      "cost_adv": 0.0,
+      "tool_use": {
+        "Skill": [
+          1,
+          21
+        ],
+        "Bash:python3": [
+          4,
+          3360
+        ],
+        "Bash:cat": [
+          5,
+          34213
+        ],
+        "Bash:sed": [
+          2,
+          44931
+        ],
+        "Bash:grep": [
+          1,
+          13758
+        ]
+      },
+      "cost_in": 5.000000000000001e-05,
+      "cost_cr": 0.12362640000000001,
+      "cost_cw": 0.287056,
+      "cost_out": 0.15184999999999998,
+      "first": "2026-10-22T06:21:47.233000+00:00",
+      "last": "2026-10-22T06:24:11.736000+00:00",
+      "startup_ctx": 21401,
+      "cold_extra": 0.036381199999999995
+    }
+  ]
+}
