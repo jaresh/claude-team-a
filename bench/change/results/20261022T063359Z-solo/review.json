@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 8,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 9,
+    "tests": 7,
+    "consistency": 8
+  },
+  "overall": 8,
+  "issues": [
+    "wms/stock.py do_receive decides whether to enforce the archived check from whether `ref` is set (`ctx.product(sku) if ref else ctx.live_product(sku)`); this ties the rule to an unrelated parameter, so any future caller that passes a ref would silently get past the archive guard.",
+    "wms/orders.py so_confirm builds the credit-limit check inline in an already long function, reads the customer row a second time, and calls so_status (several queries each) for every other active order; a small helper such as `committed_total(ctx, customer, exclude)` would separate it from the pricing logic and make it testable.",
+    "wms/reports.py cut_for (now `at<=?`, which correctly fixes both valuation and stock at the shared cause) still takes MAX(id) of movements at or before TIME, so if `--now` was ever used to book out of time order, the cut includes lower-id movements whose time is after TIME; the `--at` reports rely on id order and time order being the same.",
+    "wms/http.py patch calls ctx.live_product before checking If-Match, and product_edit calls it again; the archived check is duplicated, and an archived product with no If-Match gets 400 instead of 428, a precedence choice that is neither documented nor tested.",
+    "tests/test_changes.py leaves gaps: archive blocked by a `partial` PO or a `partially_shipped`/`backordered` SO, a `backordered` order counting toward the credit limit, and so confirm over the limit via HTTP; test_discount_total_counts also asserts only that the command succeeds, not the total it compares with the limit.",
+    "wms/http.py products_page also accepts `archived=true/false/''` on top of the specified `archived=1`; this is harmless but is an extra, undocumented input form that is not covered by tests."
+  ],
+  "strengths": [
+    "The archive rule is centralised in Ctx.live_product (wms/core.py) and applied to every booking entry point the request lists, while reads and history keep using ctx.product, so the boundary is clear and consistent.",
+    "The --at bug is fixed once at its cause in reports.cut_for, which both valuation and stock_report share, and test AtBoundary checks it at the exact second and one second before.",
+    "The optional keys (`archived`, `credit_limit`) are added only when set in product_json and customer_json, old books are migrated in session.migrate, and the tests check that rejected commands leave the whole database unchanged."
+  ],
+  "review_cost": 0.8178
+}
