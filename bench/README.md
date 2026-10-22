@@ -21,7 +21,7 @@ scored three ways, then recorded in `results/`, and the built app is deleted:
 |---|---|---|
 | `finance` (v2.1) | a small-business finance system: ledger, FX, import, budgets, recurring, reports, loans, users and audit, closed periods, invoices, bills, tax, reconciliation, ledger reports, an authenticated HTTP API (Python, stdlib) | 42 |
 | `warehouse` | inventory and orders: FIFO and average costing, lots and serials, reservations that expire, purchase orders with an over-receipt limit, transfers in transit, returns at cost, voids, as-of reports, promotions, an HTTP API with ETags, idempotency keys and concurrent requests (Python, stdlib). Built to be hard enough that scores spread | 62 in three tiers: T1 one feature (31), T2 features combined (21), T3 robustness (10) |
-| `change` | **a change to an existing repo**: starts from `change/base/` (the warehouse app, 1.9K lines in one module, with docs and a smoke test) instead of an empty repo. The task: fix a reported bug (`--at` leaves out a movement made exactly at that time; two reports, one cause) and add a cross-cutting feature (archiving products: 8 commands, the HTTP API, audit, reorder). Built to measure navigation cost: how much the agents read to find their way | 16 new in three tiers (T1 the bug 3, T2 archive 6, T3 archive across commands and HTTP 7) plus the 62 warehouse tests as a regression suite |
+| `change` | **changes to an existing repo**: starts from `change/base/` (the warehouse app as a package of 13 modules, about 1.9K lines, with docs and a smoke test) instead of an empty repo. Three tasks: fix a reported bug (`--at` leaves out a movement made exactly at that time; two reports, one cause), archive products (8 commands, the HTTP API, audit, reorder) and customer credit limits (customers, sales orders, audit). Built to measure navigation cost: how much the agents read to find their way. The first version (one module, two tasks) was too small: the lead did it alone for $0.44, and its two runs are in `change/results/v1-small/` | 23 new in three tiers (T1 the bug 3, T2 archive and credit limit 13, T3 archive across commands and HTTP 7) plus the 62 warehouse tests as a regression suite |
 | `finance/v1` (archived) | the first ten sections only; too small: Sonnet alone built it in 9 turns | 25 |
 
 ```
@@ -33,7 +33,7 @@ REVIEWS=3 bench/run.sh finance solo              # three independent reviews of 
 python3 team_kit.py cost --compare <run>/cost.json <run>/cost.json   # cost details
 ```
 
-`change/reference/` is `base` with the bug fixed and the feature added; it passes all 79 (`APP_DIR=bench/change/reference python3 -m unittest discover -s bench/change/accept`), and `base` fails exactly the 16 new ones. `run.sh` copies `base/` into the workspace as its first commit when the benchmark has one.
+`change/reference/` is `base` with the bug fixed and the feature added; it passes all 85 (`APP_DIR=bench/change/reference python3 -m unittest discover -s bench/change/accept`), and `base` fails exactly the 21 new ones that can fail (2 of the 23 pass by accident). `run.sh` copies `base/` into the workspace as its first commit when the benchmark has one.
 
 Hidden tests are only trusted once they pass against a reference implementation:
 `warehouse/reference/` (never shown to the arms) passes all 62:

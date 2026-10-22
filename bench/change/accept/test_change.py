@@ -1,8 +1,8 @@
 """Hidden acceptance tests for the change benchmark. Never shown to the model under test.
 
 Run against an app: APP_DIR=/path/to/repo python3 -m unittest discover -s bench/change/accept
-T1 the reported bug, T2 archiving products, T3 archiving across the other commands and the HTTP
-API. test_regress.py adds the warehouse benchmark's tests. All pass against bench/change/reference."""
+T1 the reported bug, T2 archiving products and the customer credit limit, T3 archiving across the
+other commands and the HTTP API. test_regress.py adds the warehouse benchmark's tests. All pass against bench/change/reference."""
 import os
 import sys
 
@@ -168,3 +168,57 @@ class T3ArchiveApi(Api):
         self.assertEqual(s, 400)
         s, _, _ = self.http("PATCH", "/products/BOLT", {"name": "x"}, headers={"If-Match": '"2"'}, user="carol")
         self.assertEqual(s, 400)
+
+
+class T2CreditLimit(World):
+    def test_limit_on_add_and_set(self):
+        c = self.ok("customer", "add", "Cafe", "--credit-limit", "100", user="carol")
+        self.assertEqual(c, {"name": "Cafe", "price_list": None, "credit_limit": "100.00"})
+        c = self.ok("customer", "limit", "Shop", "50.5", user="carol")
+        self.assertEqual(c["credit_limit"], "50.50")
+        rows = {r["name"]: r for r in self.ok("customer", "list")}
+        self.assertEqual(rows["Shop"]["credit_limit"], "50.50")
+        self.assertNotIn("credit_limit", rows["Bistro"])
+        c = self.ok("customer", "limit", "Shop", "none", user="carol")
+        self.assertNotIn("credit_limit", c)
+
+    def test_errors_and_permissions(self):
+        for bad in ("0", "-5", "abc", "1.234"):
+            self.err("customer", "limit", "Shop", bad)
+        self.err("customer", "add", "Cafe", "--credit-limit", "0")
+        self.err("customer", "limit", "Nobody", "10")
+        self.err("customer", "limit", "Shop", "10", user="bob")
+        self.assertEqual(len(self.ok("customer", "list")), 2)
+
+    def test_audit(self):
+        self.ok("customer", "limit", "Shop", "10", user="carol")
+        a = self.ok("audit", "list", "--action", "customer.limit")
+        self.assertEqual([(x["target"], x["user"]) for x in a], [("Shop", "carol")])
+
+    def test_confirm_checks_the_open_orders_of_the_customer(self):
+        self.receive("BOLT", 500, "WH1/A-01", "0.10", now=at(2))
+        self.ok("customer", "limit", "Shop", "30")
+        first = self.order("Shop", "WH1", "BOLT:100")        # 100 x 0.25 = 25.00
+        second = self.order("Shop", "WH1", "BOLT:40")        # 10.00
+        self.ok("so", "confirm", first)
+        self.err("so", "confirm", second)                    # 25.00 + 10.00 > 30.00
+        self.assertEqual(self.ok("so", "show", second)["status"], "draft")
+        self.ok("so", "cancel", first)
+        self.ok("so", "confirm", second)                     # a cancelled order no longer counts
+
+    def test_exactly_at_the_limit_is_allowed_and_shipped_orders_do_not_count(self):
+        self.receive("BOLT", 500, "WH1/A-01", "0.10", now=at(2))
+        self.ok("customer", "limit", "Shop", "25")
+        a = self.order("Shop", "WH1", "BOLT:100")
+        self.ok("so", "confirm", a)                          # 25.00 = the limit
+        self.ok("so", "pick", a, user="bob")
+        self.ok("so", "ship", a, user="bob")
+        b = self.order("Shop", "WH1", "BOLT:100")
+        self.ok("so", "confirm", b)
+
+    def test_other_customers_and_no_limit_are_unaffected(self):
+        self.receive("BOLT", 500, "WH1/A-01", "0.10", now=at(2))
+        self.ok("customer", "limit", "Shop", "1")
+        self.ok("so", "confirm", self.order("Bistro", "WH1", "BOLT:100"))
+        self.ok("customer", "limit", "Shop", "none")
+        self.ok("so", "confirm", self.order("Shop", "WH1", "BOLT:100"))
