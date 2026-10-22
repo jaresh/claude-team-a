@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 8,
+    "tests": 5,
+    "consistency": 6
+  },
+  "overall": 6,
+  "issues": [
+    "wms/app.py Ctx.is_archived/product_archive keeps the archived flag as an `archived:SKU` row in the generic `meta` key/value table instead of a column on `products`, so product state is split across two tables and every `ctx.product()` call costs an extra query.",
+    "wms/app.py product_list builds every product with `ctx.product(sku)` (two queries per row) and only then filters on `r.get('archived')`, so listing and `GET /products` pagination do N+1 work instead of filtering in SQL.",
+    "tests/test_archive.py covers only the CLI: there are no tests for the HTTP routes (`POST /products/SKU/archive|unarchive`, the 404 for an unknown SKU, `GET /products?archived=1`, the 400 on PATCH), nor for the `so create`, `adjust`, `promo add --sku` and `return create` refusals.",
+    "tests/test_archive.py test_archive_refused only checks the on-hand stock blocker; the in-transit transfer, open/partial PO and unfinished-SO blockers in product_archive are untested, including the boundary cases (received/closed PO, shipped/cancelled SO).",
+    "wms/app.py product_archive mixes several separate stock-in-use checks (replaying the full movement log through current_stock, then looping over po_status/so_status per document) inline in one function rather than as a reusable 'product in use' helper, so it is hard to tell which rule each check enforces.",
+    "tests/test_archive.py bad() only checks the exit code and the 'error: ' prefix; apart from one `product show` check it never confirms that nothing changed after a refused booking (no movement, price, PO or audit row written)."
+  ],
+  "strengths": [
+    "The `--at` bug is fixed at its cause in the shared cut_for (`at<=?`), so `valuation --at` and `stock --at` both pick it up, and test_at_is_inclusive checks both reports on either side of the boundary second.",
+    "The archived guard lives in one Ctx.live_product helper, and every booking path in the request uses it (do_receive, which also covers po receive, plus adjust, po_create, so_create, price_set, promo_add, return_create, product_edit), while read-only paths keep using ctx.product.",
+    "product_json adds the `archived` key only when it is true, so existing output stays byte-for-byte unchanged, and archive/unarchive reuse the existing run() transaction, version bump, audit and NotFound\u2192404 conventions."
+  ],
+  "review_cost": 0.4689
+}
