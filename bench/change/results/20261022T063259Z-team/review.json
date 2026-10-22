@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 6,
+    "correctness_risks": 6,
+    "error_handling": 7,
+    "data_safety": 7,
+    "tests": 4,
+    "consistency": 5
+  },
+  "overall": 6,
+  "issues": [
+    "The `product show` lambda in cli.py and the GET `/products/SKU` handler in http.py both call `product_json(ctx.product(sku))` without the archived flag, so an archived product shown by itself has no `\"archived\": true`; the new `pj()` helper in catalog.py should have been used in both places.",
+    "catalog.py `product_list` builds its SQL with `%` string formatting to insert `NOT`, which breaks the codebase's rule of parameterised or constant SQL, even though the inserted text is a fixed literal.",
+    "pricing.py `parse_limit` repeats the amount regex instead of reusing `core.parse_amount`, and `customer add --credit-limit none` is silently accepted as 'no limit' instead of being rejected as a bad amount.",
+    "orders.py `so_confirm` writes the line prices and the `active` state before checking the credit limit, so 'changes nothing' depends entirely on the transaction rollback; checking the limit before the writes would be clearer and less fragile.",
+    "catalog.py now imports `orders.so_status` and `purchasing.po_status`, so the low-level catalog module depends on the order modules; the archive preconditions would sit better in a separate service-level function.",
+    "tests/test_changes.py has no HTTP tests for the archive/unarchive routes, `?archived=1` or PATCH of an archived product, and does not test `adjust`, `promo add --sku` or `return create` on an archived product, an archive blocked by an open sales order or a transfer in transit, `customer add --credit-limit`, or credit used by partially shipped and backordered orders; the request's `docs/SPEC.md` and `CHANGES.md` are also not in the tree."
+  ],
+  "strengths": [
+    "The `--at` bug is fixed at its cause: the shared `reports.cut_for` now uses `at<=?`, which fixes `valuation --at` and `stock --at` together, and a regression test checks the boundary second.",
+    "The archived-product guard is one helper, `Ctx.live_product`, applied at each booking entry point (receive, adjust, po/so create, price set, promo add, return create, product edit), while reads and history keep using `ctx.product`.",
+    "The new data lives in separate `archived` and `credit_limits` tables, created on connect for existing books, so existing JSON output and schema rows are unchanged, and amounts are stored and compared as Decimal strings."
+  ],
+  "review_cost": 0.6304
+}
