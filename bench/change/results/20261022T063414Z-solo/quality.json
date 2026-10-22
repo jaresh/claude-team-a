@@ -1,0 +1,27 @@
+{
+  "app_files": 16,
+  "app_lines": 1763,
+  "test_files": 2,
+  "test_lines": 215,
+  "test_functions": 11,
+  "test_to_app_ratio": 0.12,
+  "functions": 152,
+  "mean_function_lines": 11.8,
+  "max_function_lines": 145,
+  "functions_over_50_lines": 5,
+  "mean_complexity": 5.2,
+  "max_complexity": 60,
+  "functions_complexity_over_10": 16,
+  "most_complex": [
+    "wms/http.py:serve (60)",
+    "wms/http.py:route (41)",
+    "wms/ledger.py:apply (25)"
+  ],
+  "docstring_coverage": 0.04,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 3,
+  "bare_except": 0,
+  "broad_except": 1,
+  "parse_errors": []
+}

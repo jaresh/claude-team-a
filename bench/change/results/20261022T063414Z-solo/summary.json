@@ -1,0 +1,116 @@
+{
+  "bench": "change",
+  "mode": "solo",
+  "arm": "solo",
+  "claude_args": "",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "9d6c5a08832f",
+  "kit": "3.14",
+  "started": "2026-10-22T06:34:14Z",
+  "ended": "2026-10-22T06:37:56Z",
+  "accept_passed": 85,
+  "accept_total": 85,
+  "accept_tiers": {
+    "T1": [
+      3,
+      3
+    ],
+    "T2": [
+      13,
+      13
+    ],
+    "T3": [
+      7,
+      7
+    ]
+  },
+  "own_passed": 11,
+  "own_total": 11,
+  "python_lines": 2305,
+  "cost": 0.6631,
+  "cost_cold": 0.6947,
+  "lead_cost": 0.6631,
+  "team_cost": 0,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [],
+  "lead_messages": 14,
+  "lead_peak_ctx": 88761,
+  "lead_compactions": 0,
+  "team_peak_ctx": 0,
+  "coverage": 0.681,
+  "least_covered": [
+    "wms/returns.py (30%)",
+    "wms/stock.py (36%)",
+    "wms/__init__.py (50%)"
+  ],
+  "quality": {
+    "app_files": 16,
+    "app_lines": 1763,
+    "test_files": 2,
+    "test_lines": 215,
+    "test_functions": 11,
+    "test_to_app_ratio": 0.12,
+    "functions": 152,
+    "mean_function_lines": 11.8,
+    "max_function_lines": 145,
+    "functions_over_50_lines": 5,
+    "mean_complexity": 5.2,
+    "max_complexity": 60,
+    "functions_complexity_over_10": 16,
+    "most_complex": [
+      "wms/http.py:serve (60)",
+      "wms/http.py:route (41)",
+      "wms/ledger.py:apply (25)"
+    ],
+    "docstring_coverage": 0.04,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 3,
+    "bare_except": 0,
+    "broad_except": 1,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 7,
+      "correctness_risks": 7,
+      "error_handling": 8,
+      "data_safety": 8,
+      "tests": 6,
+      "consistency": 8
+    },
+    "overall": 7,
+    "issues": [
+      "catalog.py product_archive imports orders, purchasing and ledger inside the function to get around circular imports, so the catalog layer now depends on sales and purchasing logic; the 'is this product still in use' check would fit better in its own module or service.",
+      "orders.py so_confirm runs the credit-limit check only after it has already written prices and discounts to so_lines, and relies on the outer ROLLBACK to undo them; the check also works out the total twice (subtotal - od), and the confirmed/backordered/partially_shipped status set is now repeated in three places (so_confirm, so_allocate, figures).",
+      "reports.py cut_for (the fixed at<=? cut-off) takes MAX(id) of the movements at or before TIME and replays every id up to it, so a backdated --now that produces a movement with a higher id but an earlier time is still handled wrongly; the fix assumes ids and times run in the same order without saying so.",
+      "tests/test_changes.py test_booking_refused runs product edit with --version 3, which is a wrong version anyway, so that case would fail even without the archive check, and none of the refused cases checks the error message, so the test can't show why each command was refused.",
+      "The archive blocker tests leave out a 'partial' PO and 'backordered'/'partially_shipped' SOs, and the credit tests don't check that a refused confirm leaves the lines' prices unset or that partially_shipped orders count; outside the change, the suite is a single smoke test.",
+      "http.py patch calls ctx.live_product before the If-Match checks, so a PATCH of an archived product without If-Match returns 400 instead of 428; the order of checks differs from the other routes, and docs/SPEC.md and CHANGES.md are missing from the tree, so the assumptions behind choices like this aren't recorded."
+    ],
+    "strengths": [
+      "The --at bug is fixed at its cause: the shared cut_for helper is the single place both stock and valuation use, so one change fixes both reports.",
+      "Ctx.live_product adds one clear guard that is used in every booking path the request lists (receive, adjust, po/so create, price set, promo add, return create, product edit, HTTP PATCH), and reads and history still use ctx.product.",
+      "The optional JSON keys (archived, credit_limit) leave existing output unchanged, amounts stay as Decimal or formatted strings, SQL is parameterised, and session.migrate upgrades older books safely."
+    ],
+    "review_cost": 0.6189
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 7,
+        "correctness_risks": 7,
+        "error_handling": 8,
+        "data_safety": 8,
+        "tests": 6,
+        "consistency": 8
+      },
+      "review_cost": 0.6189
+    }
+  ]
+}
