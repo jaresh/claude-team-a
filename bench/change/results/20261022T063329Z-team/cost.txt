@@ -1,0 +1,12 @@
+agent          model       effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:fa29dfb4  sonnet-5-5            14     14     27    67217   697744   14916        0     76793          0            0  0.5576
+TOTAL          sonnet-5-5            14     14     27    67217   697744   14916        0     76793          0            0  0.5576
+total $0.5576
+cold start $0.5940: the lead's first message read a prefix another session had cached; written by this run it would cost $0.0364 more.
+by kind: in $0.000 (0%), cr $0.140 (25%), cw $0.269 (48%), out $0.149 (27%)
+tool results (calls, ~tokens returned to the model):
+  Bash:grep          4     11K
+  Bash:cat           4     11K
+  Bash:sed           1      1K
+  Bash:python3       4      1K
+  Skill              1      0K
