@@ -26,6 +26,8 @@
 # REVIEW2_MODEL=sonnet adds one review by another model (review-alt.json, "review_alt"), to check
 # whether the reviewer favours code from its own model family.
 #
+# A benchmark with a base/ folder (see bench/change) starts from that repository instead of an empty one.
+#
 # Results go to bench/<bench>/results/<UTC stamp>-<mode>/ (cost, scores, quality, review, the
 # team's plan and handoffs, the app's README) and are committed. The built app is deleted
 # (KEEP=1 keeps it).
@@ -71,6 +73,13 @@ git -C "$repo" worktree remove --force "$ws" 2>/dev/null || true
 git -C "$repo" branch -D "$branch" >/dev/null 2>&1 || true
 mkdir -p "$(dirname "$ws")" "$out"
 git -C "$repo" worktree add -q --orphan -b "$branch" "$ws"
+# A benchmark with a base/ folder starts from that existing repository (committed as the first
+# commit), not from an empty one: the task is a change to it.
+if [ -d "$here/base" ]; then
+  cp -r "$here/base/." "$ws/"
+  git -C "$ws" add -A
+  git -C "$ws" -c user.name=bench -c user.email=bench@localhost commit -qm "Base: the existing repository"
+fi
 # Both arms also lose the worktree tools and `git push`: solo sessions entered a worktree of this
 # whole repo (hidden tests included) and pushed their branches to origin.
 deny="$(python3 "$repo/team_kit.py" lead --print-args),EnterWorktree,ExitWorktree"

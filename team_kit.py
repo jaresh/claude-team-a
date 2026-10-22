@@ -44,10 +44,10 @@ import re
 import shutil
 import subprocess
 import sys
-from collections import Counter
+from collections import Counter, defaultdict
 from datetime import datetime
 
-KIT_VERSION = "3.13"
+KIT_VERSION = "3.14"
 
 SKILL = """\
 ---
@@ -70,6 +70,7 @@ Working files, all in `.claude/team/` (git-ignored):
 | `plan.md` | goal, check, contract, one section per task (the current task only) |
 | `status.md` | one row per teammate and per heavy job (the current task only) |
 | `changes.md` | one line per edit to a shared file; teammates append |
+| `review.md` | your review findings and the spec quote behind every test you changed |
 | `handoff/<name>.txt` | each teammate's handoff |
 | `scratch/<name>/` | each teammate's scratch files |
 
@@ -98,6 +99,10 @@ Then overwrite `.claude/team/plan.md` with:
   before the team starts, and the rules every task follows (naming, how options, errors and
   output are handled). Teammates import the shared code and never write their own version, so
   modules written by different teammates read as one codebase.
+- **Rules**: a checklist of the spec's cross-cutting rules, one line each with where the spec
+  states it: ordering and defaults, rounding and formats, roles and permissions, error cases,
+  limits. Copy them from the spec, don't paraphrase. A diff can't show a rule the code forgot
+  to apply, so the review in step 3 checks each line against the code.
 - **Tasks**, as many as the work needs, one section each, headed `## <task>`: the files it owns (no file in
   two tasks), what to do, what it may change to make its checks pass (all the tuning a contract
   allows for those checks, not a subset), its done check (one command, under a minute, that includes every
@@ -149,6 +154,22 @@ handoff's Done and Next step (the rest only when a decision needs it), update `s
 run the check once on the merged result. Teammates' reports aren't trusted until it passes.
 A logged change outside a task's permissions is a design decision: revert it, or keep it and
 say so in your report.
+
+Then review, in the same turn as the check and before you trust it (log it in `review.md`):
+
+1. **Rules.** For each line of the plan's Rules, `grep` the code for where it applies (every
+   place that returns a list, rounds, checks a role, or reports an error) and read those lines.
+   A rule with no place that applies it is a finding.
+2. **Diff.** `git status --short` and `git diff --stat`, plus the files a contract names: a file
+   outside every task's ownership, a signature that drifted from the contract, a shared-file
+   edit missing from `changes.md`. Read whole files only where one of these points.
+3. **Failing tests: the spec decides, not your memory.** Before you call a test wrong or change
+   an assertion, find the sentence of the spec (or the user's request) that supports your view
+   and write it in `review.md` with the test's name. No quote means the code is wrong: fix the
+   code, not the test. Never loosen, delete or skip a test to get a pass. A test that is
+   wrong, by a quote, is corrected to what the quote says.
+
+Findings go to one fix round with the failures below.
 
 - If it fails: one fix round. Fix a small problem yourself, or start a successor (`<task>-2`,
   then `-3`) whose prompt names the handoff and the failing output. A successor reads the
@@ -613,6 +634,7 @@ def scan(path, since, until, project):
     # visible content (text and tool inputs). Hidden thinking stays uncounted.
     usage, final, chars = {}, set(), Counter()
     tools, agent, first, last, started, compactions = set(), None, None, None, None, 0
+    tool_name, tool_use = {}, defaultdict(lambda: [0, 0])   # id -> label; label -> [calls, result chars]
     with open(path) as f:
         for line in f:
             try:
@@ -621,6 +643,14 @@ def scan(path, since, until, project):
                 continue
             if e.get("type") == "system" and e.get("subtype") == "compact_boundary":
                 compactions += 1
+            if e.get("type") == "user" and isinstance(e.get("message", {}).get("content"), list):
+                for c in e["message"]["content"]:
+                    if isinstance(c, dict) and c.get("type") == "tool_result":
+                        x = c.get("content")
+                        n = len(x) if isinstance(x, str) else sum(
+                            len(y.get("text") or "") for y in x if isinstance(y, dict))
+                        tool_use[tool_name.get(c.get("tool_use_id"), "?")][1] += n
+                continue
             if e.get("type") != "assistant":
                 continue
             ts = parse_time(e.get("timestamp"))
@@ -638,6 +668,14 @@ def scan(path, since, until, project):
                     continue
                 if c.get("type") == "tool_use":
                     tools.add(c.get("id"))
+                    label = c.get("name") or "?"
+                    if label == "Bash":
+                        words = (c.get("input") or {}).get("command", "").split()
+                        while words and words[0] in ("cd", "timeout", "&&"):   # skip the prefix
+                            words = words[2:] if words[0] == "cd" else words[1:]
+                        label = "Bash:" + (os.path.basename(words[0]) if words else "")
+                    tool_name[c.get("id")] = label
+                    tool_use[label][0] += 1
                     chars[m["id"]] += len(json.dumps(c.get("input") or {}))
                 chars[m["id"]] += len(c.get("text") or "") + len(c.get("thinking") or "")
             agent = agent or e.get("agentId")
@@ -661,7 +699,7 @@ def scan(path, since, until, project):
            "tools": len(tools), "input": 0, "cache_w": 0, "cache_r": 0, "output": 0,
            "peak_ctx": 0, "over_100k": 0, "compactions": compactions, "cost": 0.0,
            "unpriced": 0, "out_est": 0, "advisor_calls": 0, "cost_adv": 0.0,
-           **{k: 0.0 for k in PARTS},
+           "tool_use": dict(tool_use), **{k: 0.0 for k in PARTS},
            "first": first.isoformat() if first else None,
            "last": last.isoformat() if last else None}
     for mid, (model, u) in usage.items():
@@ -755,6 +793,24 @@ def compare(path_a, path_b):
     print(f"\nA: {path_a} {a.get('label', '')}\nB: {path_b} {b.get('label', '')}")
 
 
+def print_breakdown(rows):
+    """Where the dollars and the tool output went: by token kind, then by tool."""
+    parts = {k: sum(r[k] for r in rows) for k in PARTS}
+    total = sum(parts.values())
+    if total:
+        print("by kind: " + ", ".join(f"{k[5:]} ${v:.3f} ({v / total:.0%})"
+                                      for k, v in parts.items()))
+    use = defaultdict(lambda: [0, 0])
+    for r in rows:
+        for label, (calls, chars) in (r.get("tool_use") or {}).items():
+            use[label][0] += calls
+            use[label][1] += chars
+    if use:
+        print("tool results (calls, ~tokens returned to the model):")
+        for label, (calls, chars) in sorted(use.items(), key=lambda x: -x[1][1])[:10]:
+            print(f"  {label:14} {calls:5}  {round(chars / CHARS_PER_TOKEN / 1000):5}K")
+
+
 def cost_main(argv):
     ap = argparse.ArgumentParser(
         prog="team_kit.py cost",
@@ -830,6 +886,7 @@ def cost_main(argv):
     if cold:
         print(f"cold start ${total + cold:.4f}: the lead's first message read a prefix another "
               f"session had cached; written by this run it would cost ${cold:.4f} more.")
+    print_breakdown(rows)
     if any(r["out_est"] for r in rows):
         print("out_est: responses whose output was estimated from visible content "
               f"({CHARS_PER_TOKEN} chars/token); hidden thinking is not counted.")
@@ -839,6 +896,129 @@ def cost_main(argv):
                        "session": a.session, "total_cost": total,
                        "cold_start_cost": total + cold, "by_model": by_model,
                        "agents": rows}, f, indent=2)
+
+MAP_FILE = ".claude/team/map.md"
+MAP_BUDGET = 20000   # characters, about 6K tokens: the map costs less than the exploring it saves
+SYMBOL_RES = {   # first group of a match is the name; one regex per language family
+    ".js ts jsx tsx mjs": r"^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function\*?|class|interface|type|enum|const)\s+(\w+)",
+    ".go": r"^(?:func\s+(?:\(\w+\s+\*?\w+\)\s+)?|type\s+)(\w+)",
+    ".rs": r"^\s*(?:pub(?:\([\w:]+\))?\s+)?(?:async\s+)?(?:fn|struct|enum|trait|impl)\s+(\w+)",
+    ".java kt cs scala": r"^\s*(?:(?:public|private|protected|static|final|abstract|internal|open|data)\s+)*(?:class|interface|enum|object|record|fun)\s+(\w+)",
+    ".rb": r"^\s*(?:def|class|module)\s+(?:self\.)?(\w+)",
+    ".php": r"^\s*(?:(?:public|private|protected|static|abstract|final)\s+)*(?:function|class|interface|trait)\s+(\w+)",
+    ".c h cpp hpp cc": r"^(?:[A-Za-z_][\w\s\*:<>,]*?\s+\**)(\w+)\s*\([^;]*$|^(?:struct|class|enum)\s+(\w+)",
+}
+CODE_EXT = {".py", ".sh", ".sql", *("." + e for k in SYMBOL_RES for e in k.split())}
+SKIP_DIRS = {"node_modules", "vendor", "dist", "build", "target", "__pycache__", ".venv", "venv"}
+SKIP_EXT = {".lock", ".min.js", ".map", ".svg", ".png", ".jpg", ".gif", ".ico", ".pdf", ".zip",
+            ".woff", ".woff2", ".ttf", ".mp3", ".mp4", ".wasm", ".pyc", ".sqlite", ".db"}
+
+
+def symbols(path, text):
+    """[(name, line, depth)] of the definitions in a source file; depth 0 is top level."""
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".py":
+        import ast
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            return []
+        out = []
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                out.append((node.name, node.lineno, 0))
+                if isinstance(node, ast.ClassDef):
+                    out += [(m.name, m.lineno, 1) for m in node.body
+                            if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef))
+                            and not m.name.startswith(("test", "setUp", "tearDown"))]
+        return out
+    for exts, rx in SYMBOL_RES.items():
+        if ext[1:] in exts.split():
+            rx = re.compile(rx)
+            out = []
+            for n, line in enumerate(text.splitlines(), 1):
+                m = rx.match(line)
+                if m:
+                    out.append((next(g for g in m.groups() if g), n, 1 if line[:1].isspace() else 0))
+            return out
+    return []
+
+
+def repo_map(repo):
+    """Text map of the repo: each source file with its line count and its definitions, in the
+    most detailed form that fits MAP_BUDGET."""
+    names = (git(repo, "ls-files", "-co", "--exclude-standard") or "").splitlines()
+    files, skipped, other = [], 0, Counter()
+    for rel in sorted(set(names)):
+        full = os.path.join(repo, rel)
+        if (set(rel.split("/")) & SKIP_DIRS or rel.startswith(".claude/")
+                or os.path.splitext(rel)[1].lower() in SKIP_EXT or not os.path.isfile(full)
+                or os.path.getsize(full) > 400_000):
+            skipped += 1
+            continue
+        try:
+            text = open(full, encoding="utf-8").read()
+        except (UnicodeDecodeError, OSError):
+            skipped += 1
+            continue
+        if os.path.splitext(rel)[1].lower() in CODE_EXT:
+            files.append((rel, text.count("\n") + 1, symbols(rel, text)))
+        else:
+            other[os.path.dirname(rel) or "."] += 1
+
+    def render(level):   # 2 methods too, 1 top-level definitions, 0 files only
+        lines, last = [], None
+        for rel, n, syms in files:
+            d, base = os.path.split(rel)
+            if d != last:
+                lines.append((d or ".") + "/")
+                last = d
+            shown = [s for s in syms if s[2] == 0 or level == 2]
+            if level == 0 or not shown:
+                lines.append(f" {base} {n}")
+                continue
+            parts, cur = [], None
+            for name, line, depth in shown:
+                if depth == 0:
+                    parts.append(f"{name}:{line}")
+                    cur = len(parts) - 1
+                else:   # method: attach to the class before it as Class:12{a:13,b:20}
+                    head = parts[cur]
+                    parts[cur] = head[:-1] + "," + f"{name}:{line}}}" if head.endswith("}") \
+                        else head + "{" + f"{name}:{line}}}"
+            lines.append(f" {base} {n}: " + " ".join(parts))
+        return "\n".join(lines)
+
+    total = sum(n for _, n, _ in files)
+    rest = "".join(f" {d}/ {c}\n" for d, c in other.most_common(12))
+    for level in (2, 1, 0):
+        body = render(level)
+        if len(body) <= MAP_BUDGET:
+            break
+    head = (f"# Repo map: {len(files)} files, {total} lines"
+            + (f" ({skipped} skipped)" if skipped else "")
+            + f". Detail: {('files only', 'top-level definitions', 'definitions and methods')[level]}.\n"
+            "Format: `file lines: name:line ...`. Find code by name with `grep -n`, then read the\n"
+            "range with `sed -n 'A,Bp'`; open a whole file only when the task is about all of it.\n"
+            "Regenerate: `python3 .claude/skills/team/team_kit.py map`\n\n")
+    return head + body + ("\n\nNon-code files (folder, count), not listed:\n" + rest if rest else "\n")
+
+
+def map_main(repo, quiet=False):
+    """Write the map. quiet is for hooks: do nothing when no source file is newer than the map."""
+    path = os.path.join(repo, MAP_FILE)
+    if quiet and os.path.exists(path):
+        built = os.path.getmtime(path)
+        names = (git(repo, "ls-files", "-co", "--exclude-standard") or "").splitlines()
+        if not any(os.path.exists(os.path.join(repo, n)) and os.path.getmtime(os.path.join(repo, n)) > built
+                   for n in names if not n.startswith(".claude/")):
+            return
+    text = repo_map(repo)
+    tmp = f"{path}.{os.getpid()}"   # teammates edit in parallel: replace the file in one step
+    write(tmp, text)
+    os.replace(tmp, path)
+    if not quiet:
+        print(f"{MAP_FILE}: {len(text)} chars, about {len(text) // 4} tokens")
 
 
 def main():
@@ -858,6 +1038,9 @@ def main():
                    add_help=False)
     sub.add_parser("lead", help="start a lean lead session: lead [TASK] [-- CLAUDE_ARGS]",
                    add_help=False)
+    p = sub.add_parser("map", help="write .claude/team/map.md: files and definitions, to navigate")
+    p.add_argument("repo", nargs="?", default=".")
+    p.add_argument("--quiet", action="store_true", help="for hooks: only if a source file changed")
     sub.add_parser("request", help="in a session: save the user's messages to .claude/team/spec.md")
     if len(sys.argv) > 1 and sys.argv[1] == "cost":
         return cost_main(sys.argv[2:])
@@ -869,6 +1052,8 @@ def main():
     repo = repo_root(a.repo)
     if a.cmd == "install":
         install(repo, a.force)
+    elif a.cmd == "map":
+        map_main(repo, a.quiet)
     elif a.cmd == "uninstall":
         uninstall(repo, a.keep_work)
     else:
