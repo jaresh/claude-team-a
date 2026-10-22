@@ -1,0 +1,11 @@
+agent          model       effort  msgs  tools  input  cache_w  cache_r  output  out_est  peak_ctx  over_100k  compactions    cost
+lead:a892fec9  sonnet-5-5            16     16     31    56996   571659    9930        0     56998          0            0  0.4417
+TOTAL          sonnet-5-5            16     16     31    56996   571659    9930        0     56998          0            0  0.4417
+total $0.4417
+by kind: in $0.000 (0%), cr $0.114 (26%), cw $0.228 (52%), out $0.099 (22%)
+tool results (calls, ~tokens returned to the model):
+  Bash:sed           5      8K
+  Bash:grep          4      4K
+  Bash:cat           4      1K
+  Bash:python3       2      1K
+  Skill              1      0K

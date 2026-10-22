@@ -1,0 +1,27 @@
+{
+  "app_files": 3,
+  "app_lines": 1646,
+  "test_files": 2,
+  "test_lines": 90,
+  "test_functions": 5,
+  "test_to_app_ratio": 0.05,
+  "functions": 148,
+  "mean_function_lines": 11.8,
+  "max_function_lines": 142,
+  "functions_over_50_lines": 5,
+  "mean_complexity": 5.2,
+  "max_complexity": 60,
+  "functions_complexity_over_10": 15,
+  "most_complex": [
+    "wms/app.py:serve (60)",
+    "wms/app.py:route (41)",
+    "wms/app.py:apply (25)"
+  ],
+  "docstring_coverage": 0.03,
+  "duplicate_share": 0.0,
+  "float_calls": 0,
+  "sql_built_from_strings": 0,
+  "bare_except": 0,
+  "broad_except": 1,
+  "parse_errors": []
+}

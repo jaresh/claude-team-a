@@ -1,0 +1,26 @@
+{
+  "scores": {
+    "structure": 6,
+    "readability": 7,
+    "correctness_risks": 7,
+    "error_handling": 8,
+    "data_safety": 8,
+    "tests": 5,
+    "consistency": 6
+  },
+  "overall": 6,
+  "issues": [
+    "wms/app.py connect: the `archived` table is not in SCHEMA. Instead, `CREATE TABLE IF NOT EXISTS archived` runs as a side-effect DDL statement every time any connection opens, outside the transaction; an `archived` column on `products`, added by a real migration step, would fit the existing storage model better.",
+    "wms/app.py: the 'is archived' check is written three different ways. Ctx.product and product_list each repeat the same correlated subquery, and reorder uses a separate `NOT IN (SELECT sku FROM archived)`, so any future product query that forgets the subquery makes product_json fail with an error on p[\"archived\"].",
+    "tests/test_archive.py: the archive tests only cover the stock blocker and the receive/po create/product edit rejections. Nothing tests the open-PO, active-SO or in-transit blockers, the rejections for so create, price set, promo add --sku, return create and adjust, `--search` together with `--archived`, or any of the HTTP routes (archive/unarchive 200/400/404, `GET /products?archived=1`, PATCH 400).",
+    "tests/test_archive.py bad(): it checks only the exit code and the 'error: ' prefix. It never checks that a rejected command left the data unchanged (for example the version, the audit log or the movements), although the request requires that.",
+    "tests/test_archive.py test_at_is_inclusive: the regression test for the cut_for fix sits inside the Archive feature test class and tests only one movement at the boundary second. It does not cover several movements in the same second or movements whose ids are not in time order (possible with --now), where `MAX(id) WHERE at<=?` can include later-timestamped movements.",
+    "wms/app.py product_archive: one function takes an `on` flag and holds both the archive branch (with all its blockers) and the unarchive branch. It runs po_status/so_status once per order, re-querying each one, and the HTTP route labels it as the 'product' route, so the archive-only rules and the shared state toggle are tangled together."
+  ],
+  "strengths": [
+    "The `--at` bug is fixed at its cause in the shared cut_for helper (`at<=?`), so valuation and stock both get the fix from one place.",
+    "The live_product guard is a small, reusable helper and is applied at every booking entry point the request lists (receive, adjust, po create, so create, price set, promo add, return create, product edit/PATCH), while every read-only path keeps using Ctx.product.",
+    "Leaving the `archived` key out of product_json for non-archived products keeps existing outputs byte-identical. Unknown products still raise NotFound, so the CLI exits with 2 and HTTP returns 404, as the request requires."
+  ],
+  "review_cost": 0.647
+}
