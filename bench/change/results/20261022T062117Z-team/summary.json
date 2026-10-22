@@ -1,0 +1,118 @@
+{
+  "bench": "change",
+  "mode": "team",
+  "arm": "team",
+  "claude_args": "",
+  "model": "sonnet",
+  "effort": "medium",
+  "prompt": "9d6c5a08832f",
+  "kit": "3.14",
+  "started": "2026-10-22T06:21:17Z",
+  "ended": "2026-10-22T06:28:22Z",
+  "accept_passed": 85,
+  "accept_total": 85,
+  "accept_tiers": {
+    "T1": [
+      3,
+      3
+    ],
+    "T2": [
+      13,
+      13
+    ],
+    "T3": [
+      7,
+      7
+    ]
+  },
+  "own_passed": 32,
+  "own_total": 32,
+  "python_lines": 2481,
+  "cost": 0.6856,
+  "cost_cold": 0.7219,
+  "lead_cost": 0.6488,
+  "team_cost": 0.0368,
+  "advisor_calls": 0,
+  "advisor_cost": 0.0,
+  "teammates": [
+    "tests"
+  ],
+  "lead_messages": 21,
+  "lead_peak_ctx": 80472,
+  "lead_compactions": 0,
+  "team_peak_ctx": 62919,
+  "coverage": 0.679,
+  "least_covered": [
+    "wms/stock.py (28%)",
+    "wms/returns.py (32%)",
+    "wms/__init__.py (50%)"
+  ],
+  "quality": {
+    "app_files": 16,
+    "app_lines": 1760,
+    "test_files": 2,
+    "test_lines": 355,
+    "test_functions": 32,
+    "test_to_app_ratio": 0.2,
+    "functions": 152,
+    "mean_function_lines": 11.7,
+    "max_function_lines": 142,
+    "functions_over_50_lines": 5,
+    "mean_complexity": 5.2,
+    "max_complexity": 60,
+    "functions_complexity_over_10": 15,
+    "most_complex": [
+      "wms/http.py:serve (60)",
+      "wms/http.py:route (41)",
+      "wms/ledger.py:apply (25)"
+    ],
+    "docstring_coverage": 0.05,
+    "duplicate_share": 0.0,
+    "float_calls": 0,
+    "sql_built_from_strings": 3,
+    "bare_except": 0,
+    "broad_except": 1,
+    "parse_errors": []
+  },
+  "review": {
+    "scores": {
+      "structure": 7,
+      "readability": 8,
+      "correctness_risks": 7,
+      "error_handling": 8,
+      "data_safety": 8,
+      "tests": 7,
+      "consistency": 8
+    },
+    "overall": 7,
+    "issues": [
+      "wms/catalog.py product_busy imports ledger, orders and purchasing inside the function to get around a circular import, so the catalog module now depends on the order and stock layers; this rule would fit better in a service-level module.",
+      "wms/orders.py so_confirm runs the credit-limit check after the so_lines prices have already been written, so 'changes nothing' depends only on the transaction rolling back; it also calls so_status, which runs several queries, for every active order of the customer.",
+      "wms/session.py migrate runs PRAGMA and ALTER TABLE outside any transaction on every connect, which means on every CLI command and every HTTP request, and no test covers upgrading a book created before archiving and credit limits.",
+      "wms/reports.py cut_for (now `at<=?`, shared by valuation and stock_report) still takes MAX(id) of the matching movements, so a movement booked earlier with a later `--now` but a lower id can still slip into or out of an `--at` report; the fix assumes ids and times increase together.",
+      "tests/test_changes.py never checks that partially_shipped orders count toward the credit limit, that promotions and order discounts are applied to the total checked against the limit, or that HTTP POST /sales-orders/X/confirm is refused when over the limit.",
+      "wms/http.py patch calls ctx.live_product before checking If-Match, so for an archived product a PATCH with no If-Match or a bad one returns 400 instead of 428/412; it works, but the order of the checks is not spelled out."
+    ],
+    "strengths": [
+      "The --at bug is fixed at its single cause (cut_for uses at<=), and valuation and stock --at both get the fix through the shared helper, with tests at the boundary second, one second before and after.",
+      "Archiving is enforced through a single Ctx.live_product guard used by every booking path (receive, adjust, po/so create, price, promo, return, product edit, PATCH), and product_json and customer_json add the optional keys only when set, so existing output stays the same.",
+      "The new tests run against the real CLI and HTTP server, each on its own copy of the database, and check that refused commands leave the history and the version number unchanged."
+    ],
+    "review_cost": 0.6853
+  },
+  "reviews": [
+    {
+      "overall": 7,
+      "scores": {
+        "structure": 7,
+        "readability": 8,
+        "correctness_risks": 7,
+        "error_handling": 8,
+        "data_safety": 8,
+        "tests": 7,
+        "consistency": 8
+      },
+      "review_cost": 0.6853
+    }
+  ]
+}
